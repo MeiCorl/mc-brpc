@@ -1,0 +1,163 @@
+syntax="proto3";
+package validator;
+
+import "google/protobuf/descriptor.proto";
+
+// int32类型校验规则
+message Int32Rule {
+    oneof lt_rule {
+        int32 lt = 1;
+    }
+    oneof lte_rule {
+        int32 lte = 2;
+    }
+    oneof gt_rule {
+        int32 gt = 3;
+    }
+    oneof gte_rule {
+        int32 gte = 4;
+    }
+    repeated int32 in = 5;
+    repeated int32 not_in = 6;
+}
+
+// int64类型校验规则
+message Int64Rule {
+    oneof lt_rule {
+        int64 lt = 1;
+    }
+    oneof lte_rule {
+        int64 lte = 2;
+    }
+    oneof gt_rule {
+        int64 gt = 3;
+    }
+    oneof gte_rule {
+        int64 gte = 4;
+    }
+    repeated int64 in = 5;
+    repeated int64 not_in = 6;
+}
+
+// uint32类型校验规则
+message UInt32Rule {
+    oneof lt_rule {
+        uint32 lt = 1;
+    }
+    oneof lte_rule {
+        uint32 lte = 2;
+    }
+    oneof gt_rule {
+        uint32 gt = 3;
+    }
+    oneof gte_rule {
+        uint32 gte = 4;
+    }
+    repeated uint32 in = 5;
+    repeated uint32 not_in = 6;
+}
+
+// uint64类型校验规则
+message UInt64Rule {
+    oneof lt_rule {
+        uint64 lt = 1;
+    }
+    oneof lte_rule {
+        uint64 lte = 2;
+    }
+    oneof gt_rule {
+        uint64 gt = 3;
+    }
+    oneof gte_rule {
+        uint64 gte = 4;
+    }
+    repeated uint64 in = 5;
+    repeated uint64 not_in = 6;
+}
+
+// float类型校验规则
+message FloatRule {
+    oneof lt_rule {
+        float lt = 1;
+    }
+    oneof lte_rule {
+        float lte = 2;
+    }
+    oneof gt_rule {
+        float gt = 3;
+    }
+    oneof gte_rule {
+        float gte = 4;
+    }
+    repeated float in = 5;
+    repeated float not_in = 6;
+}
+
+// double类型校验规则
+message DoubleRule {
+    oneof lt_rule {
+        double lt = 1;
+    }
+    oneof lte_rule {
+        double lte = 2;
+    }
+    oneof gt_rule {
+        double gt = 3;
+    }
+    oneof gte_rule {
+        double gte = 4;
+    }
+    repeated double in = 5;
+    repeated double not_in = 6;
+}
+
+// string类型校验规则
+message StringRule {
+    bool not_empty = 1;
+    oneof min_len_rule {
+        uint32 min_len = 2;
+    }
+    oneof max_len_rule {
+        uint32 max_len = 3;
+    }
+    string regex_pattern = 4;
+}
+
+// enum类型校验规则
+message EnumRule {
+    repeated int32 in = 1;
+}
+
+// array(数组)类型校验规则
+message ArrayRule {
+    bool not_empty = 1;
+    oneof min_len_rule {
+        uint32 min_len = 2;
+    }
+    oneof max_len_rule {
+        uint32 max_len = 3;
+    }
+}
+
+// 校验规则(oneof取上述字段类型校验规则之一)
+message ValidateRules {
+    oneof rule {
+        /* 基本类型规则 */
+        Int32Rule int32  = 1;
+        Int64Rule int64  = 2;
+        UInt32Rule uint32  = 3;
+        UInt64Rule uint64  = 4;
+        FloatRule float = 5;
+        DoubleRule double = 6;
+        StringRule string = 7;
+
+        /* 复杂类型规则 */
+        EnumRule enum = 8;
+        ArrayRule array = 9;
+    }
+}
+
+// 拓展默认字段属性, 将ValidateRules设置为字段属性
+extend google.protobuf.FieldOptions {
+    ValidateRules Rule = 10000;
+}
