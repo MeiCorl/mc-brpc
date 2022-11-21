@@ -128,6 +128,19 @@ typedef double double_;
         }                                                                                          \
     }
 
+/**
+ * 结构体校验器(Message)
+ * (递归校验)
+*/
+#define MessageValidator()                                                                         \
+    case google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE: {                                     \
+        const Message& sub_message = reflection->GetMessage(message, field);                       \
+        ValidateResult&& result    = Validate(sub_message);                                        \
+        if (!result.is_valid) {                                                                    \
+            return result;                                                                         \
+        }                                                                                          \
+        break;                                                                                     \
+    }
 
 class ValidatorUtil {
 public:
@@ -159,14 +172,7 @@ public:
                     NumericalValidator(DOUBLE, Double, double_);
                     StringValidator(STRING, String, string);
                     EnumValidator(ENUM, Enum, enum_);
-                    case google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE: {
-                        const Message& sub_message = reflection->GetMessage(message, field);
-                        ValidateResult&& result    = Validate(sub_message);
-                        if (!result.is_valid) {
-                            return result;
-                        }
-                        break;
-                    }
+                    MessageValidator();
                     default:
                         break;
                 }
