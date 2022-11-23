@@ -19,6 +19,7 @@ cmake_minimum_required(VERSION 3.0)
 
 option(LINK_SO "Whether examples are linked dynamically" OFF)
 
+# brpc编译后include目录
 set(BRPC_PATH "/incubator-brpc")
 execute_process(
     COMMAND bash -c "find ${BRPC_PATH} -type d -regex \".*output/include$\" | head -n1 | xargs dirname | tr -d '\n'"
