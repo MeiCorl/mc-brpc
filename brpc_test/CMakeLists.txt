@@ -15,9 +15,8 @@ EXECUTE_PROCESS(
 )
 
 include_directories(
-    ${BASE_LIB_PATH}
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # 编译proto文件

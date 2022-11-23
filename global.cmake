@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
+include_directories(${CMAKE_CURRENT_LIST_DIR})
 set(BASE_LIB_PATH ${CMAKE_CURRENT_LIST_DIR}/base_libs)
 
 function(add_custom_lib_source SRCS)

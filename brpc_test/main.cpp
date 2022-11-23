@@ -1,7 +1,7 @@
 #include <gflags/gflags.h>
 #include <butil/logging.h>
 #include <brpc/server.h>
-#include "service_impl.h"
+#include "src/service_impl.h"
 
 DEFINE_bool(echo_attachment, true, "Echo attachment as well");
 DEFINE_int32(port, 8000, "TCP Port of this server");
