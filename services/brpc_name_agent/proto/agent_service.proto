@@ -1,0 +1,45 @@
+syntax="proto3";
+package name_agent;
+
+option cc_generic_services = true;
+
+enum ResCode {
+    ResCode_Begin = 0;
+    Success = 200;
+    InValidParams = 400;
+}
+
+message TestReq {
+    int32 seq_id = 1;
+    string msg = 2;
+}
+
+message TestRes {
+    uint64 seq_id = 1;
+    ResCode res_code = 2;
+    string res_msg = 3;
+}
+
+enum LbStrategy {
+    Begin = 0;
+    STRATEGY_NORMAL = 1;                // 先本机房rr，再本大区rr，无实例则路由失败
+    STRATEGY_GROUPS_ONE_REGION = 2;     // 
+    End = 3;
+}
+
+message GetUpstreamInstanceReq {
+    uint64 seq_id = 1;
+    string service_name = 2;
+    LbStrategy lb = 3;
+}
+
+message GetUpstreamInstanceRes {
+    uint64 seq_id = 1;
+    ResCode res_code = 2;
+    string endpoint = 3;
+}
+
+service AgentService {
+    rpc Test (TestReq) returns (TestRes);
+    rpc GetUpstreamInstance(GetUpstreamInstanceReq) returns (GetUpstreamInstanceRes);
+}

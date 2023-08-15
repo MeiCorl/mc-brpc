@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 2.8...3.27)
 
 option(LINK_SO "Whether examples are linked dynamically" OFF)
 
 # brpc编译后include目录
-set(BRPC_PATH "/incubator-brpc")
+set(BRPC_PATH "/brpc")
 execute_process(
     COMMAND bash -c "find ${BRPC_PATH} -type d -regex \".*output/include$\" | head -n1 | xargs dirname | tr -d '\n'"
     OUTPUT_VARIABLE OUTPUT_PATH

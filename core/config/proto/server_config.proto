@@ -1,0 +1,38 @@
+syntax="proto3";
+package server.config;
+
+option cc_generic_services = true;
+
+message InstanceInfo {
+    uint32 region_id = 1;
+    uint32 group_id = 2;
+    string endpoint = 3;
+}
+
+message DbConfig {
+    string instance_name = 1;
+    string host = 2;
+    uint32 timeout_ms = 3;
+}
+
+message RedisConfig {
+    string instance_name = 1;
+    string host = 2;
+    uint32 timeout_ms = 3;
+}
+
+message LogConfig {
+    uint32 log_level = 1;
+    uint32 log_threshold = 2;
+    bool log_to_stderr = 3;
+}
+
+message SvrConfigBase {
+    string ns_url = 1;
+    string service_name = 2;
+    uint32 region_id = 3;
+    uint32 group_id = 4;
+    map<string, DbConfig> db_configs = 5;
+    map<string, RedisConfig> redis_configs = 6;
+    LogConfig log_config = 7;
+}

@@ -1,6 +1,7 @@
 #include <gflags/gflags.h>
 #include <butil/logging.h>
 #include <brpc/server.h>
+#include <etcd/Client.hpp>
 #include "src/service_impl.h"
 
 DEFINE_bool(echo_attachment, true, "Echo attachment as well");
