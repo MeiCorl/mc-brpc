@@ -1,10 +1,11 @@
 #include "MCServer.h"
 #include "core/utils/singleton.h"
-
+#include "core/net/net_utils.h"
 #include <butil/files/file_path.h>
 #include <butil/file_util.h>
 #include <bthread/unstable.h>
 #include <etcd/Client.hpp>
+
 
 using namespace server;
 
@@ -26,6 +27,7 @@ MCServer::~MCServer() {
         _log_archive_worker = nullptr;
     }
 
+    _keep_live_ptr->Cancel();
     UnRegisterService();
 }
 
@@ -58,6 +60,12 @@ void MCServer::LoggingInit(char* argv[]) {
     _log_archive_worker->Start();
 }
 
+std::string MCServer::BuildServiceName(const std::string& original_service_name,
+                                       const server::config::InstanceInfo& instance) {
+    std::hash<std::string> hasher;
+    return original_service_name + ":" + std::to_string(hasher(instance.SerializeAsString()));
+}
+
 void MCServer::RegisterService() {
     ServerConfig* config = utils::Singleton<ServerConfig>::get();
     etcd::Client etcd(config->GetNsUrl());
@@ -71,46 +79,40 @@ void MCServer::RegisterService() {
                    << ", err_msg:" << resp.error_message();
         exit(1);
     }
-
-    _ns_lease_id = resp.value().lease();
-    etcd::Response response =
-        etcd.set(config->GetSelfName(), instance.SerializeAsString(), _ns_lease_id).get();
+    _etcd_lease_id          = resp.value().lease();
+    etcd::Response response = etcd.set(BuildServiceName(config->GetSelfName(), instance),
+                                       instance.SerializeAsString(), _etcd_lease_id)
+                                  .get();
     if (response.error_code() != 0) {
         LOG(ERROR) << "[!] Fail to register service, err_code: " << response.error_code()
                    << ", err_msg:" << response.error_message();
         exit(1);
     }
 
-    // 启动续约定时任务
-    _service_release_timer.Init(this, REGISTER_TTL - 10);
-    _service_release_timer.Start();
+    std::function<void(std::exception_ptr)> handler = [](std::exception_ptr eptr) {
+        try {
+            if (eptr) {
+                std::rethrow_exception(eptr);
+            }
+        } catch (const std::runtime_error& e) {
+            LOG(ERROR) << "[!] Connection failure: " << e.what();
+        } catch (const std::out_of_range& e) {
+            std::cerr << "[!] Lease expire: " << e.what();
+        }
+    };
+    _keep_live_ptr.reset(new etcd::KeepAlive(etcd, handler, REGISTER_TTL, _etcd_lease_id));
+    LOG(INFO) << "[+] Service registe succ. instance: {" << instance.ShortDebugString()
+              << "}, lease_id:" << _etcd_lease_id;
 }
 
-void MCServer::UnRegisterService() { }
-
-/**
- * 定期心跳续期服务注册信息
- * @date: 2023-08-14 17:08:23
- * @author: meicorl
-*/
-bool MCServer::LeaseRegisteration() {
+void MCServer::UnRegisterService() {
     ServerConfig* config = utils::Singleton<ServerConfig>::get();
-    // etcd::Client etcd(config->GetNsUrl());
-
-    // std::function<void(std::exception_ptr)> handler = [](std::exception_ptr eptr) {
-    //     try {
-    //         if (eptr) {
-    //             std::rethrow_exception(eptr);
-    //         }
-    //     } catch (const std::runtime_error& e) {
-    //         std::cerr << "Connection failure \"" << e.what() << "\"\n";
-    //     } catch (const std::out_of_range& e) {
-    //         std::cerr << "Lease expiry \"" << e.what() << "\"\n";
-    //     }
-    // };
-    // etcd::KeepAlive keepalive(etcd, handler, REGISTER_TTL, _ns_lease_id);
-    LOG(INFO) << "[+] Service leased, service_name:" << config->GetSelfName();
-    return true;
+    server::config::InstanceInfo instance;
+    instance.set_region_id(config->GetSelfRegionId());
+    instance.set_group_id(config->GetSelfGroupId());
+    instance.set_endpoint(butil::endpoint2str(_server.listen_address()).c_str());
+    etcd::Client etcd(config->GetNsUrl());
+    etcd.rm(BuildServiceName(config->GetSelfName(), instance));
 }
 
 void MCServer::AddService(google::protobuf::Service* service) {
@@ -125,7 +127,9 @@ void MCServer::Start() {
     if (!FLAGS_listen_addr.empty()) {
         butil::str2endpoint(FLAGS_listen_addr.c_str(), &point);
     } else {
-        butil::str2endpoint("", 0, &point);
+        char ip[32] = {0};
+        server::net::NetUtil::getLocalIP(ip);
+        butil::str2endpoint(ip, 0, &point);
     }
 
     brpc::ServerOptions options;

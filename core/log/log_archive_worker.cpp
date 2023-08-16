@@ -35,6 +35,11 @@ void LogArchiveWorker::Run() {
         strftime(tmp, sizeof(tmp), "%Y-%m-%d_%H", localtime(&ts));
         std::string date(tmp);
 
+        memset(tmp, 0, sizeof(tmp));
+        time_t one_month_ago_ts = ts - 2592000;
+        strftime(tmp, sizeof(tmp), "%Y-%m-%d_%H", localtime(&one_month_ago_ts));
+        std::string one_month_ago(tmp);
+
         auto const pos = _log_file.find_last_of('.');
         std::string path_name;
         if (pos != std::string::npos) {
@@ -43,7 +48,7 @@ void LogArchiveWorker::Run() {
 
         std::ostringstream cmd;
         cmd << "gzip " << _log_file << " && mv " << _log_file << ".gz " << path_name << "_" << date
-            << ".log.gz";
+            << ".log.gz && rm -rf " << path_name << "_" << one_month_ago << ".log.gz";
         int ret = system(cmd.str().c_str());
         if (ret == -1) {
             LOG(ERROR) << "[!] system call failed.";

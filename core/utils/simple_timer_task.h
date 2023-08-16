@@ -10,9 +10,14 @@ namespace utils {
 
 template <typename T>
 struct timer_callback_func {
-    typedef bool (T::*callback)();
+    typedef void (T::*callback)();
 };
 
+/**
+ * 简单定时任务类
+ * @date: 2023-08-15 09:00:00
+ * @author: meicorl
+*/
 template <typename T, typename timer_callback_func<T>::callback ptr>
 class SimpleTimerTask : public butil::SimpleThread {
 private:

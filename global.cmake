@@ -12,6 +12,7 @@ function(add_server_source SRCS)
     # )
     # protobuf_generate_cpp(SVR_PB_SRCS SVR_PB_HDRS ${SVR_PROTOS})
     aux_source_directory(${ROOT_PATH}/core/server _src)
+    aux_source_directory(${ROOT_PATH}/core/net _src)
     aux_source_directory(${ROOT_PATH}/core/config _src)
     aux_source_directory(${ROOT_PATH}/core/log _src)
     message("[+] add server source:" ${ROOT_PATH}/core)
@@ -45,3 +46,6 @@ function(add_custom_lib_source SRCS)
 
     set(${SRCS} ${${SRCS}} PARENT_SCOPE)
 endfunction()
+
+# 链接etcd-cpp-api
+find_package(etcd-cpp-api REQUIRED)

@@ -3,7 +3,7 @@ MAINTAINER meicorl
 
 # 安装常用工具
 RUN apt-get update -y
-RUN apt install -y vim wget git lsof curl
+RUN apt install -y vim wget git lsof curl net-tools
 
 # 安装c++编译工具
 RUN apt install -y libssl-dev build-essential
