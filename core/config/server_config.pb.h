@@ -768,7 +768,8 @@ class LogConfig PROTOBUF_FINAL :
   enum : int {
     kLogLevelFieldNumber = 1,
     kLogThresholdFieldNumber = 2,
-    kLogToStderrFieldNumber = 3,
+    kRemainDaysFieldNumber = 3,
+    kLogToStderrFieldNumber = 4,
   };
   // uint32 log_level = 1;
   void clear_log_level();
@@ -788,7 +789,16 @@ class LogConfig PROTOBUF_FINAL :
   void _internal_set_log_threshold(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
-  // bool log_to_stderr = 3;
+  // uint32 remain_days = 3;
+  void clear_remain_days();
+  ::PROTOBUF_NAMESPACE_ID::uint32 remain_days() const;
+  void set_remain_days(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_remain_days() const;
+  void _internal_set_remain_days(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // bool log_to_stderr = 4;
   void clear_log_to_stderr();
   bool log_to_stderr() const;
   void set_log_to_stderr(bool value);
@@ -806,6 +816,7 @@ class LogConfig PROTOBUF_FINAL :
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::uint32 log_level_;
   ::PROTOBUF_NAMESPACE_ID::uint32 log_threshold_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 remain_days_;
   bool log_to_stderr_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_server_5fconfig_2eproto;
@@ -1693,7 +1704,27 @@ inline void LogConfig::set_log_threshold(::PROTOBUF_NAMESPACE_ID::uint32 value) 
   // @@protoc_insertion_point(field_set:server.config.LogConfig.log_threshold)
 }
 
-// bool log_to_stderr = 3;
+// uint32 remain_days = 3;
+inline void LogConfig::clear_remain_days() {
+  remain_days_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LogConfig::_internal_remain_days() const {
+  return remain_days_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LogConfig::remain_days() const {
+  // @@protoc_insertion_point(field_get:server.config.LogConfig.remain_days)
+  return _internal_remain_days();
+}
+inline void LogConfig::_internal_set_remain_days(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  remain_days_ = value;
+}
+inline void LogConfig::set_remain_days(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_remain_days(value);
+  // @@protoc_insertion_point(field_set:server.config.LogConfig.remain_days)
+}
+
+// bool log_to_stderr = 4;
 inline void LogConfig::clear_log_to_stderr() {
   log_to_stderr_ = false;
 }

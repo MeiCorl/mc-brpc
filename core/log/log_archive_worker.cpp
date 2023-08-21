@@ -4,8 +4,11 @@
 
 using namespace server::logger;
 
-LogArchiveWorker::LogArchiveWorker(const std::string& log_file)
-    : butil::SimpleThread("LogArchiveWorker"), _log_file(log_file), _is_asked_to_quit(false) { }
+LogArchiveWorker::LogArchiveWorker(const std::string& log_file, uint32_t remain_days)
+    : butil::SimpleThread("LogArchiveWorker")
+    , _log_file(log_file)
+    , _is_asked_to_quit(false)
+    , _remain_days(remain_days) { }
 
 LogArchiveWorker::~LogArchiveWorker() {
     _is_asked_to_quit = true;
@@ -36,7 +39,7 @@ void LogArchiveWorker::Run() {
         std::string date(tmp);
 
         memset(tmp, 0, sizeof(tmp));
-        time_t one_month_ago_ts = ts - 2592000;
+        time_t one_month_ago_ts = ts - _remain_days * 86400;
         strftime(tmp, sizeof(tmp), "%Y-%m-%d_%H", localtime(&one_month_ago_ts));
         std::string one_month_ago(tmp);
 

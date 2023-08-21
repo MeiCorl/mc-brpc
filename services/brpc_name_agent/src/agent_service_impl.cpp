@@ -226,7 +226,7 @@ void AgentServiceImpl::GetUpstreamInstance(google::protobuf::RpcController* cont
     uint32_t group_id                 = cfg->GetSelfGroupId();
 
     vector<string> ip_list;
-    if (request->group_strategy() == GroupStrategy::STRATEGY_GROUPS_ONE_REGION) {
+    if (request->group_strategy() == server::config::GroupStrategy::STRATEGY_GROUPS_ONE_REGION) {
         // 直接本大区路由
         butil::DoublyBufferedData<ServiceRegionMap>::ScopedPtr map_ptr;
         if (m_instancesByRegion.Read(&map_ptr) != 0) {
@@ -245,7 +245,7 @@ void AgentServiceImpl::GetUpstreamInstance(google::protobuf::RpcController* cont
             response->set_res_code(NotFound);
             return;
         }
-    } else if (request->group_strategy() == GroupStrategy::STRATEGY_SELF_GROUP) {
+    } else if (request->group_strategy() == server::config::GroupStrategy::STRATEGY_SELF_GROUP) {
         // 仅在本机房路由
         butil::DoublyBufferedData<ServiceRegionAndGroupMap>::ScopedPtr map_ptr;
         if (m_instancesByRegionAndGroup.Read(&map_ptr) != 0) {
@@ -263,7 +263,7 @@ void AgentServiceImpl::GetUpstreamInstance(google::protobuf::RpcController* cont
             response->set_res_code(NotFound);
             return;
         }
-    } else if (request->group_strategy() == GroupStrategy::STRATEGY_CHASH_GROUPS) {
+    } else if (request->group_strategy() == server::config::GroupStrategy::STRATEGY_CHASH_GROUPS) {
         // 先对本大区的所有机房做一致性HASH决定所返回的IP列表的机房, 再返回机房的实例IP列表路由
         butil::DoublyBufferedData<ServiceRegionAndGroupMap>::ScopedPtr map_ptr;
         if (m_instancesByRegionAndGroup.Read(&map_ptr) != 0) {
@@ -316,7 +316,7 @@ void AgentServiceImpl::GetUpstreamInstance(google::protobuf::RpcController* cont
     }
 
     uint32_t idx = 0;
-    if (request->lb_strategy() == LbStrategy::c_murmurhash) {
+    if (request->lb_strategy() == server::config::LbStrategy::c_murmurhash) {
         idx = request->request_code() % ip_list.size();
     } else {
         idx = m_rr_index[service_name][request->group_strategy()].fetch_add(1) % ip_list.size();

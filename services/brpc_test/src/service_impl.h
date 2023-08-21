@@ -2,10 +2,7 @@
 #include "test.pb.h"
 
 namespace test {
-
 class ServiceImpl : public TestService {
-private:
-    /* data */
 public:
     ServiceImpl(/* args */);
     ~ServiceImpl();

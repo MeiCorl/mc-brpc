@@ -9,6 +9,7 @@ enum ResCode {
     ResCode_Begin = 0;
     Success = 200;
     InValidParams = 400;
+    ServerError = 500;
 }
 
 message UserInfo {

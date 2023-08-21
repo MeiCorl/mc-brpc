@@ -8,10 +8,10 @@ set(BIN_NAME "brpc_name_agent_d")
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../global.cmake)
 
-EXECUTE_PROCESS(
-    COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/proto/validator.proto
-    COMMAND ln -s ${BASE_LIB_PATH}/validator/proto/validator.proto ${CMAKE_CURRENT_SOURCE_DIR}/proto/validator.proto
-)
+# EXECUTE_PROCESS(
+#     COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/proto/validator.proto
+#     COMMAND ln -s ${BASE_LIB_PATH}/validator/proto/validator.proto ${CMAKE_CURRENT_SOURCE_DIR}/proto/validator.proto
+# )
 
 include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}

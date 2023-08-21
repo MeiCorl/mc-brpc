@@ -56,7 +56,8 @@ void MCServer::LoggingInit(char* argv[]) {
     _log_watcher = new server::logger::LogRotateWatcher(log_name);
     _log_watcher->Start();
 
-    _log_archive_worker = new server::logger::LogArchiveWorker(log_name);
+    _log_archive_worker =
+        new server::logger::LogArchiveWorker(log_name, svr_config->GetLogConfig().remain_days());
     _log_archive_worker->Start();
 }
 
@@ -127,9 +128,13 @@ void MCServer::Start() {
     if (!FLAGS_listen_addr.empty()) {
         butil::str2endpoint(FLAGS_listen_addr.c_str(), &point);
     } else {
+#ifdef LOCAL_TEST
+        butil::str2endpoint("", 0, &point);
+#else
         char ip[32] = {0};
         server::net::NetUtil::getLocalIP(ip);
         butil::str2endpoint(ip, 0, &point);
+#endif
     }
 
     brpc::ServerOptions options;

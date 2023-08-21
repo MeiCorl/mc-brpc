@@ -22,25 +22,11 @@ message TestRes {
     string res_msg = 3;
 }
 
-enum GroupStrategy {
-    STRATEGY_NORMAL = 0;                // 先本机房IP列表路由，本机房无实例再本大区路由，无实例则路由失败
-    STRATEGY_GROUPS_ONE_REGION = 1;     // 直接本大区IP列表路由，无实例则路由失败
-    STRATEGY_SELF_GROUP = 2;            // 只在本机房路由，无实例则路由失败
-    STRATEGY_CHASH_GROUPS = 3;          // 先对本大区的所有机房做一致性HASH决定所返回的IP列表的机房, 再返回机房的实例IP列表路由(需要制定group_request_code)
-    GroupStrategy_End = 4;
-}
-
-enum LbStrategy {
-    rr = 0;
-    c_murmurhash = 1;
-    LbStrategy_End = 3;
-}
-
 message GetUpstreamInstanceReq {
     uint64 seq_id = 1;
     string service_name = 2;
-    GroupStrategy group_strategy = 3;
-    LbStrategy lb_strategy = 4;
+    uint32 group_strategy = 3;
+    uint32 lb_strategy = 4;
     uint64 request_code = 5;
     uint64 group_request_code = 6;
 }

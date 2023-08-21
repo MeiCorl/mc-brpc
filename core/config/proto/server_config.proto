@@ -24,7 +24,8 @@ message RedisConfig {
 message LogConfig {
     uint32 log_level = 1;
     uint32 log_threshold = 2;
-    bool log_to_stderr = 3;
+    uint32 remain_days = 3;
+    bool log_to_stderr = 4;
 }
 
 message SvrConfigBase {

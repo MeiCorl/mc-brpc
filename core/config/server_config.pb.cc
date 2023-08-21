@@ -188,6 +188,7 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_server_5fconfig_2eproto::offse
   ~0u,  // no _weak_field_map_
   PROTOBUF_FIELD_OFFSET(::server::config::LogConfig, log_level_),
   PROTOBUF_FIELD_OFFSET(::server::config::LogConfig, log_threshold_),
+  PROTOBUF_FIELD_OFFSET(::server::config::LogConfig, remain_days_),
   PROTOBUF_FIELD_OFFSET(::server::config::LogConfig, log_to_stderr_),
   PROTOBUF_FIELD_OFFSET(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse, _has_bits_),
   PROTOBUF_FIELD_OFFSET(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse, _internal_metadata_),
@@ -225,9 +226,9 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOB
   { 8, -1, sizeof(::server::config::DbConfig)},
   { 16, -1, sizeof(::server::config::RedisConfig)},
   { 24, -1, sizeof(::server::config::LogConfig)},
-  { 32, 39, sizeof(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse)},
-  { 41, 48, sizeof(::server::config::SvrConfigBase_RedisConfigsEntry_DoNotUse)},
-  { 50, -1, sizeof(::server::config::SvrConfigBase)},
+  { 33, 40, sizeof(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse)},
+  { 42, 49, sizeof(::server::config::SvrConfigBase_RedisConfigsEntry_DoNotUse)},
+  { 51, -1, sizeof(::server::config::SvrConfigBase)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -247,20 +248,20 @@ const char descriptor_table_protodef_server_5fconfig_2eproto[] PROTOBUF_SECTION_
   "\025\n\rinstance_name\030\001 \001(\t\022\014\n\004host\030\002 \001(\t\022\022\n\n"
   "timeout_ms\030\003 \001(\r\"F\n\013RedisConfig\022\025\n\rinsta"
   "nce_name\030\001 \001(\t\022\014\n\004host\030\002 \001(\t\022\022\n\ntimeout_"
-  "ms\030\003 \001(\r\"L\n\tLogConfig\022\021\n\tlog_level\030\001 \001(\r"
-  "\022\025\n\rlog_threshold\030\002 \001(\r\022\025\n\rlog_to_stderr"
-  "\030\003 \001(\010\"\254\003\n\rSvrConfigBase\022\016\n\006ns_url\030\001 \001(\t"
-  "\022\024\n\014service_name\030\002 \001(\t\022\021\n\tregion_id\030\003 \001("
-  "\r\022\020\n\010group_id\030\004 \001(\r\022\?\n\ndb_configs\030\005 \003(\0132"
-  "+.server.config.SvrConfigBase.DbConfigsE"
-  "ntry\022E\n\rredis_configs\030\006 \003(\0132..server.con"
-  "fig.SvrConfigBase.RedisConfigsEntry\022,\n\nl"
-  "og_config\030\007 \001(\0132\030.server.config.LogConfi"
-  "g\032I\n\016DbConfigsEntry\022\013\n\003key\030\001 \001(\t\022&\n\005valu"
-  "e\030\002 \001(\0132\027.server.config.DbConfig:\0028\001\032O\n\021"
-  "RedisConfigsEntry\022\013\n\003key\030\001 \001(\t\022)\n\005value\030"
-  "\002 \001(\0132\032.server.config.RedisConfig:\0028\001B\003\200"
-  "\001\001b\006proto3"
+  "ms\030\003 \001(\r\"a\n\tLogConfig\022\021\n\tlog_level\030\001 \001(\r"
+  "\022\025\n\rlog_threshold\030\002 \001(\r\022\023\n\013remain_days\030\003"
+  " \001(\r\022\025\n\rlog_to_stderr\030\004 \001(\010\"\254\003\n\rSvrConfi"
+  "gBase\022\016\n\006ns_url\030\001 \001(\t\022\024\n\014service_name\030\002 "
+  "\001(\t\022\021\n\tregion_id\030\003 \001(\r\022\020\n\010group_id\030\004 \001(\r"
+  "\022\?\n\ndb_configs\030\005 \003(\0132+.server.config.Svr"
+  "ConfigBase.DbConfigsEntry\022E\n\rredis_confi"
+  "gs\030\006 \003(\0132..server.config.SvrConfigBase.R"
+  "edisConfigsEntry\022,\n\nlog_config\030\007 \001(\0132\030.s"
+  "erver.config.LogConfig\032I\n\016DbConfigsEntry"
+  "\022\013\n\003key\030\001 \001(\t\022&\n\005value\030\002 \001(\0132\027.server.co"
+  "nfig.DbConfig:\0028\001\032O\n\021RedisConfigsEntry\022\013"
+  "\n\003key\030\001 \001(\t\022)\n\005value\030\002 \001(\0132\032.server.conf"
+  "ig.RedisConfig:\0028\001B\003\200\001\001b\006proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_server_5fconfig_2eproto_deps[1] = {
 };
@@ -275,7 +276,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_ser
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_server_5fconfig_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_server_5fconfig_2eproto = {
-  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 770,
+  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 791,
   &descriptor_table_server_5fconfig_2eproto_once, descriptor_table_server_5fconfig_2eproto_sccs, descriptor_table_server_5fconfig_2eproto_deps, 7, 0,
   schemas, file_default_instances, TableStruct_server_5fconfig_2eproto::offsets,
   file_level_metadata_server_5fconfig_2eproto, 7, file_level_enum_descriptors_server_5fconfig_2eproto, file_level_service_descriptors_server_5fconfig_2eproto,
@@ -1192,9 +1193,16 @@ const char* LogConfig::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // bool log_to_stderr = 3;
+      // uint32 remain_days = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
+          remain_days_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // bool log_to_stderr = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
           log_to_stderr_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
@@ -1239,10 +1247,16 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(2, this->_internal_log_threshold(), target);
   }
 
-  // bool log_to_stderr = 3;
+  // uint32 remain_days = 3;
+  if (this->remain_days() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(3, this->_internal_remain_days(), target);
+  }
+
+  // bool log_to_stderr = 4;
   if (this->log_to_stderr() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(3, this->_internal_log_to_stderr(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(4, this->_internal_log_to_stderr(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1275,7 +1289,14 @@ size_t LogConfig::ByteSizeLong() const {
         this->_internal_log_threshold());
   }
 
-  // bool log_to_stderr = 3;
+  // uint32 remain_days = 3;
+  if (this->remain_days() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_remain_days());
+  }
+
+  // bool log_to_stderr = 4;
   if (this->log_to_stderr() != 0) {
     total_size += 1 + 1;
   }
@@ -1316,6 +1337,9 @@ void LogConfig::MergeFrom(const LogConfig& from) {
   }
   if (from.log_threshold() != 0) {
     _internal_set_log_threshold(from._internal_log_threshold());
+  }
+  if (from.remain_days() != 0) {
+    _internal_set_remain_days(from._internal_remain_days());
   }
   if (from.log_to_stderr() != 0) {
     _internal_set_log_to_stderr(from._internal_log_to_stderr());

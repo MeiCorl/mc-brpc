@@ -15,6 +15,7 @@ function(add_server_source SRCS)
     aux_source_directory(${ROOT_PATH}/core/net _src)
     aux_source_directory(${ROOT_PATH}/core/config _src)
     aux_source_directory(${ROOT_PATH}/core/log _src)
+    aux_source_directory(${ROOT_PATH}/core/common _src)
     message("[+] add server source:" ${ROOT_PATH}/core)
     list(APPEND SRCS ${_src} ${SVR_PB_SRCS})
     set(${SRCS} ${${SRCS}} PARENT_SCOPE)
@@ -45,6 +46,19 @@ function(add_custom_lib_source SRCS)
     endif()
 
     set(${SRCS} ${${SRCS}} PARENT_SCOPE)
+endfunction()
+
+function (auto_gen_client_code out_path proto_path proto_file)
+    file(MAKE_DIRECTORY ${out_path})
+
+    foreach(p ${proto_path})
+        set(proto_path_list ${proto_path_list} "--proto_path=${p}")
+    endforeach()
+    message(STATUS "proto_path_list: ${proto_path_list}")
+
+    foreach(f ${proto_file})
+        execute_process(COMMAND /usr/bin/protoc --plugin=protoc-gen-cxx=${BASE_LIB_PATH}/plugins/codexx --cxx_out=${out_path} ${proto_path_list} ${f})
+    endforeach()
 endfunction()
 
 # 链接etcd-cpp-api
