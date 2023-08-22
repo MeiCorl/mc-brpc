@@ -150,7 +150,7 @@ private:
         printer.PrintRaw(notic);
 
         printer.PrintRaw("#include \"" + file_name + ".client.h\"\n");
-        printer.PrintRaw("#include \"core/common/common_channel.h\"\n");
+        printer.PrintRaw("#include \"core/common/channel_manager.h\"\n");
         printer.PrintRaw("#include \"core/common/common_callback.h\"\n");
 
         // namespace begin

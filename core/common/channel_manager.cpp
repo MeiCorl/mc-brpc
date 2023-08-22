@@ -1,14 +1,15 @@
-#include "common_channel.h"
+#include "channel_manager.h"
 
 using namespace server::common;
 
 DEFINE_string(name_agent_url, "unix:/var/brpc_name_agent.sock", "addr of brpc_name_agent");
 
-CommonChannel::CommonChannel() {
+ChannelManager::ChannelManager() {
     brpc::ChannelOptions options;
     options.connection_type    = "single";
-    options.connect_timeout_ms = 500;
+    options.connect_timeout_ms = 1000;
     options.timeout_ms         = 1500;
+    options.max_retry          = 2;
     if (_name_agent_channel.Init(FLAGS_name_agent_url.c_str(), &options) != 0) {
         LOG(FATAL) << "[!] Fail to init channel to " << FLAGS_name_agent_url;
         _name_agent_inited = false;
@@ -19,12 +20,12 @@ CommonChannel::CommonChannel() {
     _name_agent_stub.reset(new name_agent::AgentService_Stub(&_name_agent_channel));
 }
 
-SharedPtrChannel CommonChannel::GetChannel(const std::string& service_name,
-                                           server::config::GroupStrategy group_strategy,
-                                           server::config::LbStrategy lb_strategy,
-                                           uint32_t request_code,
-                                           uint32_t group_request_code,
-                                           brpc::ChannelOptions* options) {
+SharedPtrChannel ChannelManager::GetChannel(const std::string& service_name,
+                                            GroupStrategy group_strategy,
+                                            LbStrategy lb_strategy,
+                                            uint32_t request_code,
+                                            uint32_t group_request_code,
+                                            brpc::ChannelOptions* options) {
     if (!_name_agent_inited) {
         return nullptr;
     }
@@ -66,6 +67,7 @@ SharedPtrChannel CommonChannel::GetChannel(const std::string& service_name,
             LOG(ERROR) << "[!] Fail to init channel to " << service_name;
             return nullptr;
         }
+
         LOG(INFO) << "[+] Init channel to service " << service_name << "(" << endponit << ")";
 
         auto modify_fptr = [&service_name, &endponit, &channel](ServerChannelsMap& map) -> int {

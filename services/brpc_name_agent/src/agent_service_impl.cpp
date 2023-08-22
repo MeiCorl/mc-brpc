@@ -187,7 +187,7 @@ AgentServiceImpl::AgentServiceImpl(/* args */) {
     InitServers();
 
     std::function<void(etcd::Response)> callback =
-        bind(&AgentServiceImpl::WaterCallback, this, std::placeholders::_1);
+        bind(&AgentServiceImpl::WatcherCallback, this, std::placeholders::_1);
     InitializeWatcher(server::utils::Singleton<ServerConfig>::get()->GetNsUrl(), "", callback,
                       m_pEtcdWatcher);
 }
@@ -324,7 +324,7 @@ void AgentServiceImpl::GetUpstreamInstance(google::protobuf::RpcController* cont
     response->set_endpoint(ip_list[idx]);
 }
 
-void AgentServiceImpl::WaterCallback(etcd::Response response) {
+void AgentServiceImpl::WatcherCallback(etcd::Response response) {
     for (const etcd::Event& ev : response.events()) {
         string key          = ev.kv().key();
         string service_name = key.substr(0, key.find(":"));

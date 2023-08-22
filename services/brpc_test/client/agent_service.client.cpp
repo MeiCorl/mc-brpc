@@ -4,7 +4,7 @@
 ************************************************************************/
 
 #include "agent_service.client.h"
-#include "core/common/common_channel.h"
+#include "core/common/channel_manager.h"
 #include "core/common/common_callback.h"
 
 namespace name_agent { 

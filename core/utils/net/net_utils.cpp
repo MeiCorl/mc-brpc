@@ -4,7 +4,7 @@
 #include <net/if.h>
 #include <string.h>
 
-using namespace server::net;
+using namespace server::utils;
 
 /**
  * 获取指定网卡ip, 默认eth0

@@ -1,6 +1,6 @@
 #include "MCServer.h"
 #include "core/utils/singleton.h"
-#include "core/net/net_utils.h"
+#include "core/utils/net/net_utils.h"
 #include <butil/files/file_path.h>
 #include <butil/file_util.h>
 #include <bthread/unstable.h>
@@ -8,6 +8,7 @@
 
 
 using namespace server;
+using server::utils::NetUtil;
 
 DEFINE_string(listen_addr,
               "",
@@ -96,9 +97,9 @@ void MCServer::RegisterService() {
                 std::rethrow_exception(eptr);
             }
         } catch (const std::runtime_error& e) {
-            LOG(ERROR) << "[!] Connection failure: " << e.what();
+            LOG(FATAL) << "[!] Etcd keepalive failure: " << e.what();
         } catch (const std::out_of_range& e) {
-            std::cerr << "[!] Lease expire: " << e.what();
+            LOG(FATAL) << "[!] Etcd lease expire: " << e.what();
         }
     };
     _keep_live_ptr.reset(new etcd::KeepAlive(etcd, handler, REGISTER_TTL, _etcd_lease_id));
@@ -132,7 +133,7 @@ void MCServer::Start() {
         butil::str2endpoint("", 0, &point);
 #else
         char ip[32] = {0};
-        server::net::NetUtil::getLocalIP(ip);
+        NetUtil::getLocalIP(ip);
         butil::str2endpoint(ip, 0, &point);
 #endif
     }

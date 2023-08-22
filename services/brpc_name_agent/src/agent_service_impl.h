@@ -55,6 +55,6 @@ public:
                                      name_agent::GetUpstreamInstanceRes* response,
                                      google::protobuf::Closure* done);
 
-    void WaterCallback(etcd::Response response);
+    void WatcherCallback(etcd::Response response);
 };
 } // namespace name_agent

@@ -10,7 +10,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../../global.cmake)
 
 EXECUTE_PROCESS(
     COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/proto/validator.proto
-    COMMAND ln -s ${CMAKE_CURRENT_SOURCE_DIR}/../../base_libs/validator/proto/validator.proto ${CMAKE_CURRENT_SOURCE_DIR}/proto/validator.proto
+    COMMAND ln -s ${CMAKE_CURRENT_SOURCE_DIR}/../../core/utils/validator/proto/validator.proto ${CMAKE_CURRENT_SOURCE_DIR}/proto/validator.proto
 )
 
 include_directories(

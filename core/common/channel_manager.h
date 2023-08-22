@@ -13,8 +13,9 @@ namespace server {
 namespace common {
 
 using SharedPtrChannel = std::shared_ptr<brpc::Channel>;
+using namespace server::config;
 
-class CommonChannel {
+class ChannelManager {
     typedef std::unordered_map<std::string, SharedPtrChannel> ChannelsMap;
     typedef std::unordered_map<std::string, ChannelsMap> ServerChannelsMap;
 
@@ -23,21 +24,19 @@ private:
     brpc::Channel _name_agent_channel;
     std::shared_ptr<name_agent::AgentService_Stub> _name_agent_stub;
 
-    bthread_t t;
     butil::DoublyBufferedData<ServerChannelsMap> _server_channels;
 
 public:
-    CommonChannel();
-    SharedPtrChannel GetChannel(
-        const std::string& service_name,
-        server::config::GroupStrategy group_strategy = server::config::STRATEGY_NORMAL,
-        server::config::LbStrategy lb_strategy       = server::config::rr,
-        uint32_t request_code                        = 0,
-        uint32_t group_request_code                  = 0,
-        brpc::ChannelOptions* options                = nullptr);
+    ChannelManager();
+    SharedPtrChannel GetChannel(const std::string& service_name,
+                                GroupStrategy group_strategy  = GroupStrategy::STRATEGY_NORMAL,
+                                LbStrategy lb_strategy        = LbStrategy::rr,
+                                uint32_t request_code         = 0,
+                                uint32_t group_request_code   = 0,
+                                brpc::ChannelOptions* options = nullptr);
 };
 
-using SingletonChannel = server::utils::Singleton<CommonChannel>;
+using SingletonChannel = server::utils::Singleton<ChannelManager>;
 
 } // namespace common
 } // namespace server

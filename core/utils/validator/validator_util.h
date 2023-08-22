@@ -7,9 +7,11 @@
 #include <sstream>
 #include "validator.pb.h"
 
-namespace validator {
+namespace server {
+namespace utils {
 
 using namespace google::protobuf;
+using namespace validator;
 
 /** 不知道为什么protobuf对ValidateRules中float和double两个字段生成的字段名会加个后缀_(其他字段没有), 为了在宏里面统一处理加了下面两个定义 */
 typedef float float_;
@@ -182,4 +184,5 @@ public:
     }
 };
 
-} // namespace validator
+} // namespace utils
+} // namespace server

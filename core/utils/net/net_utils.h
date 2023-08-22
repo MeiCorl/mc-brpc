@@ -1,12 +1,12 @@
 #pragma once
 
 namespace server {
-namespace net {
+namespace utils {
 
 class NetUtil {
 public:
     static void getLocalIP(char* ip, const char* icard = "eth0");
 };
 
-} // namespace net
+} // namespace utils
 } // namespace server

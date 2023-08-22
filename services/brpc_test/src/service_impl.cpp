@@ -1,14 +1,10 @@
 #include "service_impl.h"
 
-#include "base_libs/validator/validator_util.h"
-#include "core/common/common_channel.h"
+#include "core/utils/validator/validator_util.h"
 #include "client/agent_service.client.h"
 #include <brpc/controller.h>
 
-
-using server::common::SharedPtrChannel;
-using server::common::SingletonChannel;
-using validator::ValidatorUtil;
+using namespace server::utils;
 
 namespace test {
 ServiceImpl::ServiceImpl(/* args */) { }
@@ -32,21 +28,13 @@ void ServiceImpl::UpdateUserInfo(google::protobuf::RpcController* cntl_base,
         return;
     }
 
-    name_agent::ASyncClient client("brpc_name_agent");
+    name_agent::SyncClient client("brpc_name_agent");
     name_agent::GetUpstreamInstanceReq req;
     name_agent::GetUpstreamInstanceRes res;
     req.set_seq_id(request->seq_id());
     req.set_service_name("brpc_test");
-    client.GetUpstreamInstance(&req, &res,
-                               [](bool is_failed, name_agent::GetUpstreamInstanceRes* _res) {
-                                   if (is_failed) {
-                                       LOG(ERROR) << "[!] Rpc Error!";
-                                   } else {
-                                       LOG(INFO) << "[+] Rpc Succ, res: " << _res->ShortDebugString();
-                                   }
-                               });
-
-    LOG(INFO) << "[+] Res:" << res.ShortDebugString();
+    client.GetUpstreamInstance(&req, &res);
+    LOG(INFO) << "[+] Res:" << res.ShortDebugString() << ", latency_us:" << client.latency_us();
     response->set_res_msg(res.endpoint());
 }
 } // namespace test
