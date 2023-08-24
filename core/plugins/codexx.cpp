@@ -1,5 +1,11 @@
 /**
+ * Rpc客户端代码生成插件
+ * 根据proto文件自动生成对应服务的客户端类（SyncClient、ASyncClient、 SemiSyncClient)
+ * XxxClient（即对rpc接口及channel、stub、controller的封装整合)
+ * 使用方法及效果参见: services/brpc_test
  * build cmd: g++ codexx.cpp -lprotoc -lprotobuf -o codexx
+ * @date: 2023/08/22 16:00:30
+ * @author: meicorl
 */
 
 #include <google/protobuf/compiler/code_generator.h>
@@ -69,8 +75,7 @@ private:
             printer.PrintRaw("    std::string _service_name;\n");
             printer.PrintRaw("    brpc::Controller _controller;\n");
             printer.PrintRaw("    GroupStrategy _group_strategy;\n");
-            printer.PrintRaw("    LbStrategy _lb_strategy;\n");
-            printer.PrintRaw("    uint64_t _group_request_code;\n");
+            printer.PrintRaw("    std::string _lb;\n");
             printer.PrintRaw("    uint64_t _request_code;\n");
             if (client_type == "ASyncClient") {
                 printer.PrintRaw("    brpc::CallId _call_id;\n");
@@ -82,8 +87,7 @@ private:
                           client_type);
             printer.Print("    ~$client_type$();\n\n", "client_type", client_type);
             printer.PrintRaw("    void SetGroupStrategy(GroupStrategy group_strategy);\n");
-            printer.PrintRaw("    void SetLbStrategy(LbStrategy lb_strategy);\n");
-            printer.PrintRaw("    void SetGroupRequestCode(uint64_t group_request_code);\n");
+            printer.PrintRaw("    void SetLbStrategy(const std::string& lb);\n");
             printer.PrintRaw("    void SetRequestCode(uint64_t request_code);\n");
             printer.PrintRaw("    void SetConnectTimeoutMs(uint64_t timeout_ms);\n");
             printer.PrintRaw("    void SetTimeoutMs(uint64_t timeout_ms);\n");
@@ -168,10 +172,9 @@ private:
         std::vector<std::string> client_types = {"SyncClient", "ASyncClient", "SemiSyncClient"};
         for (const std::string& client_type : client_types) {
             printer.Print("$client_type$::$client_type$(const std::string& service_name)\n"
-                          "    : _service_name(service_name)\n"
+                          "    : _service_name(MakeServiceName(service_name))\n"
                           "    , _group_strategy(GroupStrategy::STRATEGY_NORMAL)\n"
-                          "    , _lb_strategy(LbStrategy::rr)\n"
-                          "    , _group_request_code(0)\n"
+                          "    , _lb(\"rr\")\n"
                           "    , _request_code(0) { }\n\n",
                           "client_type", client_type);
             printer.Print("$client_type$::~$client_type$() {} \n\n", "client_type", client_type);
@@ -180,16 +183,10 @@ private:
                           "    _group_strategy = group_strategy; \n"
                           "}\n\n",
                           "client_type", client_type);
-            printer.Print("void $client_type$::SetLbStrategy(LbStrategy "
-                          "lb_strategy) { \n"
-                          "    _lb_strategy = lb_strategy; \n"
+            printer.Print("void $client_type$::SetLbStrategy(const std::string& lb) { \n"
+                          "    _lb = lb; \n"
                           "}\n\n",
                           "client_type", client_type);
-            printer
-                .Print("void $client_type$::SetGroupRequestCode(uint64_t group_request_code) { \n"
-                       "    _group_request_code = group_request_code; \n"
-                       "}\n\n",
-                       "client_type", client_type);
             printer.Print("void $client_type$::SetRequestCode(uint64_t request_code) {\n"
                           "    _request_code = request_code; \n"
                           "}\n\n",
@@ -217,9 +214,8 @@ private:
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
                             "        SingletonChannel::get()->GetChannel(_service_name, "
-                            "_group_strategy,\n"
-                            "                                            _lb_strategy, "
-                            "_request_code, _group_request_code, &_options);\n");
+                            "_group_strategy, _lb, _request_code,\n"
+                            "                                           &_options);\n");
                         printer.PrintRaw("    brpc::Channel* channel = channel_ptr.get();\n");
                         printer.PrintRaw("    if (!channel)  {\n");
                         printer.PrintRaw(
@@ -245,9 +241,8 @@ private:
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
                             "        SingletonChannel::get()->GetChannel(_service_name, "
-                            "_group_strategy,\n"
-                            "                                            _lb_strategy, "
-                            "_request_code, _group_request_code, &_options);\n");
+                            "_group_strategy, _lb, _request_code,\n"
+                            "                                           &_options);\n");
                         printer.PrintRaw("    brpc::Channel* channel = channel_ptr.get();\n");
                         printer.PrintRaw("    if (!channel)  {\n");
                         printer.PrintRaw(
@@ -277,9 +272,8 @@ private:
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
                             "        SingletonChannel::get()->GetChannel(_service_name, "
-                            "_group_strategy,\n"
-                            "                                            _lb_strategy, "
-                            "_request_code, _group_request_code, &_options);\n");
+                            "_group_strategy, _lb, _request_code,\n"
+                            "                                           &_options);\n");
                         printer.PrintRaw("    brpc::Channel* channel = channel_ptr.get();\n");
                         printer.PrintRaw("    if (!channel)  {\n");
                         printer.PrintRaw("        brpc::ClosureGuard done_guard(done);\n");

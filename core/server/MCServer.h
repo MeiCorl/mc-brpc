@@ -6,7 +6,6 @@
 #include "core/config/server_config.h"
 #include "core/log/log_rotate_watcher.h"
 #include "core/log/log_archive_worker.h"
-
 namespace server {
 
 const static uint32_t REGISTER_TTL = 30;
@@ -29,6 +28,7 @@ private:
     server::logger::LogArchiveWorker* _log_archive_worker;
 
     void LoggingInit(char* argv[]);
+    void RegisterNamingService();
 
     std::string BuildServiceName(const std::string& original_service_name,
                                  const server::config::InstanceInfo& instance);

@@ -22,22 +22,20 @@ message TestRes {
     string res_msg = 3;
 }
 
-message GetUpstreamInstanceReq {
+message GetServersReq {
     uint64 seq_id = 1;
     string service_name = 2;
     uint32 group_strategy = 3;
-    uint32 lb_strategy = 4;
-    uint64 request_code = 5;
-    uint64 group_request_code = 6;
+    uint64 group_request_code = 4;
 }
 
-message GetUpstreamInstanceRes {
+message GetServersRes {
     uint64 seq_id = 1;
     ResCode res_code = 2;
-    string endpoint = 3;
+    repeated string endpoints = 3;
 }
 
 service AgentService {
     rpc Test (TestReq) returns (TestRes);
-    rpc GetUpstreamInstance(GetUpstreamInstanceReq) returns (GetUpstreamInstanceRes);
+    rpc GetServers(GetServersReq) returns (GetServersRes);
 }

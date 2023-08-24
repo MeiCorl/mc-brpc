@@ -5,7 +5,7 @@
 #include <butil/file_util.h>
 #include <bthread/unstable.h>
 #include <etcd/Client.hpp>
-
+#include "core/extensions/mc_naming_service.h"
 
 using namespace server;
 using server::utils::NetUtil;
@@ -15,7 +15,10 @@ DEFINE_string(listen_addr,
               "Server listen address, may be IPV4/IPV6/UDS."
               "If this is set, the flag port will be ignored");
 
-MCServer::MCServer(int argc, char* argv[]) { LoggingInit(argv); }
+MCServer::MCServer(int argc, char* argv[]) {
+    LoggingInit(argv);
+    RegisterNamingService();
+}
 
 MCServer::~MCServer() {
     if (_log_watcher) {
@@ -60,6 +63,11 @@ void MCServer::LoggingInit(char* argv[]) {
     _log_archive_worker =
         new server::logger::LogArchiveWorker(log_name, svr_config->GetLogConfig().remain_days());
     _log_archive_worker->Start();
+}
+
+// 注册扩展的名字服务以支持 mc://service_name
+void MCServer::RegisterNamingService() {
+    brpc::NamingServiceExtension()->RegisterOrDie("mc", new brpc::policy::McNamingService());
 }
 
 std::string MCServer::BuildServiceName(const std::string& original_service_name,

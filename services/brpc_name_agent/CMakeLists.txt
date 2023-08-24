@@ -8,18 +8,13 @@ set(BIN_NAME "brpc_name_agent_d")
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../global.cmake)
 
-# EXECUTE_PROCESS(
-#     COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/proto/validator.proto
-#     COMMAND ln -s ${BASE_LIB_PATH}/validator/proto/validator.proto ${CMAKE_CURRENT_SOURCE_DIR}/proto/validator.proto
-# )
-
 include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 file(GLOB PROTOS
-    "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto"
+    "${ROOT_PATH}/core/common/name_agent.proto"
 )
 protobuf_generate_cpp(PB_SRCS PB_HDRS ${PROTOS})
 

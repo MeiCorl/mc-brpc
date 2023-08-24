@@ -3,7 +3,7 @@
 ****          author: meicorl   email: 13349873655@163.com           ****
 ************************************************************************/
 
-#include "agent_service.client.h"
+#include "name_agent.client.h"
 #include "core/common/channel_manager.h"
 #include "core/common/common_callback.h"
 
@@ -15,10 +15,9 @@ using server::common::SingletonChannel;
 using server::common::OnRPCDone;
 
 SyncClient::SyncClient(const std::string& service_name)
-    : _service_name(service_name)
+    : _service_name(MakeServiceName(service_name))
     , _group_strategy(GroupStrategy::STRATEGY_NORMAL)
-    , _lb_strategy(LbStrategy::rr)
-    , _group_request_code(0)
+    , _lb("rr")
     , _request_code(0) { }
 
 SyncClient::~SyncClient() {} 
@@ -27,12 +26,8 @@ void SyncClient::SetGroupStrategy(GroupStrategy group_strategy) {
     _group_strategy = group_strategy; 
 }
 
-void SyncClient::SetLbStrategy(LbStrategy lb_strategy) { 
-    _lb_strategy = lb_strategy; 
-}
-
-void SyncClient::SetGroupRequestCode(uint64_t group_request_code) { 
-    _group_request_code = group_request_code; 
+void SyncClient::SetLbStrategy(const std::string& lb) { 
+    _lb = lb; 
 }
 
 void SyncClient::SetRequestCode(uint64_t request_code) {
@@ -53,8 +48,8 @@ void SyncClient::SetMaxRetry(int max_retry) {
 
 void SyncClient::Test(const TestReq* req, TestRes* res) { 
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy,
-                                            _lb_strategy, _request_code, _group_request_code, &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
+                                           &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");
@@ -64,25 +59,24 @@ void SyncClient::Test(const TestReq* req, TestRes* res) {
     stub.Test(&_controller, req, res, nullptr);
 }
 
-void SyncClient::GetUpstreamInstance(const GetUpstreamInstanceReq* req, GetUpstreamInstanceRes* res) { 
+void SyncClient::GetServers(const GetServersReq* req, GetServersRes* res) { 
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy,
-                                            _lb_strategy, _request_code, _group_request_code, &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
+                                           &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");
         return;
     }
     AgentService_Stub stub(channel);
-    stub.GetUpstreamInstance(&_controller, req, res, nullptr);
+    stub.GetServers(&_controller, req, res, nullptr);
 }
 
 
 ASyncClient::ASyncClient(const std::string& service_name)
-    : _service_name(service_name)
+    : _service_name(MakeServiceName(service_name))
     , _group_strategy(GroupStrategy::STRATEGY_NORMAL)
-    , _lb_strategy(LbStrategy::rr)
-    , _group_request_code(0)
+    , _lb("rr")
     , _request_code(0) { }
 
 ASyncClient::~ASyncClient() {} 
@@ -91,12 +85,8 @@ void ASyncClient::SetGroupStrategy(GroupStrategy group_strategy) {
     _group_strategy = group_strategy; 
 }
 
-void ASyncClient::SetLbStrategy(LbStrategy lb_strategy) { 
-    _lb_strategy = lb_strategy; 
-}
-
-void ASyncClient::SetGroupRequestCode(uint64_t group_request_code) { 
-    _group_request_code = group_request_code; 
+void ASyncClient::SetLbStrategy(const std::string& lb) { 
+    _lb = lb; 
 }
 
 void ASyncClient::SetRequestCode(uint64_t request_code) {
@@ -118,8 +108,8 @@ void ASyncClient::SetMaxRetry(int max_retry) {
 void ASyncClient::Test(const TestReq* req, TestRes* res, std::function<void(bool, TestRes*)> callback) {
     auto done = new OnRPCDone<TestRes>(callback);
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy,
-                                            _lb_strategy, _request_code, _group_request_code, &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
+                                           &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         brpc::ClosureGuard done_guard(done);
@@ -131,11 +121,11 @@ void ASyncClient::Test(const TestReq* req, TestRes* res, std::function<void(bool
     stub.Test(&done->cntl, req, &done->response, done);
 }
 
-void ASyncClient::GetUpstreamInstance(const GetUpstreamInstanceReq* req, GetUpstreamInstanceRes* res, std::function<void(bool, GetUpstreamInstanceRes*)> callback) {
-    auto done = new OnRPCDone<GetUpstreamInstanceRes>(callback);
+void ASyncClient::GetServers(const GetServersReq* req, GetServersRes* res, std::function<void(bool, GetServersRes*)> callback) {
+    auto done = new OnRPCDone<GetServersRes>(callback);
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy,
-                                            _lb_strategy, _request_code, _group_request_code, &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
+                                           &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         brpc::ClosureGuard done_guard(done);
@@ -144,15 +134,14 @@ void ASyncClient::GetUpstreamInstance(const GetUpstreamInstanceReq* req, GetUpst
     }
     AgentService_Stub stub(channel);
     _call_id == done->cntl.call_id();
-    stub.GetUpstreamInstance(&done->cntl, req, &done->response, done);
+    stub.GetServers(&done->cntl, req, &done->response, done);
 }
 
 
 SemiSyncClient::SemiSyncClient(const std::string& service_name)
-    : _service_name(service_name)
+    : _service_name(MakeServiceName(service_name))
     , _group_strategy(GroupStrategy::STRATEGY_NORMAL)
-    , _lb_strategy(LbStrategy::rr)
-    , _group_request_code(0)
+    , _lb("rr")
     , _request_code(0) { }
 
 SemiSyncClient::~SemiSyncClient() {} 
@@ -161,12 +150,8 @@ void SemiSyncClient::SetGroupStrategy(GroupStrategy group_strategy) {
     _group_strategy = group_strategy; 
 }
 
-void SemiSyncClient::SetLbStrategy(LbStrategy lb_strategy) { 
-    _lb_strategy = lb_strategy; 
-}
-
-void SemiSyncClient::SetGroupRequestCode(uint64_t group_request_code) { 
-    _group_request_code = group_request_code; 
+void SemiSyncClient::SetLbStrategy(const std::string& lb) { 
+    _lb = lb; 
 }
 
 void SemiSyncClient::SetRequestCode(uint64_t request_code) {
@@ -187,8 +172,8 @@ void SemiSyncClient::SetMaxRetry(int max_retry) {
 
 void SemiSyncClient::Test(const TestReq* req, TestRes* res) { 
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy,
-                                            _lb_strategy, _request_code, _group_request_code, &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
+                                           &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");
@@ -198,17 +183,17 @@ void SemiSyncClient::Test(const TestReq* req, TestRes* res) {
     stub.Test(&_controller, req, res, brpc::DoNothing());
 }
 
-void SemiSyncClient::GetUpstreamInstance(const GetUpstreamInstanceReq* req, GetUpstreamInstanceRes* res) { 
+void SemiSyncClient::GetServers(const GetServersReq* req, GetServersRes* res) { 
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy,
-                                            _lb_strategy, _request_code, _group_request_code, &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
+                                           &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");
         return;
     }
     AgentService_Stub stub(channel);
-    stub.GetUpstreamInstance(&_controller, req, res, brpc::DoNothing());
+    stub.GetServers(&_controller, req, res, brpc::DoNothing());
 }
 
 

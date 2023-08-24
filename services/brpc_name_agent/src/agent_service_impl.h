@@ -5,9 +5,9 @@
 #include <functional>
 #include <etcd/Watcher.hpp>
 #include <butil/containers/doubly_buffered_data.h>
-#include "agent_service.pb.h"
+#include "name_agent.pb.h"
 #include "core/config/server_config.h"
-#include <atomic>
+// #include <atomic>
 
 namespace name_agent {
 
@@ -30,7 +30,7 @@ private:
     butil::DoublyBufferedData<ServiceRegionAndGroupMap>
         m_instancesByRegionAndGroup; // service_name, region_id, group_id --> instances(ip:port)
 
-    unordered_map<string, unordered_map<int, std::atomic<uint32_t>>> m_rr_index;
+    // unordered_map<string, unordered_map<int, std::atomic<uint32_t>>> m_rr_index;
 
     shared_ptr<etcd::Watcher> m_pEtcdWatcher;
 
@@ -50,10 +50,10 @@ public:
                       const name_agent::TestReq* request,
                       name_agent::TestRes* response,
                       google::protobuf::Closure* done);
-    virtual void GetUpstreamInstance(google::protobuf::RpcController* controller,
-                                     const name_agent::GetUpstreamInstanceReq* request,
-                                     name_agent::GetUpstreamInstanceRes* response,
-                                     google::protobuf::Closure* done);
+    virtual void GetServers(google::protobuf::RpcController* controller,
+                            const name_agent::GetServersReq* request,
+                            name_agent::GetServersRes* response,
+                            google::protobuf::Closure* done);
 
     void WatcherCallback(etcd::Response response);
 };

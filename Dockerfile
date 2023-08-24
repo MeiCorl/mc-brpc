@@ -13,12 +13,13 @@ RUN wget https://cmake.org/files/v3.27/cmake-3.27.0-linux-x86_64.tar.gz \
 	&& tar -zxvf cmake-3.27.0-linux-x86_64.tar.gz \
 	&& ln -s /cmake-3.27.0-linux-x86_64/bin/* /usr/local/bin
 
-# 安装etcd
+# 安装、运行etcd
 RUN wget https://github.com/etcd-io/etcd/releases/download/v3.5.0/etcd-v3.5.0-linux-amd64.tar.gz \
 	&& tar -zxvf etcd-v3.5.0-linux-amd64.tar.gz \
 	&& ln -s /etcd-v3.5.0-linux-amd64/etcd /usr/local/bin/etcd \
 	&& ln -s /etcd-v3.5.0-linux-amd64/etcdctl /usr/local/bin/etcdctl \
-	&& ln -s /etcd-v3.5.0-linux-amd64/etcdutl /usr/local/bin/etcdutl
+	&& ln -s /etcd-v3.5.0-linux-amd64/etcdutl /usr/local/bin/etcdutl \
+	&& etcd &
 
 # 安装protobuf & gRPC
 RUN apt install -y libboost-all-dev libgrpc-dev libgrpc++-dev libprotobuf-dev protobuf-compiler-grpc 

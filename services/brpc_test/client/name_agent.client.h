@@ -7,7 +7,7 @@
 
 #include <brpc/controller.h>
 #include <brpc/channel.h>
-#include "agent_service.pb.h"
+#include "name_agent.pb.h"
 #include "core/config/server_config.h"
 
 namespace name_agent { 
@@ -20,8 +20,7 @@ private:
     std::string _service_name;
     brpc::Controller _controller;
     GroupStrategy _group_strategy;
-    LbStrategy _lb_strategy;
-    uint64_t _group_request_code;
+    std::string _lb;
     uint64_t _request_code;
 
 public:
@@ -29,8 +28,7 @@ public:
     ~SyncClient();
 
     void SetGroupStrategy(GroupStrategy group_strategy);
-    void SetLbStrategy(LbStrategy lb_strategy);
-    void SetGroupRequestCode(uint64_t group_request_code);
+    void SetLbStrategy(const std::string& lb);
     void SetRequestCode(uint64_t request_code);
     void SetConnectTimeoutMs(uint64_t timeout_ms);
     void SetTimeoutMs(uint64_t timeout_ms);
@@ -43,7 +41,7 @@ public:
     int64_t latency_us() { return _controller.latency_us(); }
 
     void Test(const TestReq* req, TestRes* res);
-    void GetUpstreamInstance(const GetUpstreamInstanceReq* req, GetUpstreamInstanceRes* res);
+    void GetServers(const GetServersReq* req, GetServersRes* res);
 }; // end of SyncClient
 
 class ASyncClient {
@@ -52,8 +50,7 @@ private:
     std::string _service_name;
     brpc::Controller _controller;
     GroupStrategy _group_strategy;
-    LbStrategy _lb_strategy;
-    uint64_t _group_request_code;
+    std::string _lb;
     uint64_t _request_code;
     brpc::CallId _call_id;
 
@@ -62,8 +59,7 @@ public:
     ~ASyncClient();
 
     void SetGroupStrategy(GroupStrategy group_strategy);
-    void SetLbStrategy(LbStrategy lb_strategy);
-    void SetGroupRequestCode(uint64_t group_request_code);
+    void SetLbStrategy(const std::string& lb);
     void SetRequestCode(uint64_t request_code);
     void SetConnectTimeoutMs(uint64_t timeout_ms);
     void SetTimeoutMs(uint64_t timeout_ms);
@@ -76,7 +72,7 @@ public:
     void Join() { brpc::Join(_call_id); }
 
     void Test(const TestReq* req, TestRes* res, std::function<void(bool, TestRes*)> callback);
-    void GetUpstreamInstance(const GetUpstreamInstanceReq* req, GetUpstreamInstanceRes* res, std::function<void(bool, GetUpstreamInstanceRes*)> callback);
+    void GetServers(const GetServersReq* req, GetServersRes* res, std::function<void(bool, GetServersRes*)> callback);
 }; // end of ASyncClient
 
 class SemiSyncClient {
@@ -85,8 +81,7 @@ private:
     std::string _service_name;
     brpc::Controller _controller;
     GroupStrategy _group_strategy;
-    LbStrategy _lb_strategy;
-    uint64_t _group_request_code;
+    std::string _lb;
     uint64_t _request_code;
 
 public:
@@ -94,8 +89,7 @@ public:
     ~SemiSyncClient();
 
     void SetGroupStrategy(GroupStrategy group_strategy);
-    void SetLbStrategy(LbStrategy lb_strategy);
-    void SetGroupRequestCode(uint64_t group_request_code);
+    void SetLbStrategy(const std::string& lb);
     void SetRequestCode(uint64_t request_code);
     void SetConnectTimeoutMs(uint64_t timeout_ms);
     void SetTimeoutMs(uint64_t timeout_ms);
@@ -109,7 +103,7 @@ public:
     void Join() { brpc::Join(_controller.call_id()); }
 
     void Test(const TestReq* req, TestRes* res);
-    void GetUpstreamInstance(const GetUpstreamInstanceReq* req, GetUpstreamInstanceRes* res);
+    void GetServers(const GetServersReq* req, GetServersRes* res);
 }; // end of SemiSyncClient
 
 
