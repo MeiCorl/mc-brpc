@@ -111,7 +111,7 @@ void MCServer::RegisterService() {
         }
     };
     _keep_live_ptr.reset(new etcd::KeepAlive(etcd, handler, REGISTER_TTL, _etcd_lease_id));
-    LOG(INFO) << "[+] Service registe succ. instance: {" << instance.ShortDebugString()
+    LOG(INFO) << "[+] Service register succ. instance: {" << instance.ShortDebugString()
               << "}, lease_id:" << _etcd_lease_id;
 }
 

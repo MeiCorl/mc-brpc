@@ -28,6 +28,9 @@ file(GLOB PROTOS
 )
 protobuf_generate_cpp(PB_SRCS PB_HDRS ${PROTOS})
 
+file(GLOB TEST_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/proto/test.proto")
+auto_gen_client_code(${CMAKE_CURRENT_SOURCE_DIR}/client ${CMAKE_CURRENT_SOURCE_DIR}/proto/ ${TEST_PROTO})
+
 file(GLOB NAME_AGENT_PROTO "${ROOT_PATH}/core/common/name_agent.proto")
 auto_gen_client_code(${CMAKE_CURRENT_SOURCE_DIR}/client ${ROOT_PATH}/core/common/ ${NAME_AGENT_PROTO})
 

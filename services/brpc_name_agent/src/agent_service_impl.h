@@ -7,7 +7,6 @@
 #include <butil/containers/doubly_buffered_data.h>
 #include "name_agent.pb.h"
 #include "core/config/server_config.h"
-// #include <atomic>
 
 namespace name_agent {
 
@@ -29,8 +28,6 @@ private:
     butil::DoublyBufferedData<ServiceRegionMap> m_instancesByRegion; // service_name, region_id --> instances(ip:port)
     butil::DoublyBufferedData<ServiceRegionAndGroupMap>
         m_instancesByRegionAndGroup; // service_name, region_id, group_id --> instances(ip:port)
-
-    // unordered_map<string, unordered_map<int, std::atomic<uint32_t>>> m_rr_index;
 
     shared_ptr<etcd::Watcher> m_pEtcdWatcher;
 

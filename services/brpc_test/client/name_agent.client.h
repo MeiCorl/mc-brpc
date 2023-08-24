@@ -21,7 +21,6 @@ private:
     brpc::Controller _controller;
     GroupStrategy _group_strategy;
     std::string _lb;
-    uint64_t _request_code;
 
 public:
     SyncClient(const std::string& service_name);
@@ -36,21 +35,22 @@ public:
     bool Failed() { return _controller.Failed(); }
     std::string ErrorText() { return _controller.ErrorText(); }
     int ErrorCode() { return _controller.ErrorCode(); }
-    butil::EndPoint remote_side() { return _controller.remote_side(); }
-    butil::EndPoint local_side() { return _controller.local_side(); }
-    int64_t latency_us() { return _controller.latency_us(); }
+    butil::EndPoint RemoteSide() { return _controller.remote_side(); }
+    butil::EndPoint LocalSide() { return _controller.local_side(); }
+    int64_t LatencyUs() { return _controller.latency_us(); }
 
     void Test(const TestReq* req, TestRes* res);
     void GetServers(const GetServersReq* req, GetServersRes* res);
 }; // end of SyncClient
 
 class ASyncClient {
+    static const uint32_t FLAGS_RPC_REQUEST_CODE = (1 << 0);
 private:
     brpc::ChannelOptions _options;
     std::string _service_name;
-    brpc::Controller _controller;
     GroupStrategy _group_strategy;
     std::string _lb;
+    uint32_t _rpc_flag;
     uint64_t _request_code;
     brpc::CallId _call_id;
 
@@ -64,11 +64,8 @@ public:
     void SetConnectTimeoutMs(uint64_t timeout_ms);
     void SetTimeoutMs(uint64_t timeout_ms);
     void SetMaxRetry(int max_retry);
-    bool Failed() { return _controller.Failed(); }
-    std::string ErrorText() { return _controller.ErrorText(); }
-    int ErrorCode() { return _controller.ErrorCode(); }
-    butil::EndPoint remote_side() { return _controller.remote_side(); }
-    butil::EndPoint local_side() { return _controller.local_side(); }
+    void AddRpcFlag(uint32_t flag) { _rpc_flag |= flag; }
+    bool HasRpcFlag(uint32_t flag) { return _rpc_flag & flag; }
     void Join() { brpc::Join(_call_id); }
 
     void Test(const TestReq* req, TestRes* res, std::function<void(bool, TestRes*)> callback);
@@ -82,7 +79,6 @@ private:
     brpc::Controller _controller;
     GroupStrategy _group_strategy;
     std::string _lb;
-    uint64_t _request_code;
 
 public:
     SemiSyncClient(const std::string& service_name);
@@ -97,9 +93,9 @@ public:
     bool Failed() { return _controller.Failed(); }
     std::string ErrorText() { return _controller.ErrorText(); }
     int ErrorCode() { return _controller.ErrorCode(); }
-    butil::EndPoint remote_side() { return _controller.remote_side(); }
-    butil::EndPoint local_side() { return _controller.local_side(); }
-    int64_t latency_us() { return _controller.latency_us(); }
+    butil::EndPoint RemoteSide() { return _controller.remote_side(); }
+    butil::EndPoint LocalSide() { return _controller.local_side(); }
+    int64_t LatencyUs() { return _controller.latency_us(); }
     void Join() { brpc::Join(_controller.call_id()); }
 
     void Test(const TestReq* req, TestRes* res);

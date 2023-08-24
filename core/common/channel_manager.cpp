@@ -7,7 +7,6 @@ ChannelManager::ChannelManager() { }
 SharedPtrChannel ChannelManager::GetChannel(const std::string& service_name,
                                             GroupStrategy group_strategy,
                                             const std::string& lb,
-                                            uint32_t request_code,
                                             brpc::ChannelOptions* options) {
     /**
      * service_name(for example: "mc://brpc_name_agent")

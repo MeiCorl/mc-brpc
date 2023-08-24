@@ -17,8 +17,7 @@ using server::common::OnRPCDone;
 SyncClient::SyncClient(const std::string& service_name)
     : _service_name(MakeServiceName(service_name))
     , _group_strategy(GroupStrategy::STRATEGY_NORMAL)
-    , _lb("rr")
-    , _request_code(0) { }
+    , _lb("rr") { }
 
 SyncClient::~SyncClient() {} 
 
@@ -31,7 +30,7 @@ void SyncClient::SetLbStrategy(const std::string& lb) {
 }
 
 void SyncClient::SetRequestCode(uint64_t request_code) {
-    _request_code = request_code; 
+    _controller.set_request_code(request_code); 
 }
 
 void SyncClient::SetConnectTimeoutMs(uint64_t timeout_ms) {
@@ -48,8 +47,7 @@ void SyncClient::SetMaxRetry(int max_retry) {
 
 void SyncClient::Test(const TestReq* req, TestRes* res) { 
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
-                                           &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");
@@ -61,8 +59,7 @@ void SyncClient::Test(const TestReq* req, TestRes* res) {
 
 void SyncClient::GetServers(const GetServersReq* req, GetServersRes* res) { 
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
-                                           &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");
@@ -77,7 +74,7 @@ ASyncClient::ASyncClient(const std::string& service_name)
     : _service_name(MakeServiceName(service_name))
     , _group_strategy(GroupStrategy::STRATEGY_NORMAL)
     , _lb("rr")
-    , _request_code(0) { }
+    , _rpc_flag(0) { }
 
 ASyncClient::~ASyncClient() {} 
 
@@ -91,6 +88,7 @@ void ASyncClient::SetLbStrategy(const std::string& lb) {
 
 void ASyncClient::SetRequestCode(uint64_t request_code) {
     _request_code = request_code; 
+    AddRpcFlag(FLAGS_RPC_REQUEST_CODE);
 }
 
 void ASyncClient::SetConnectTimeoutMs(uint64_t timeout_ms) {
@@ -108,13 +106,15 @@ void ASyncClient::SetMaxRetry(int max_retry) {
 void ASyncClient::Test(const TestReq* req, TestRes* res, std::function<void(bool, TestRes*)> callback) {
     auto done = new OnRPCDone<TestRes>(callback);
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
-                                           &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         brpc::ClosureGuard done_guard(done);
         done->cntl.SetFailed(::brpc::EINTERNAL, "Failed to channel");
         return;
+    }
+    if(HasRpcFlag(FLAGS_RPC_REQUEST_CODE)) {
+        done->cntl.set_request_code(_request_code);
     }
     AgentService_Stub stub(channel);
     _call_id == done->cntl.call_id();
@@ -124,13 +124,15 @@ void ASyncClient::Test(const TestReq* req, TestRes* res, std::function<void(bool
 void ASyncClient::GetServers(const GetServersReq* req, GetServersRes* res, std::function<void(bool, GetServersRes*)> callback) {
     auto done = new OnRPCDone<GetServersRes>(callback);
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
-                                           &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         brpc::ClosureGuard done_guard(done);
         done->cntl.SetFailed(::brpc::EINTERNAL, "Failed to channel");
         return;
+    }
+    if(HasRpcFlag(FLAGS_RPC_REQUEST_CODE)) {
+        done->cntl.set_request_code(_request_code);
     }
     AgentService_Stub stub(channel);
     _call_id == done->cntl.call_id();
@@ -141,8 +143,7 @@ void ASyncClient::GetServers(const GetServersReq* req, GetServersRes* res, std::
 SemiSyncClient::SemiSyncClient(const std::string& service_name)
     : _service_name(MakeServiceName(service_name))
     , _group_strategy(GroupStrategy::STRATEGY_NORMAL)
-    , _lb("rr")
-    , _request_code(0) { }
+    , _lb("rr") { }
 
 SemiSyncClient::~SemiSyncClient() {} 
 
@@ -155,7 +156,7 @@ void SemiSyncClient::SetLbStrategy(const std::string& lb) {
 }
 
 void SemiSyncClient::SetRequestCode(uint64_t request_code) {
-    _request_code = request_code; 
+    _controller.set_request_code(request_code); 
 }
 
 void SemiSyncClient::SetConnectTimeoutMs(uint64_t timeout_ms) {
@@ -172,8 +173,7 @@ void SemiSyncClient::SetMaxRetry(int max_retry) {
 
 void SemiSyncClient::Test(const TestReq* req, TestRes* res) { 
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
-                                           &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");
@@ -185,8 +185,7 @@ void SemiSyncClient::Test(const TestReq* req, TestRes* res) {
 
 void SemiSyncClient::GetServers(const GetServersReq* req, GetServersRes* res) { 
     SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, _request_code,
-                                           &_options);
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);
     brpc::Channel* channel = channel_ptr.get();
     if (!channel)  {
         _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");

@@ -70,14 +70,20 @@ private:
         std::vector<std::string> client_types = {"SyncClient", "ASyncClient", "SemiSyncClient"};
         for (const std::string& client_type : client_types) {
             printer.Print("class $client_type$ {\n", "client_type", client_type);
+            if (client_type == "ASyncClient") {
+                printer.PrintRaw("    static const uint32_t FLAGS_RPC_REQUEST_CODE = (1 << 0);\n");
+            }
             printer.PrintRaw("private:\n");
             printer.PrintRaw("    brpc::ChannelOptions _options;\n");
             printer.PrintRaw("    std::string _service_name;\n");
-            printer.PrintRaw("    brpc::Controller _controller;\n");
+            if (client_type != "ASyncClient") {
+                printer.PrintRaw("    brpc::Controller _controller;\n");
+            }
             printer.PrintRaw("    GroupStrategy _group_strategy;\n");
             printer.PrintRaw("    std::string _lb;\n");
-            printer.PrintRaw("    uint64_t _request_code;\n");
             if (client_type == "ASyncClient") {
+                printer.PrintRaw("    uint32_t _rpc_flag;\n");
+                printer.PrintRaw("    uint64_t _request_code;\n");
                 printer.PrintRaw("    brpc::CallId _call_id;\n");
             }
 
@@ -92,17 +98,22 @@ private:
             printer.PrintRaw("    void SetConnectTimeoutMs(uint64_t timeout_ms);\n");
             printer.PrintRaw("    void SetTimeoutMs(uint64_t timeout_ms);\n");
             printer.PrintRaw("    void SetMaxRetry(int max_retry);\n");
-
-            printer.PrintRaw("    bool Failed() { return _controller.Failed(); }\n");
-            printer.PrintRaw("    std::string ErrorText() { return _controller.ErrorText(); }\n");
-            printer.PrintRaw("    int ErrorCode() { return _controller.ErrorCode(); }\n");
-            printer.PrintRaw(
-                "    butil::EndPoint remote_side() { return _controller.remote_side(); }\n");
-            printer.PrintRaw(
-                "    butil::EndPoint local_side() { return _controller.local_side(); }\n");
             if (client_type != "ASyncClient") {
-                printer.PrintRaw("    int64_t latency_us() { return _controller.latency_us(); }\n");
+                printer.PrintRaw("    bool Failed() { return _controller.Failed(); }\n");
+                printer.PrintRaw(
+                    "    std::string ErrorText() { return _controller.ErrorText(); }\n");
+                printer.PrintRaw("    int ErrorCode() { return _controller.ErrorCode(); }\n");
+                printer.PrintRaw(
+                    "    butil::EndPoint RemoteSide() { return _controller.remote_side(); }\n");
+                printer.PrintRaw(
+                    "    butil::EndPoint LocalSide() { return _controller.local_side(); }\n");
+                printer.PrintRaw("    int64_t LatencyUs() { return _controller.latency_us(); }\n");
+            } else {
+                printer.PrintRaw("    void AddRpcFlag(uint32_t flag) { _rpc_flag |= flag; }\n");
+                printer.PrintRaw(
+                    "    bool HasRpcFlag(uint32_t flag) { return _rpc_flag & flag; }\n");
             }
+
             if (client_type == "SemiSyncClient") {
                 printer.PrintRaw("    void Join() { brpc::Join(_controller.call_id()); }\n");
             } else if (client_type == "ASyncClient") {
@@ -171,12 +182,20 @@ private:
 
         std::vector<std::string> client_types = {"SyncClient", "ASyncClient", "SemiSyncClient"};
         for (const std::string& client_type : client_types) {
-            printer.Print("$client_type$::$client_type$(const std::string& service_name)\n"
-                          "    : _service_name(MakeServiceName(service_name))\n"
-                          "    , _group_strategy(GroupStrategy::STRATEGY_NORMAL)\n"
-                          "    , _lb(\"rr\")\n"
-                          "    , _request_code(0) { }\n\n",
-                          "client_type", client_type);
+            if (client_type == "ASyncClient") {
+                printer.Print("$client_type$::$client_type$(const std::string& service_name)\n"
+                              "    : _service_name(MakeServiceName(service_name))\n"
+                              "    , _group_strategy(GroupStrategy::STRATEGY_NORMAL)\n"
+                              "    , _lb(\"rr\")\n"
+                              "    , _rpc_flag(0) { }\n\n",
+                              "client_type", client_type);
+            } else {
+                printer.Print("$client_type$::$client_type$(const std::string& service_name)\n"
+                              "    : _service_name(MakeServiceName(service_name))\n"
+                              "    , _group_strategy(GroupStrategy::STRATEGY_NORMAL)\n"
+                              "    , _lb(\"rr\") { }\n\n",
+                              "client_type", client_type);
+            }
             printer.Print("$client_type$::~$client_type$() {} \n\n", "client_type", client_type);
             printer.Print("void $client_type$::SetGroupStrategy(GroupStrategy "
                           "group_strategy) { \n"
@@ -187,10 +206,18 @@ private:
                           "    _lb = lb; \n"
                           "}\n\n",
                           "client_type", client_type);
-            printer.Print("void $client_type$::SetRequestCode(uint64_t request_code) {\n"
-                          "    _request_code = request_code; \n"
-                          "}\n\n",
-                          "client_type", client_type);
+            if (client_type == "ASyncClient") {
+                printer.Print("void $client_type$::SetRequestCode(uint64_t request_code) {\n"
+                              "    _request_code = request_code; \n"
+                              "    AddRpcFlag(FLAGS_RPC_REQUEST_CODE);\n"
+                              "}\n\n",
+                              "client_type", client_type);
+            } else {
+                printer.Print("void $client_type$::SetRequestCode(uint64_t request_code) {\n"
+                              "    _controller.set_request_code(request_code); \n"
+                              "}\n\n",
+                              "client_type", client_type);
+            }
             printer.Print("void $client_type$::SetConnectTimeoutMs(uint64_t timeout_ms) {\n"
                           "    _options.connect_timeout_ms = timeout_ms; \n"
                           "}\n\n",
@@ -214,8 +241,7 @@ private:
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
                             "        SingletonChannel::get()->GetChannel(_service_name, "
-                            "_group_strategy, _lb, _request_code,\n"
-                            "                                           &_options);\n");
+                            "_group_strategy, _lb, &_options);\n");
                         printer.PrintRaw("    brpc::Channel* channel = channel_ptr.get();\n");
                         printer.PrintRaw("    if (!channel)  {\n");
                         printer.PrintRaw(
@@ -241,8 +267,7 @@ private:
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
                             "        SingletonChannel::get()->GetChannel(_service_name, "
-                            "_group_strategy, _lb, _request_code,\n"
-                            "                                           &_options);\n");
+                            "_group_strategy, _lb, &_options);\n");
                         printer.PrintRaw("    brpc::Channel* channel = channel_ptr.get();\n");
                         printer.PrintRaw("    if (!channel)  {\n");
                         printer.PrintRaw(
@@ -272,8 +297,7 @@ private:
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
                             "        SingletonChannel::get()->GetChannel(_service_name, "
-                            "_group_strategy, _lb, _request_code,\n"
-                            "                                           &_options);\n");
+                            "_group_strategy, _lb, &_options);\n");
                         printer.PrintRaw("    brpc::Channel* channel = channel_ptr.get();\n");
                         printer.PrintRaw("    if (!channel)  {\n");
                         printer.PrintRaw("        brpc::ClosureGuard done_guard(done);\n");
@@ -281,7 +305,9 @@ private:
                             "        done->cntl.SetFailed(::brpc::EINTERNAL, \"Failed to "
                             "channel\");\n");
                         printer.PrintRaw("        return;\n    }\n");
-
+                        printer.PrintRaw("    if(HasRpcFlag(FLAGS_RPC_REQUEST_CODE)) {\n");
+                        printer.PrintRaw("        done->cntl.set_request_code(_request_code);\n");
+                        printer.PrintRaw("    }\n");
                         printer.PrintRaw("    " + service->name() + "_Stub stub(channel);\n");
                         printer.PrintRaw("    _call_id == done->cntl.call_id();\n");
                         printer.PrintRaw("    stub." + method->name() +

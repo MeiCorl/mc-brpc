@@ -28,7 +28,6 @@ public:
     SharedPtrChannel GetChannel(const std::string& service_name,
                                 GroupStrategy group_strategy  = GroupStrategy::STRATEGY_NORMAL,
                                 const std::string& lb         = "rr",
-                                uint32_t request_code         = 0,
                                 brpc::ChannelOptions* options = nullptr);
 };
 

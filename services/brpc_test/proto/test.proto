@@ -32,6 +32,18 @@ message UpdateUserInfoRes {
     string res_msg = 3;
 }
 
+message TestReq {
+    uint64 seq_id = 1;
+    string msg = 2;
+}
+
+message TestRes {
+    uint64 seq_id = 1;
+    ResCode res_code = 2;
+    string msg = 3;
+}
+
 service TestService {
     rpc UpdateUserInfo (UpdateUserInfoReq) returns (UpdateUserInfoRes);
+    rpc Test (TestReq) returns (TestRes);
 }

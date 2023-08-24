@@ -1,2 +1,4 @@
 **/build/
+**/client/
+core/plugins/codexx
 .vscode
