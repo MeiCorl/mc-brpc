@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include <brpc/channel.h>
 #include <bthread/mutex.h>
-#include <butil/containers/doubly_buffered_data.h>
 #include "core/utils/singleton.h"
 #include "core/config/server_config.h"
 
@@ -21,7 +20,7 @@ class ChannelManager {
 
 private:
     bthread::Mutex _mutex;
-    butil::DoublyBufferedData<ServerChannels> _server_channels;
+    ServerChannels _server_channels;
 
 public:
     ChannelManager();

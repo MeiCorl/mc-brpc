@@ -14,7 +14,7 @@ include_directories(
 )
 
 file(GLOB PROTOS
-    "${ROOT_PATH}/core/common/name_agent.proto"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto"
 )
 protobuf_generate_cpp(PB_SRCS PB_HDRS ${PROTOS})
 

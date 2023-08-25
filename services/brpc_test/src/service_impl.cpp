@@ -26,7 +26,6 @@ void ServiceImpl::UpdateUserInfo(google::protobuf::RpcController* cntl_base,
     }
 
     test::SyncClient client("brpc_test");
-    client.SetLbStrategy("c_murmurhash");
     client.SetRequestCode(request->seq_id());
     test::TestReq req;
     test::TestRes res;

@@ -23,16 +23,12 @@ include_directories(
 # 编译proto文件
 # find_package(Protobuf REQUIRED)
 file(GLOB PROTOS
-    "${ROOT_PATH}/core/common/name_agent.proto"
     "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto"
 )
 protobuf_generate_cpp(PB_SRCS PB_HDRS ${PROTOS})
 
 file(GLOB TEST_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/proto/test.proto")
 auto_gen_client_code(${CMAKE_CURRENT_SOURCE_DIR}/client ${CMAKE_CURRENT_SOURCE_DIR}/proto/ ${TEST_PROTO})
-
-file(GLOB NAME_AGENT_PROTO "${ROOT_PATH}/core/common/name_agent.proto")
-auto_gen_client_code(${CMAKE_CURRENT_SOURCE_DIR}/client ${ROOT_PATH}/core/common/ ${NAME_AGENT_PROTO})
 
 add_server_source(SERVER_SRCS)
 add_custom_lib_source(COMM_SRCS VALIDATOR)

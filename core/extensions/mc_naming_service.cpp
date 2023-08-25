@@ -1,5 +1,4 @@
 #include "mc_naming_service.h"
-#include "name_agent.pb.h"
 
 #include <brpc/controller.h>
 
