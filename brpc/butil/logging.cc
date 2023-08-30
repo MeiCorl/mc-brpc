@@ -528,10 +528,9 @@ void PrintLogPrefix(std::ostream& os, int severity,
     os << ' ' << file_name << ':' << line;
 
     if (func && *func != '\0') {
-        os << " " << func;
+        os << "[" << func << "] ";
     }
-    os << "] ";
-
+    
     os.fill(prev_fill);
 }
 
