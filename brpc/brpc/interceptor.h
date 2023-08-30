@@ -15,28 +15,28 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// bthread - An M:N threading library to make applications more concurrent.
+#ifndef BRPC_INTERCEPTOR_H
+#define BRPC_INTERCEPTOR_H
 
-// Date: Tue Jul 10 17:40:58 CST 2012
+#include "brpc/controller.h"
 
-#include <signal.h>
-#include "bthread/interrupt_pthread.h"
 
-namespace bthread {
+namespace brpc {
 
-// TODO: Make sure SIGURG is not used by user.
-// This empty handler is simply for triggering EINTR in blocking syscalls.
-void do_nothing_handler(int) {}
+class Interceptor {
+public:
+    virtual ~Interceptor() = default;
 
-static pthread_once_t register_sigurg_once = PTHREAD_ONCE_INIT;
+    // Returns true if accept request, reject request otherwise.
+    // When server rejects request, You can fill `error_code'
+    // and `error_txt' which will send to client.
+    virtual bool Accept(const brpc::Controller* controller,
+                        int& error_code,
+                        std::string& error_txt) const = 0;
 
-static void register_sigurg() {
-    signal(SIGURG, do_nothing_handler);
-}
+};
 
-int interrupt_pthread(pthread_t th) {
-    pthread_once(&register_sigurg_once, register_sigurg);
-    return pthread_kill(th, SIGURG);
-}
+} // namespace brpc
 
-}  // namespace bthread
+
+#endif //BRPC_INTERCEPTOR_H

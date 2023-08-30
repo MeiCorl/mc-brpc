@@ -75,6 +75,8 @@ struct CommonStrings {
     std::string GRPC_MESSAGE;
     std::string GRPC_TIMEOUT;
 
+    std::string DEFAULT_PATH;
+
     CommonStrings();
 };
 
@@ -112,6 +114,8 @@ public:
     void ReadProgressiveAttachmentBy(ProgressiveReader* r) {
         return SetBodyReader(r);
     }
+
+    void CheckProgressiveRead(const void* arg, Socket *socket);
 
 private:
     bool _is_stage2;

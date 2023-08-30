@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// bthread - A M:N threading library to make applications more concurrent.
+// bthread - An M:N threading library to make applications more concurrent.
 
 // Date: 2016/06/03 13:15:24
 
@@ -26,10 +26,9 @@
 namespace bthread {
 
 CountdownEvent::CountdownEvent(int initial_count) {
-    if (initial_count < 0) {
-        LOG(FATAL) << "Invalid initial_count=" << initial_count;
-        abort();
-    }
+    RELEASE_ASSERT_VERBOSE(initial_count >= 0,
+                           "Invalid initial_count=%d",
+                           initial_count);
     _butex = butex_create_checked<int>();
     *_butex = initial_count;
     _wait_was_invoked = false;

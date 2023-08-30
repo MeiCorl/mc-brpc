@@ -42,7 +42,8 @@ public:
 
     // --------------------- SocketConnection --------------
 
-    int AppendIfNotFull(const butil::IOBuf& msg);
+    int AppendIfNotFull(const butil::IOBuf& msg,
+                        const StreamWriteOptions* options = NULL);
     static int Create(const StreamOptions& options,
                       const StreamSettings *remote_settings,
                       StreamId *id);
@@ -114,6 +115,7 @@ friend class MessageBatcher;
     bthread_mutex_t _congestion_control_mutex;
     size_t _produced;
     size_t _remote_consumed;
+    size_t _cur_buf_size;
     bthread_id_list_t _writable_wait_list;
 
     int64_t _local_consumed;

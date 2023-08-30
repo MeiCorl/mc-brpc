@@ -99,15 +99,28 @@ static ibv_device** g_devices = NULL;
 static ibv_context* g_context = NULL;
 static SocketId g_async_socket;
 static ibv_pd* g_pd = NULL;
-static std::vector<ibv_mr*>* g_mrs = NULL;
+static std::vector<ibv_mr*>* g_mrs = NULL; // mr registered by brpc
+
+static butil::FlatMap<void*, ibv_mr*>* g_user_mrs;  // mr registered by user
+static butil::Mutex* g_user_mrs_lock = NULL;
 
 // Store the original IOBuf memalloc and memdealloc functions
 static void* (*g_mem_alloc)(size_t) = NULL;
 static void (*g_mem_dealloc)(void*) = NULL;
 
-butil::Mutex* g_addr_map_lock;
-typedef butil::FlatMap<const void*, ibv_mr*> AddrMap;
-static AddrMap* g_addr_map = NULL;  // for mr not in memory pool
+namespace {
+struct IbvDeviceDeleter {
+    void operator()(ibv_device** device_list) {
+      IbvFreeDeviceList(device_list);
+    }
+};
+
+struct IbvContextDeleter {
+    void operator() (ibv_context* context) {
+        IbvCloseDevice(context);
+    }
+};
+}  // namespace
 
 static void GlobalRelease() {
     g_rdma_available.store(false, butil::memory_order_release);
@@ -116,20 +129,20 @@ static void GlobalRelease() {
     // We do not set `g_async_socket' to failed explicitly to avoid
     // close async_fd twice.
 
-    if (g_addr_map_lock) {
-        BAIDU_SCOPED_LOCK(*g_addr_map_lock);
-        if (g_addr_map) {
-            for (AddrMap::iterator it = g_addr_map->begin();
-                    it != g_addr_map->end(); ++it) {
-                IbvDeregMr(it->second);
-            }
-            delete g_addr_map;
-            g_addr_map = NULL;  // must set it to NULL
-        }
-    }
-    delete g_addr_map_lock;
-
     RdmaEndpoint::GlobalRelease();
+
+    if (g_user_mrs_lock) {
+        BAIDU_SCOPED_LOCK(*g_user_mrs_lock);
+        for (butil::FlatMap<void*, ibv_mr*>::iterator it = g_user_mrs->begin();
+                it != g_user_mrs->end(); ++it) {
+            IbvDeregMr(it->second);
+        }
+        g_user_mrs->clear();
+        delete g_user_mrs;
+        g_user_mrs = NULL;
+    }
+    delete g_user_mrs_lock;
+    g_user_mrs_lock = NULL;
 
     if (g_mrs) {
         for (size_t i = 0; i < g_mrs->size(); ++i) {
@@ -326,8 +339,14 @@ static void OnRdmaAsyncEvent(Socket* m) {
 static int ReadRdmaDynamicLib() {
     g_handle_ibverbs = dlopen("libibverbs.so", RTLD_LAZY);
     if (!g_handle_ibverbs) {
-        LOG(ERROR) << "Fail to load libibverbs.so due to " << dlerror();
-        return -1;
+        LOG(WARNING) << "Failed to load libibverbs.so " << dlerror() << " try libibverbs.so.1";
+        // Clear existing error
+        dlerror();
+        g_handle_ibverbs = dlopen("libibverbs.so.1", RTLD_LAZY);
+        if (!g_handle_ibverbs) {
+            LOG(ERROR) << "Fail to load libibverbs.so.1 due to " << dlerror();
+            return -1;
+        }
     }
 
     LoadSymbol(g_handle_ibverbs, IbvGetDeviceList, "ibv_get_device_list");
@@ -365,6 +384,61 @@ static inline void ExitWithError() {
     exit(1);
 }
 
+/**
+ * @brief Open the RDMA device specified by FLAGS_rdma_device or the first
+ * available device if FLAGS_rdma_device is empty. Also, number of available
+ * devices are written to `*num_available_devices`
+ *
+ * @param num_total Total number returned by ibv_open_devices
+ * @param num_available_devices Location to write num available
+ * @return ibv_context* nullptr if no device available or device_name not match
+ */
+static ibv_context* OpenDevice(int num_total, int* num_available_devices) {
+    *num_available_devices = 0;
+    ibv_context* ret_context = nullptr;
+    for (int i = 0; i < num_total; ++i) {
+        std::unique_ptr<ibv_context, IbvContextDeleter> context{
+            IbvOpenDevice(g_devices[i]), IbvContextDeleter()};
+        const char* dev_name = IbvGetDeviceName(g_devices[i]);
+        if (!context) {
+            PLOG(ERROR) << "Fail to open rdma device " << dev_name;
+            continue;
+        }
+        ibv_port_attr attr;
+        if (IbvQueryPort(context.get(), uint8_t(FLAGS_rdma_port), &attr) < 0) {
+            PLOG(WARNING) << "Fail to query port " << FLAGS_rdma_port << " on "
+                          << dev_name;
+            continue;
+        }
+        if (attr.state != IBV_PORT_ACTIVE) {
+            LOG(WARNING) << "Device " << dev_name << " port not active";
+            continue;
+        }
+
+        ++*num_available_devices;
+        if (ret_context) {
+            continue;
+        }
+        if (!FLAGS_rdma_device.empty()) {
+            // Use provided device_name
+            if (FLAGS_rdma_device == dev_name) {
+                ret_context = context.release();
+                g_gid_tbl_len = attr.gid_tbl_len;
+                g_lid = attr.lid;
+            } else {
+                LOG(INFO) << "Device name not match: " << context->device->name
+                          << " vs " << FLAGS_rdma_device;
+            }
+        } else {
+            // Fallback to first available device
+            ret_context = context.release();
+            g_gid_tbl_len = attr.gid_tbl_len;
+            g_lid = attr.lid;
+        }
+    }
+    return ret_context;
+}
+
 static void GlobalRdmaInitializeOrDieImpl() {
     if (BAIDU_UNLIKELY(g_skip_rdma_init)) {
         // Just for UT
@@ -392,43 +466,10 @@ static void GlobalRdmaInitializeOrDieImpl() {
     }
 
     // Find the first active port
-    int available_devices = 0;
     g_port_num = FLAGS_rdma_port;
-    for (int i = 0; i < num; ++i) {
-        ibv_context* context = IbvOpenDevice(g_devices[i]);
-        if (!context) {
-            PLOG(ERROR) << "Fail to open rdma device " << IbvGetDeviceName(g_devices[i]);
-            ExitWithError();
-        }
-        ibv_port_attr attr;
-        if (IbvQueryPort(context, g_port_num, &attr) < 0) {
-            PLOG(WARNING) << "Fail to query port " << g_port_num 
-                          << " on " << IbvGetDeviceName(g_devices[i]);
-            if (FLAGS_rdma_device.size() > 0) {
-                ExitWithError();
-            }
-            IbvCloseDevice(context);
-            continue;
-        }
-        if (attr.state != IBV_PORT_ACTIVE) {
-            IbvCloseDevice(context);
-            continue;
-        }
-        if (FLAGS_rdma_device.size() > 0) {
-            if (strcmp(context->device->name, FLAGS_rdma_device.c_str()) == 0) {
-                ++available_devices;
-                g_context = context;
-                g_gid_tbl_len = attr.gid_tbl_len;
-                g_lid = attr.lid;
-                break;
-            }
-        } else {
-            g_context = context;
-            g_gid_tbl_len = attr.gid_tbl_len;
-            g_lid = attr.lid;
-            ++available_devices;
-        }
-    }
+    int available_devices;
+    g_context = OpenDevice(num, &available_devices);
+
     if (!g_context) {
         LOG(ERROR) << "Fail to find available RDMA device " << FLAGS_rdma_device;
         ExitWithError();
@@ -454,6 +495,23 @@ static void GlobalRdmaInitializeOrDieImpl() {
     g_pd = IbvAllocPd(g_context);
     if (!g_pd) {
         PLOG(ERROR) << "Fail to allocate protection domain";
+        ExitWithError();
+    }
+
+    g_user_mrs_lock = new (std::nothrow) butil::Mutex;
+    if (!g_user_mrs_lock) {
+        PLOG(WARNING) << "Fail to construct g_user_mrs_lock";
+        ExitWithError();
+    }
+
+    g_user_mrs = new (std::nothrow) butil::FlatMap<void*, ibv_mr*>();
+    if (!g_user_mrs) {
+        PLOG(WARNING) << "Fail to construct g_user_mrs";
+        ExitWithError();
+    }
+
+    if (g_user_mrs->init(65536) < 0) {
+        PLOG(WARNING) << "Fail to initialize g_user_mrs";
         ExitWithError();
     }
 
@@ -488,22 +546,7 @@ static void GlobalRdmaInitializeOrDieImpl() {
         ExitWithError();
     }
 
-    g_addr_map_lock = new (std::nothrow) butil::Mutex;
-    if (!g_addr_map_lock) {
-        PLOG(WARNING) << "Fail to construct g_addr_map_lock";
-        ExitWithError();
-    }
-
-    g_addr_map = new (std::nothrow) AddrMap;
-    if (!g_addr_map) {
-        PLOG(WARNING) << "Fail to construct g_addr_map";
-        ExitWithError();
-    }
-
-    if (g_addr_map->init(65536) < 0) {
-        PLOG(WARNING) << "Fail to initialize g_addr_map";
-        ExitWithError();
-    }
+    atexit(GlobalRelease);
 
     SocketOptions opt;
     opt.fd = g_context->async_fd;
@@ -517,8 +560,6 @@ static void GlobalRdmaInitializeOrDieImpl() {
         LOG(WARNING) << "Fail to create socket to get async event of RDMA";
         ExitWithError();
     }
-
-    atexit(GlobalRelease);
 
     g_mem_alloc = butil::iobuf::blockmem_allocate;
     g_mem_dealloc = butil::iobuf::blockmem_deallocate;
@@ -537,25 +578,43 @@ void GlobalRdmaInitializeOrDie() {
     }
 }
 
-int RegisterMemoryForRdma(void* buf, size_t len) {
+uint32_t RegisterMemoryForRdma(void* buf, size_t len) {
     ibv_mr* mr = IbvRegMr(g_pd, buf, len, IBV_ACCESS_LOCAL_WRITE);
     if (!mr) {
-        return -1;
+        PLOG(ERROR) << "Fail to register memory";
+        return 0;
     }
-    BAIDU_SCOPED_LOCK(*g_addr_map_lock);
-    if (!g_addr_map->insert(buf, mr)) {
-        IbvDeregMr(mr);
-        return -1;
+    {
+        BAIDU_SCOPED_LOCK(*g_user_mrs_lock);
+        if (!g_user_mrs->insert(buf, mr)) {
+            LOG(WARNING) << "Fail to insert to user mr maps (now there are "
+                         << g_user_mrs->size() << " mrs already";
+        } else {
+            return mr->lkey;
+        }
+    }
+    if(IbvDeregMr(mr)) {
+        PLOG(ERROR) << "Failed to deregister memory";
     }
     return 0;
 }
 
 void DeregisterMemoryForRdma(void* buf) {
-    BAIDU_SCOPED_LOCK(*g_addr_map_lock);
-    ibv_mr** mr = g_addr_map->seek(buf);
-    if (mr && *mr) {
-        IbvDeregMr(*mr);
-        g_addr_map->erase(buf);
+    ibv_mr* mr = NULL;
+    {
+        BAIDU_SCOPED_LOCK(*g_user_mrs_lock);
+        ibv_mr** mr_ptr = g_user_mrs->seek(buf);
+        if (mr_ptr) {
+            mr = *mr_ptr;
+            g_user_mrs->erase(buf);
+        }
+    }
+    if (mr) {
+        if (IbvDeregMr(mr)) {
+            PLOG(ERROR) << "Failed to deregister memory at: " << mr->addr;
+        }
+    } else {
+        LOG(WARNING) << "Try to deregister a buffer which is not registered";
     }
 }
 
@@ -569,7 +628,7 @@ int GetRdmaCompVector() {
     }
     // g_comp_vector_index is not an atomic variable. If more than
     // one CQ is created at the same time, some CQs will share the
-    // same index. However, this vector is only used to assign a
+    // same index. However, this vector is only used to assign an
     // event queue for the CQ. Sharing the same event queue is not
     // a problem.
     return (g_comp_vector_index++) % g_context->num_comp_vectors;
@@ -583,16 +642,13 @@ ibv_pd* GetRdmaPd() {
     return g_pd;
 }
 
-uint32_t GetLKey(const void* buf) {
-    uint32_t lkey = GetRegionId(buf);
-    if (lkey == 0) {
-        BAIDU_SCOPED_LOCK(*g_addr_map_lock);
-        ibv_mr** mr = g_addr_map->seek(buf);
-        if (mr && *mr) {
-            lkey = (*mr)->lkey;
-        }
+uint32_t GetLKey(void* buf) {
+    BAIDU_SCOPED_LOCK(*g_user_mrs_lock);
+    ibv_mr** mr_ptr = g_user_mrs->seek(buf);
+    if (mr_ptr) {
+        return (*mr_ptr)->lkey;
     }
-    return lkey;
+    return 0;
 }
 
 ibv_gid GetRdmaGid() {
@@ -632,5 +688,20 @@ bool SupportedByRdma(std::string protocol) {
 
 }  // namespace rdma
 }  // namespace brpc
+
+#else
+
+#include <stdlib.h>
+#include "butil/logging.h"
+
+namespace brpc {
+namespace rdma {
+void GlobalRdmaInitializeOrDie() {
+    LOG(ERROR) << "brpc is not compiled with rdma. To enable it, please refer to "
+               << "https://github.com/apache/brpc/blob/master/docs/en/rdma.md";
+    exit(1);
+}
+}
+}
 
 #endif  // if BRPC_WITH_RDMA

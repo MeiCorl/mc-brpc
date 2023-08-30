@@ -48,6 +48,11 @@
 // Force linking the .o in UT (which analysis deps by inclusions)
 #include "brpc/parallel_channel.h"
 #include "brpc/selective_channel.h"
+#include "bthread/task_group.h"
+
+namespace bthread {
+extern BAIDU_THREAD_LOCAL TaskGroup* tls_task_group;
+}
 
 // This is the only place that both client/server must link, so we put
 // registrations of errno here.
@@ -87,6 +92,8 @@ namespace brpc {
 
 DEFINE_bool(graceful_quit_on_sigterm, false,
             "Register SIGTERM handle func to quit graceful");
+DEFINE_bool(graceful_quit_on_sighup, false,
+            "Register SIGHUP handle func to quit graceful");            
 
 const IdlNames idl_single_req_single_res = { "req", "res" };
 const IdlNames idl_single_req_multi_res = { "req", "" };
@@ -625,33 +632,51 @@ void Controller::OnVersionedRPCReturned(const CompletionInfo& info,
         ++_current_call.nretry;
         add_flag(FLAGS_BACKUP_REQUEST);
         return IssueRPC(butil::gettimeofday_us());
-    } else if (_retry_policy ? _retry_policy->DoRetry(this)
-               : DefaultRetryPolicy()->DoRetry(this)) {
-        // The error must come from _current_call because:
-        //  * we intercepted error from _unfinished_call in OnVersionedRPCReturned
-        //  * ERPCTIMEDOUT/ECANCELED are not retrying error by default.
-        CHECK_EQ(current_id(), info.id) << "error_code=" << _error_code;
-        if (!SingleServer()) {
-            if (_accessed == NULL) {
-                _accessed = ExcludedServers::Create(
-                    std::min(_max_retry, RETRY_AVOIDANCE));
-                if (NULL == _accessed) {
-                    SetFailed(ENOMEM, "Fail to create ExcludedServers");
-                    goto END_OF_RPC;
+    } else {
+        auto retry_policy = _retry_policy ? _retry_policy : DefaultRetryPolicy();
+        if (retry_policy->DoRetry(this)) {
+            // The error must come from _current_call because:
+            //  * we intercepted error from _unfinished_call in OnVersionedRPCReturned
+            //  * ERPCTIMEDOUT/ECANCELED are not retrying error by default.
+            CHECK_EQ(current_id(), info.id) << "error_code=" << _error_code;
+            if (!SingleServer()) {
+                if (_accessed == NULL) {
+                    _accessed = ExcludedServers::Create(
+                            std::min(_max_retry, RETRY_AVOIDANCE));
+                    if (NULL == _accessed) {
+                        SetFailed(ENOMEM, "Fail to create ExcludedServers");
+                        goto END_OF_RPC;
+                    }
                 }
+                _accessed->Add(_current_call.peer_id);
             }
-            _accessed->Add(_current_call.peer_id);
+            _current_call.OnComplete(this, _error_code, info.responded, false);
+            ++_current_call.nretry;
+            // Clear http responses before retrying, otherwise the response may
+            // be mixed with older (and undefined) stuff. This is actually not
+            // done before r32008.
+            if (_http_response) {
+                _http_response->Clear();
+            }
+            response_attachment().clear();
+
+            // Retry backoff.
+            bthread::TaskGroup* g = bthread::tls_task_group;
+            if (retry_policy->CanRetryBackoffInPthread() ||
+                (g && !g->is_current_pthread_task())) {
+                int64_t backoff_time_us = retry_policy->GetBackoffTimeMs(this) * 1000L;
+                // No need to do retry backoff when the backoff time is longer than the remaining rpc time.
+                if (backoff_time_us > 0 &&
+                    backoff_time_us < _deadline_us - butil::gettimeofday_us()) {
+                    bthread_usleep(backoff_time_us);
+                }
+
+            } else {
+                LOG(WARNING) << "`CanRetryBackoffInPthread()' returns false, "
+                                "skip retry backoff in pthread.";
+            }
+            return IssueRPC(butil::gettimeofday_us());
         }
-        _current_call.OnComplete(this, _error_code, info.responded, false);
-        ++_current_call.nretry;
-        // Clear http responses before retrying, otherwise the response may
-        // be mixed with older (and undefined) stuff. This is actually not
-        // done before r32008.
-        if (_http_response) {
-            _http_response->Clear();
-        }
-        response_attachment().clear();
-        return IssueRPC(butil::gettimeofday_us());
     }
 
 END_OF_RPC:
@@ -1169,6 +1194,7 @@ void Controller::IssueRPC(int64_t start_realtime_us) {
     wopt.pipelined_count = _pipelined_count;
     wopt.auth_flags = _auth_flags;
     wopt.ignore_eovercrowded = has_flag(FLAGS_IGNORE_EOVERCROWDED);
+    wopt.write_in_background = write_to_socket_in_background();
     int rc;
     size_t packet_size = 0;
     if (user_packet_guard) {
@@ -1461,6 +1487,7 @@ typedef sighandler_t SignalHandler;
 static volatile bool s_signal_quit = false;
 static SignalHandler s_prev_sigint_handler = NULL;
 static SignalHandler s_prev_sigterm_handler = NULL;
+static SignalHandler s_prev_sighup_handler = NULL;
 
 static void quit_handler(int signo) {
     s_signal_quit = true;
@@ -1469,6 +1496,9 @@ static void quit_handler(int signo) {
     }
     if (SIGTERM == signo && s_prev_sigterm_handler) {
         s_prev_sigterm_handler(signo);
+    }
+    if (SIGHUP == signo && s_prev_sighup_handler) {
+        s_prev_sighup_handler(signo);
     }
 }
 
@@ -1479,26 +1509,31 @@ static void RegisterQuitSignalOrDie() {
     SignalHandler prev = signal(SIGINT, quit_handler);
     if (prev != SIG_DFL &&
         prev != SIG_IGN) { // shell may install SIGINT of background jobs with SIG_IGN
-        if (prev == SIG_ERR) {
-            LOG(ERROR) << "Fail to register SIGINT, abort";
-            abort();
-        } else {
-            s_prev_sigint_handler = prev;
-            LOG(WARNING) << "SIGINT was installed with " << prev;
-        }
+        RELEASE_ASSERT_VERBOSE(prev != SIG_ERR,
+                               "Fail to register SIGINT, abort");
+        s_prev_sigint_handler = prev;
+        LOG(WARNING) << "SIGINT was installed with " << prev;
     }
 
     if (FLAGS_graceful_quit_on_sigterm) {
         prev = signal(SIGTERM, quit_handler);
         if (prev != SIG_DFL &&
             prev != SIG_IGN) { // shell may install SIGTERM of background jobs with SIG_IGN
-            if (prev == SIG_ERR) {
-                LOG(ERROR) << "Fail to register SIGTERM, abort";
-                abort();
-            } else {
-                s_prev_sigterm_handler = prev;
-                LOG(WARNING) << "SIGTERM was installed with " << prev;
-            }
+            RELEASE_ASSERT_VERBOSE(prev != SIG_ERR,
+                                   "Fail to register SIGTERM, abort");
+            s_prev_sigterm_handler = prev;
+            LOG(WARNING) << "SIGTERM was installed with " << prev;
+        }
+    }
+
+    if (FLAGS_graceful_quit_on_sighup) {
+        prev = signal(SIGHUP, quit_handler);
+        if (prev != SIG_DFL &&
+            prev != SIG_IGN) { // shell may install SIGHUP of background jobs with SIG_IGN
+            RELEASE_ASSERT_VERBOSE(prev != SIG_ERR,
+                                   "Fail to register SIGHUP, abort");
+            s_prev_sighup_handler = prev;
+            LOG(WARNING) << "SIGHUP was installed with " << prev;
         }
     }
 }

@@ -28,7 +28,7 @@ struct CertInfo {
     // Certificate in PEM format.
     // Note that CN and alt subjects will be extracted from the certificate,
     // and will be used as hostnames. Requests to this hostname (provided SNI
-    // extension supported) will be encrypted using this certifcate.
+    // extension supported) will be encrypted using this certificate.
     // Supported both file path and raw string
     std::string certificate;
 
@@ -140,7 +140,7 @@ struct ServerSSLOptions {
     // Default: ""
     std::string ciphers;
 
-    // Name of the elliptic curve used to generate ECDH ephemerial keys
+    // Name of the elliptic curve used to generate ECDH ephemeral keys
     // Default: prime256v1
     std::string ecdhe_curve_name;
 
@@ -148,7 +148,12 @@ struct ServerSSLOptions {
     // Default: see above
     VerifyOptions verify;
 
-    // TODO: Support NPN & ALPN
+    // Options used to choose the most suitable application protocol, separated by comma.
+    // The NPN protocol is not commonly used, so only ALPN is supported.
+    // Available protocols: http, h2, baidu_std etc.
+    // Default: empty
+    std::string alpns;
+
     // TODO: Support OSCP stapling
 };
 

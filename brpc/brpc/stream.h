@@ -49,11 +49,17 @@ public:
 
 struct StreamOptions {
     StreamOptions()
-        : max_buf_size(2 * 1024 * 1024)
+        : min_buf_size(1024 * 1024)
+        , max_buf_size(2 * 1024 * 1024)
         , idle_timeout_ms(-1)
         , messages_in_batch(128)
         , handler(NULL)
     {}
+
+    // stream max buffer size limit in [min_buf_size, max_buf_size]
+    // If |min_buf_size| <= 0, there's no min size limit of buf size
+    // default: 1048576 (1M)
+    int min_buf_size;
 
     // The max size of unconsumed data allowed at remote side. 
     // If |max_buf_size| <= 0, there's no limit of buf size
@@ -74,6 +80,18 @@ struct StreamOptions {
     // write any message, who will get EBADF on writting
     // default: NULL
     StreamInputHandler* handler;
+};
+
+struct StreamWriteOptions
+{
+    StreamWriteOptions() : write_in_background(false) {}
+
+    // Write message to socket in background thread.
+    // Provides batch write effect and better performance in situations when
+    // you are continually issuing lots of StreamWrite or async RPC calls in
+    // only one thread. Otherwise, each StreamWrite directly writes message into
+    // socket and brings poor performance.
+    bool write_in_background;
 };
 
 // [Called at the client side]
@@ -98,7 +116,8 @@ int StreamAccept(StreamId* response_stream, Controller &cntl,
 //  - EAGAIN: |stream_id| is created with positive |max_buf_size| and buf size
 //            which the remote side hasn't consumed yet excceeds the number.
 //  - EINVAL: |stream_id| is invalied or has been closed
-int StreamWrite(StreamId stream_id, const butil::IOBuf &message);
+int StreamWrite(StreamId stream_id, const butil::IOBuf &message,
+                const StreamWriteOptions* options = NULL);
 
 // Write util the pending buffer size is less than |max_buf_size| or orrur
 // occurs

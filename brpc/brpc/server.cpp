@@ -16,7 +16,6 @@
 // under the License.
 
 
-#include <wordexp.h>                                // wordexp
 #include <iomanip>
 #include <arpa/inet.h>                              // inet_aton
 #include <fcntl.h>                                  // O_CREAT
@@ -127,6 +126,8 @@ ServerOptions::ServerOptions()
     , mongo_service_adaptor(NULL)
     , auth(NULL)
     , server_owns_auth(false)
+    , interceptor(NULL)
+    , server_owns_interceptor(false)
     , num_threads(8)
     , max_concurrency(0)
     , session_local_data_factory(NULL)
@@ -138,6 +139,7 @@ ServerOptions::ServerOptions()
     , bthread_init_count(0)
     , internal_port(-1)
     , has_builtin_services(true)
+    , force_ssl(false)
     , use_rdma(false)
     , http_master_service(NULL)
     , health_reporter(NULL)
@@ -272,6 +274,10 @@ static bvar::Vector<unsigned, 2> GetSessionLocalDataCount(void* arg) {
     return v;
 }
 
+static int cast_no_barrier_int(void* arg) {
+    return butil::subtle::NoBarrier_Load(static_cast<int*>(arg));
+}
+
 std::string Server::ServerPrefix() const {
     if(_options.server_info_name.empty()) {
         return butil::string_printf("%s_%d", g_server_info_prefix, listen_address().port);
@@ -291,6 +297,8 @@ void* Server::UpdateDerivedVars(void* arg) {
     server->_nerror_bvar.expose_as(prefix, "error");
 
     server->_eps_bvar.expose_as(prefix, "eps");
+
+    server->_concurrency_bvar.expose_as(prefix, "concurrency");
 
     bvar::PassiveStatus<timeval> uptime_st(
         prefix, "uptime", GetUptime, (void*)(intptr_t)start_us);
@@ -401,7 +409,9 @@ Server::Server(ProfilerLinker)
     , _derivative_thread(INVALID_BTHREAD)
     , _keytable_pool(NULL)
     , _eps_bvar(&_nerror_bvar)
-    , _concurrency(0) {
+    , _concurrency(0)
+    , _concurrency_bvar(cast_no_barrier_int, &_concurrency)
+    ,_has_progressive_read_method(false) {
     BAIDU_CASSERT(offsetof(Server, _concurrency) % 64 == 0,
                   Server_concurrency_must_be_aligned_by_cacheline);
 }
@@ -443,6 +453,10 @@ Server::~Server() {
     if (_options.server_owns_auth) {
         delete _options.auth;
         _options.auth = NULL;
+    }
+    if (_options.server_owns_interceptor) {
+        delete _options.interceptor;
+        _options.interceptor = NULL;
     }
 
     delete _options.redis_service;
@@ -639,6 +653,31 @@ int Server::InitializeOnce() {
         return -1;
     }
     _status = READY;
+    return 0;
+}
+
+int Server::InitALPNOptions(const ServerSSLOptions* options) {
+    if (options == nullptr) {
+        LOG(ERROR) << "Fail to init alpn options, ssl options is nullptr.";
+        return -1;
+    }   
+
+    std::string raw_protocol;
+    const std::string& alpns = options->alpns;
+    for (butil::StringSplitter split(alpns.data(), ','); split; ++split) {
+        butil::StringPiece alpn(split.field(), split.length());
+        alpn.trim_spaces();
+
+        // Check protocol valid(exist and server support)
+        AdaptiveProtocolType protocol_type(alpn);
+        const Protocol* protocol = FindProtocol(protocol_type);
+        if (protocol == nullptr || !protocol->support_server()) {
+            LOG(ERROR) << "Server does not support alpn=" << alpn;
+            return -1;
+        }
+        raw_protocol.append(ALPNProtocolToString(protocol_type));
+    }
+    _raw_alpns = std::move(raw_protocol);
     return 0;
 }
 
@@ -904,6 +943,12 @@ int Server::StartInternal(const butil::EndPoint& endpoint,
     // Free last SSL contexts
     FreeSSLContexts();
     if (_options.has_ssl_options()) {
+
+        // Change ServerSSLOptions.alpns to _raw_alpns.
+        // AddCertificate function maybe access raw_alpns variable.
+        if (InitALPNOptions(_options.mutable_ssl_options()) != 0) {
+            return -1;
+        }
         CertInfo& default_cert = _options.mutable_ssl_options()->default_cert;
         if (default_cert.certificate.empty()) {
             LOG(ERROR) << "default_cert is empty";
@@ -920,6 +965,10 @@ int Server::StartInternal(const butil::EndPoint& endpoint,
                 return -1;
             }
         }
+    } else if (_options.force_ssl) {
+        LOG(ERROR) << "Fail to force SSL for all connections "
+                      "without ServerOptions.ssl_options";
+        return -1;
     }
 
     _concurrency = 0;
@@ -1032,7 +1081,8 @@ int Server::StartInternal(const butil::EndPoint& endpoint,
 
         // Pass ownership of `sockfd' to `_am'
         if (_am->StartAccept(sockfd, _options.idle_timeout_sec,
-                             _default_ssl_ctx) != 0) {
+                             _default_ssl_ctx,
+                             _options.force_ssl) != 0) {
             LOG(ERROR) << "Fail to start acceptor";
             return -1;
         }
@@ -1072,7 +1122,8 @@ int Server::StartInternal(const butil::EndPoint& endpoint,
         }
         // Pass ownership of `sockfd' to `_internal_am'
         if (_internal_am->StartAccept(sockfd, _options.idle_timeout_sec,
-                                      _default_ssl_ctx) != 0) {
+                                      _default_ssl_ctx,
+                                      false) != 0) {
             LOG(ERROR) << "Fail to start internal_acceptor";
             return -1;
         }
@@ -1278,6 +1329,10 @@ int Server::AddServiceInternal(google::protobuf::Service* service,
         mp.params.allow_http_body_to_pb = svc_opt.allow_http_body_to_pb;
         mp.params.pb_bytes_to_base64 = svc_opt.pb_bytes_to_base64;
         mp.params.pb_single_repeated_to_array = svc_opt.pb_single_repeated_to_array;
+        mp.params.enable_progressive_read = svc_opt.enable_progressive_read;
+        if (mp.params.enable_progressive_read) {
+            _has_progressive_read_method = true;
+        }
         mp.service = service;
         mp.method = md;
         mp.status = new MethodStatus;
@@ -1465,6 +1520,7 @@ ServiceOptions::ServiceOptions()
     , pb_bytes_to_base64(true)
 #endif
     , pb_single_repeated_to_array(false)
+    , enable_progressive_read(false)
     {}
 
 int Server::AddService(google::protobuf::Service* service,
@@ -1709,23 +1765,7 @@ void Server::GenerateVersionIfNeeded() {
     }
 }
 
-static std::string ExpandPath(const std::string &path) {
-    if (path.empty()) {
-        return std::string();
-    }
-    std::string ret;
-    wordexp_t p;
-    wordexp(path.c_str(), &p, 0);
-    CHECK_EQ(p.we_wordc, 1u);
-    if (p.we_wordc == 1) {
-        ret = p.we_wordv[0];
-    }
-    wordfree(&p);
-    return ret;
-}
-
 void Server::PutPidFileIfNeeded() {
-    _options.pid_file = ExpandPath(_options.pid_file);
     if (_options.pid_file.empty()) {
         return;
     }
@@ -1805,7 +1845,7 @@ void Server::PrintTabsBody(std::ostream& os,
                     current_tab_name);
         }
     }
-    os << "<li id='https://github.com/brpc/brpc/blob/master/docs/cn/builtin_service.md' "
+    os << "<li id='https://github.com/apache/brpc/blob/master/docs/cn/builtin_service.md' "
         "class='help'>?</li>\n</ul>\n"
         "<div style='height:40px;'></div>";  // placeholder
 }
@@ -1912,8 +1952,9 @@ int Server::AddCertificate(const CertInfo& cert) {
     SSLContext ssl_ctx;
     ssl_ctx.filters = cert.sni_filters;
     ssl_ctx.ctx = std::make_shared<SocketSSLContext>();
-    SSL_CTX* raw_ctx = CreateServerSSLContext(cert.certificate, cert.private_key,
-                                              _options.ssl_options(), &ssl_ctx.filters);
+    SSL_CTX* raw_ctx = CreateServerSSLContext(
+            cert.certificate, cert.private_key,
+            _options.ssl_options(), &_raw_alpns, &ssl_ctx.filters);
     if (raw_ctx == NULL) {
         return -1;
     }
@@ -2019,7 +2060,7 @@ int Server::ResetCertificates(const std::vector<CertInfo>& certs) {
         return -1;
     }
 
-    // Add default certficiate into tmp_map first since it can't be reloaded
+    // Add default certificate into tmp_map first since it can't be reloaded
     std::string default_cert_key =
         _options.ssl_options().default_cert.certificate
         + _options.ssl_options().default_cert.private_key;
@@ -2038,7 +2079,7 @@ int Server::ResetCertificates(const std::vector<CertInfo>& certs) {
         ssl_ctx.ctx = std::make_shared<SocketSSLContext>();
         ssl_ctx.ctx->raw_ctx = CreateServerSSLContext(
             certs[i].certificate, certs[i].private_key,
-            _options.ssl_options(), &ssl_ctx.filters);
+            _options.ssl_options(), &_raw_alpns, &ssl_ctx.filters);
         if (ssl_ctx.ctx->raw_ctx == NULL) {
             return -1;
         }
@@ -2108,7 +2149,7 @@ bool Server::ClearCertMapping(CertMaps& bg) {
 
 int Server::ResetMaxConcurrency(int max_concurrency) {
     if (!IsRunning()) {
-        LOG(WARNING) << "ResetMaxConcurrency is only allowd for a Running Server";
+        LOG(WARNING) << "ResetMaxConcurrency is only allowed for a Running Server";
         return -1;
     }
     // Assume that modifying int32 is atomical in X86
@@ -2182,6 +2223,25 @@ AdaptiveMaxConcurrency& Server::MaxConcurrencyOf(google::protobuf::Service* serv
 int Server::MaxConcurrencyOf(google::protobuf::Service* service,
                              const butil::StringPiece& method_name) const {
     return MaxConcurrencyOf(service->GetDescriptor()->full_name(), method_name);
+}
+
+bool Server::AcceptRequest(Controller* cntl) const {
+    const Interceptor* interceptor = _options.interceptor;
+    if (!interceptor) {
+        return true;
+    }
+
+    int error_code = 0;
+    std::string error_text;
+    if (cntl &&
+        !interceptor->Accept(cntl, error_code, error_text)) {
+        cntl->SetFailed(error_code,
+                        "Reject by Interceptor: %s",
+                        error_text.c_str());
+        return false;
+    }
+
+    return true;
 }
 
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME

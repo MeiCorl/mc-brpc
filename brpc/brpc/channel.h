@@ -99,7 +99,7 @@ struct ChannelOptions {
 
     // SSL related options. Refer to `ChannelSSLOptions' for details
     bool has_ssl_options() const { return _ssl_options != NULL; }
-    const ChannelSSLOptions& ssl_options() const { return *_ssl_options.get(); }
+    const ChannelSSLOptions& ssl_options() const { return *_ssl_options; }
     ChannelSSLOptions* mutable_ssl_options();
 
     // Let this channel use rdma rather than tcp.
@@ -173,6 +173,8 @@ public:
     // Supported load balancer:
     //   rr                           # round robin, choose next server
     //   random                       # randomly choose a server
+    //   wr                           # weighted random
+    //   wrr                          # weighted round robin
     //   la                           # locality aware
     //   c_murmurhash/c_md5           # consistent hashing with murmurhash3/md5
     //   "" or NULL                   # treat `naming_service_url' as `server_addr_and_port'
@@ -221,6 +223,7 @@ protected:
                    int raw_port = -1);
 
     std::string _service_name;
+    std::string _scheme;
     butil::EndPoint _server_address;
     SocketId _server_id;
     Protocol::SerializeRequest _serialize_request;

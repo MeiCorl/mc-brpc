@@ -275,6 +275,7 @@ void SendRpcResponse(int64_t correlation_id,
     }
 }
 
+namespace {
 struct CallMethodInBackupThreadArgs {
     ::google::protobuf::Service* service;
     const ::google::protobuf::MethodDescriptor* method;
@@ -283,6 +284,7 @@ struct CallMethodInBackupThreadArgs {
     ::google::protobuf::Message* response;
     ::google::protobuf::Closure* done;
 };
+}
 
 static void CallMethodInBackupThread(void* void_args) {
     CallMethodInBackupThreadArgs* args = (CallMethodInBackupThreadArgs*)void_args;
@@ -453,7 +455,7 @@ void ProcessRpcRequest(InputMessageBase* msg_base) {
         method_status = mp->status;
         if (method_status) {
             int rejected_cc = 0;
-            if (!method_status->OnRequested(&rejected_cc)) {
+            if (!method_status->OnRequested(&rejected_cc, cntl.get())) {
                 cntl->SetFailed(ELIMIT, "Rejected by %s's ConcurrencyLimiter, concurrency=%d",
                                 mp->method->full_name().c_str(), rejected_cc);
                 break;
@@ -462,6 +464,12 @@ void ProcessRpcRequest(InputMessageBase* msg_base) {
         google::protobuf::Service* svc = mp->service;
         const google::protobuf::MethodDescriptor* method = mp->method;
         accessor.set_method(method);
+
+
+        if (!server->AcceptRequest(cntl.get())) {
+            break;
+        }
+
         if (span) {
             span->ResetServerSpanName(method->full_name());
         }
