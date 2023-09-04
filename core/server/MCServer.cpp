@@ -7,6 +7,10 @@
 #include <etcd/Client.hpp>
 #include "core/extensions/mc_naming_service.h"
 
+#ifdef USE_ASYNC_LOGSINK
+#include "core/log/async_logsink.h"
+#endif
+
 using namespace server;
 using server::utils::NetUtil;
 
@@ -30,6 +34,13 @@ MCServer::~MCServer() {
         delete _log_archive_worker;
         _log_archive_worker = nullptr;
     }
+
+#ifdef USE_ASYNC_LOGSINK
+    logging::LogSink* old_sink = logging::SetLogSink(nullptr);
+    if (old_sink) {
+        delete old_sink;
+    }
+#endif
 
     _keep_live_ptr->Cancel();
     UnRegisterService();
@@ -55,7 +66,17 @@ void MCServer::LoggingInit(char* argv[]) {
     butil::FilePath log_path = butil::FilePath(server::logger::get_log_path(argv[0]));
     butil::CreateDirectory(log_path);
 
+#ifdef USE_ASYNC_LOGSINK
+    logging::LogSink* log_sink = new server::logger::AsyncLogSink(log_settings);
+    logging::LogSink* old_sink = logging::SetLogSink(log_sink);
+    if (old_sink) {
+        delete old_sink;
+    }
+    LOG(INFO) << "Using async_logsink...";
+#else
     logging::InitLogging(log_settings);
+    LOG(INFO) << "Using default_logsink...";
+#endif
 
     _log_watcher = new server::logger::LogRotateWatcher(log_name);
     _log_watcher->Start();

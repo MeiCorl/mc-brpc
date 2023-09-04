@@ -18,7 +18,8 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# add_definitions(_DLOCAL_TEST)
+add_definitions(-DLOCAL_TEST)
+add_definitions(-DUSE_ASYNC_LOGSINK)
 
 # 编译proto文件
 # find_package(Protobuf REQUIRED)

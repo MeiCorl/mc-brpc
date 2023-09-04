@@ -72,6 +72,7 @@ private:
             printer.Print("class $client_type$ {\n", "client_type", client_type);
             if (client_type == "ASyncClient") {
                 printer.PrintRaw("    static const uint32_t FLAGS_RPC_REQUEST_CODE = (1 << 0);\n");
+                printer.PrintRaw("    static const uint32_t FLAGS_RPC_LOG_ID = (1 << 1);\n");
             }
             printer.PrintRaw("private:\n");
             printer.PrintRaw("    brpc::ChannelOptions _options;\n");
@@ -84,6 +85,7 @@ private:
             if (client_type == "ASyncClient") {
                 printer.PrintRaw("    uint32_t _rpc_flag;\n");
                 printer.PrintRaw("    uint64_t _request_code;\n");
+                printer.PrintRaw("    uint64_t _log_id;\n");
                 printer.PrintRaw("    brpc::CallId _call_id;\n");
             }
 
@@ -98,6 +100,8 @@ private:
             printer.PrintRaw("    void SetConnectTimeoutMs(uint64_t timeout_ms);\n");
             printer.PrintRaw("    void SetTimeoutMs(uint64_t timeout_ms);\n");
             printer.PrintRaw("    void SetMaxRetry(int max_retry);\n");
+            printer.PrintRaw("    void SetLogId(uint64_t log_id);\n");
+
             if (client_type != "ASyncClient") {
                 printer.PrintRaw("    bool Failed() { return _controller.Failed(); }\n");
                 printer.PrintRaw(
@@ -139,7 +143,6 @@ private:
                         auto method = service->method(j);
                         printer.PrintRaw("    void " + method->name() + "(" + "const " +
                                          method->input_type()->name() + "* req, " +
-                                         method->output_type()->name() + "* res, " +
                                          "std::function<void(bool, " +
                                          method->output_type()->name() + "*)> callback);\n");
                     }
@@ -230,6 +233,19 @@ private:
                           "    _options.max_retry = max_retry; \n"
                           "}\n\n",
                           "client_type", client_type);
+            if (client_type != "ASyncClient") {
+                printer.Print("void $client_type$::SetLogId(uint64_t log_id) {\n"
+                              "     _controller.set_log_id(log_id); \n"
+                              "}\n\n",
+                              "client_type", client_type);
+            } else {
+                printer.Print("void $client_type$::SetLogId(uint64_t log_id) {\n"
+                              "     _log_id = log_id; \n"
+                              "    AddRpcFlag(FLAGS_RPC_LOG_ID);\n"
+                              "}\n\n",
+                              "client_type", client_type);
+            }
+
             if (client_type == "SyncClient") {
                 for (int i = 0; i < file->service_count(); i++) {
                     auto service = file->service(i);
@@ -289,7 +305,6 @@ private:
                         auto method = service->method(j);
                         printer.PrintRaw("void ASyncClient::" + method->name() + "(" + "const " +
                                          method->input_type()->name() + "* req, " +
-                                         method->output_type()->name() + "* res, " +
                                          "std::function<void(bool, " +
                                          method->output_type()->name() + "*)> callback) {\n");
                         printer.PrintRaw("    auto done = new OnRPCDone<" +
@@ -307,6 +322,9 @@ private:
                         printer.PrintRaw("        return;\n    }\n");
                         printer.PrintRaw("    if(HasRpcFlag(FLAGS_RPC_REQUEST_CODE)) {\n");
                         printer.PrintRaw("        done->cntl.set_request_code(_request_code);\n");
+                        printer.PrintRaw("    }\n");
+                        printer.PrintRaw("    if(HasRpcFlag(FLAGS_RPC_LOG_ID)) {\n");
+                        printer.PrintRaw("        done->cntl.set_log_id(_log_id);\n");
                         printer.PrintRaw("    }\n");
                         printer.PrintRaw("    " + service->name() + "_Stub stub(channel);\n");
                         printer.PrintRaw("    _call_id == done->cntl.call_id();\n");

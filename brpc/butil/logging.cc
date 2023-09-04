@@ -626,7 +626,7 @@ inline void OutputLog(std::ostream& os, const butil::StringPiece& s) {
 void PrintLog(std::ostream& os, int severity, const char* file, int line,
               const char* func, const butil::StringPiece& content) {
     if (!FLAGS_log_as_json) {
-        PrintLogPrefix(os, severity, file, line, func);
+        // PrintLogPrefix(os, severity, file, line, func);
         OutputLog(os, content);
     } else {
         os << '{';
@@ -956,7 +956,6 @@ public:
         // non-continuous inputs which is a must to maximize performance.
         std::ostringstream os;
         PrintLog(os, severity, file, line, func, content);
-        os << '\n';
         std::string log = os.str();
         
         if ((logging_destination & LOG_TO_SYSTEM_DEBUG_LOG) != 0) {
@@ -1009,6 +1008,8 @@ void LogStream::FlushWithoutReset() {
         // Nothing to flush.
         return;
     }
+
+    (*this) << std::endl;
 
 #if !defined(OS_NACL) && !defined(__UCLIBC__)
     if (FLAGS_print_stack_on_check && _is_check && _severity == BLOG_FATAL) {
@@ -1115,6 +1116,7 @@ LogMessage::LogMessage(const char* file, int line, LogSeverity severity)
 LogMessage::LogMessage(const char* file, int line,
                        const char* func, LogSeverity severity) {
     _stream = CreateLogStream(file, line, func, severity);
+    PrintLogPrefix(*_stream, severity, file, line, func);
 }
 
 LogMessage::LogMessage(const char* file, int line, std::string* result)

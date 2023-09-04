@@ -24,7 +24,6 @@ ServerConfig::ServerConfig(/* args */) {
         LOG(ERROR) << "[!] Can not paser server.conf";
         return;
     }
-    LOG(INFO) << "[+] Init Server Config: " << _config.ShortDebugString();
     delete input;
     input = nullptr;
 }

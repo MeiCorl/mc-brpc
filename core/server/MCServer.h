@@ -1,7 +1,6 @@
 #pragma once
 
 #include <brpc/server.h>
-#include <butil/logging.h>
 #include <etcd/KeepAlive.hpp>
 #include "core/config/server_config.h"
 #include "core/log/log_rotate_watcher.h"

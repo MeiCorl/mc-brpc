@@ -51,30 +51,6 @@ private:
     int64_t _quit_check_interval; ///< 退出检查的时间间隔，单位毫秒，默认 200ms，除单测外不要修改
 };
 
-//needs a independent thread call this
-class LogRotateThreadWatcher {
-public:
-    /**
-     * 初始化
-     * @param log_path 要监控的文件路径
-     */
-    LogRotateThreadWatcher(const std::string& log_path);
-
-    ~LogRotateThreadWatcher() { Stop(); }
-
-    /**
-     * 停止线程
-     */
-    void Stop() { _is_asked_to_quit = true; }
-
-    void Start();
-
-private:
-    std::string _watch_path; ///< 要监控的 log 文件
-    FILE* _log_file;         ///< 要监控的log文件指针
-    bool _is_asked_to_quit;  ///< 是否结束线程
-    int64_t _quit_check_interval; ///< 退出检查的时间间隔，单位毫秒，默认 200ms，除单测外不要修改
-};
 
 } // namespace logger
 } // namespace server
