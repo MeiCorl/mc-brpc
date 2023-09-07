@@ -42,9 +42,10 @@ struct LocalStorage {
     KeyTable* keytable;
     void* assigned_data;
     void* rpcz_parent_span;
+    void* trace_info;
 };
 
-#define BTHREAD_LOCAL_STORAGE_INITIALIZER { NULL, NULL, NULL }
+#define BTHREAD_LOCAL_STORAGE_INITIALIZER { NULL, NULL, NULL, NULL }
 
 const static LocalStorage LOCAL_STORAGE_INIT = BTHREAD_LOCAL_STORAGE_INITIALIZER;
 

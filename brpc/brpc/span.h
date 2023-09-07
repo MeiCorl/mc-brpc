@@ -89,6 +89,7 @@ public:
     int64_t GetStartRealTimeUs() const;
     int64_t GetEndRealTimeUs() const;
 
+    void set_from_svr_name(const std::string& from_svr_name) { _from_svr_name = from_svr_name; }
     void set_log_id(uint64_t cid) { _log_id = cid; }
     void set_base_cid(bthread_id_t id) { _base_cid = id; }
     void set_ending_cid(bthread_id_t id) { _ending_cid = id; }
@@ -116,6 +117,7 @@ public:
         return (Span*)bthread::tls_bls.rpcz_parent_span;
     }
 
+    const std::string& from_svr_name() { return _from_svr_name; };
     uint64_t trace_id() const { return _trace_id; }
     uint64_t parent_span_id() const { return _parent_span_id; }
     uint64_t span_id() const { return _span_id; }
@@ -151,6 +153,7 @@ private:
         }
     }
 
+    std::string _from_svr_name;
     uint64_t _trace_id;
     uint64_t _span_id;
     uint64_t _parent_span_id;
