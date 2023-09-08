@@ -214,6 +214,11 @@ public:
     // An identifier to send to server along with request. This is widely used
     // throughout baidu's servers to tag a searching session (a series of
     // queries following the topology of servers) with a same log_id.
+    const std::string& from_svr_name();
+
+    void set_from_svr_name();
+    void set_from_svr_name(const std::string& from_svr_name);
+
     void set_log_id(uint64_t log_id);
 
     void set_request_id(std::string request_id) { _inheritable.request_id = request_id; }
@@ -733,6 +738,7 @@ private:
 private:
     // NOTE: align and group fields to make Controller as compact as possible.
 
+    std::string _from_svr_name;
     Span* _span;
     uint32_t _flags; // all boolean fields inside Controller
     int32_t _error_code;

@@ -52,9 +52,9 @@ MCServer::~MCServer() {
  * @author: meicorl
 */
 void MCServer::LoggingInit(char* argv[]) {
-    logging::LoggingSettings log_settings;
     ServerConfig* svr_config = utils::Singleton<ServerConfig>::get();
 
+    logging::LoggingSettings log_settings;
     log_settings.logging_dest = logging::LOG_TO_FILE;
     if (svr_config->GetLogConfig().log_to_stderr()) {
         log_settings.logging_dest = logging::LOG_TO_ALL;
@@ -169,6 +169,7 @@ void MCServer::Start() {
     }
 
     brpc::ServerOptions options;
+    options.server_info_name = utils::Singleton<ServerConfig>::get()->GetSelfName();
     if (_server.Start(point, &options) != 0) {
         LOG(ERROR) << "[!] Fail to start Server";
         exit(1);

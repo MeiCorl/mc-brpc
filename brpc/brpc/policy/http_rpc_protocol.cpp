@@ -77,6 +77,7 @@ DEFINE_bool(pb_enum_as_number, false,
             "server-side");
 
 DEFINE_string(request_id_header, "x-request-id", "The http header to mark a session");
+DEFINE_string(from_svr_name, "from_svr_name", "the name of upstream service");
 
 DEFINE_bool(use_http_error_code, false, "Whether set the x-bd-error-code header "
                                         "of http response to brpc error code");
@@ -608,6 +609,7 @@ void SerializeHttpRequest(butil::IOBuf* /*not used*/,
     if (!cntl->request_id().empty()) {
         hreq.SetHeader(FLAGS_request_id_header, cntl->request_id());
     }
+    hreq.SetHeader("from_svr_name", cntl->from_svr_name());
 
     if (!is_http2) {
         // HTTP before 1.1 needs to set keep-alive explicitly.
@@ -1318,6 +1320,11 @@ void ProcessHttpRequest(InputMessageBase *msg) {
     const std::string* request_id = req_header.GetHeader(FLAGS_request_id_header);
     if (request_id) {
         cntl->set_request_id(*request_id);
+    }
+
+    const std::string* from_svr_name = req_header.GetHeader(FLAGS_from_svr_name);
+    if(from_svr_name) {
+        cntl->set_from_svr_name(*from_svr_name);
     }
 
     // Tag the bthread with this server's key for

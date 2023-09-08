@@ -463,7 +463,7 @@ void Channel::CallMethod(const google::protobuf::MethodDescriptor* method,
         return;
     }
     cntl->set_used_by_rpc();
-
+    cntl->set_from_svr_name();
     if (cntl->_sender == NULL && IsTraceable(Span::tls_parent())) {
         const int64_t start_send_us = butil::cpuwide_time_us();
         const std::string* method_name = NULL;

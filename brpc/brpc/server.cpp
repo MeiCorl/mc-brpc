@@ -394,6 +394,8 @@ const std::string& Server::ServiceProperty::service_name() const {
     return s_unknown_name;
 }
 
+const Server* Server::_current_server = nullptr;
+
 Server::Server(ProfilerLinker)
     : _session_local_data_pool(NULL)
     , _status(UNINITIALIZED)
@@ -411,9 +413,11 @@ Server::Server(ProfilerLinker)
     , _eps_bvar(&_nerror_bvar)
     , _concurrency(0)
     , _concurrency_bvar(cast_no_barrier_int, &_concurrency)
-    ,_has_progressive_read_method(false) {
+    , _has_progressive_read_method(false) {
     BAIDU_CASSERT(offsetof(Server, _concurrency) % 64 == 0,
                   Server_concurrency_must_be_aligned_by_cacheline);
+
+    _current_server = this;
 }
 
 Server::~Server() {
@@ -461,6 +465,8 @@ Server::~Server() {
 
     delete _options.redis_service;
     _options.redis_service = NULL;
+
+    _current_server = nullptr;
 }
 
 int Server::AddBuiltinServices() {

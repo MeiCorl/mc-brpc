@@ -348,6 +348,14 @@ void Controller::set_max_retry(int max_retry) {
     }
 }
 
+const std::string& Controller::from_svr_name() { return _from_svr_name; }
+
+void Controller::set_from_svr_name() { _from_svr_name = brpc::Server::GetSelfName(); }
+
+void Controller::set_from_svr_name(const std::string& from_svr_name) {
+    _from_svr_name = from_svr_name;
+}
+
 void Controller::set_log_id(uint64_t log_id) {
     add_flag(FLAGS_LOG_ID);
     _inheritable.log_id = log_id;

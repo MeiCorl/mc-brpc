@@ -1,4 +1,7 @@
 **/build/
 **/client/
+**/*.o
+**/*.pb.h
+**/*.pb.cc
 core/plugins/codexx
 .vscode

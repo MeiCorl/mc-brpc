@@ -361,7 +361,9 @@ void ProcessRpcRequest(InputMessageBase* msg_base) {
     if (request_meta.has_timeout_ms()) {
         cntl->set_timeout_ms(request_meta.timeout_ms());
     }
+    cntl->set_from_svr_name(request_meta.from_svr_name());
     cntl->set_request_compress_type((CompressType)meta.compress_type());
+
     accessor.set_server(server)
         .set_security_mode(security_mode)
         .set_peer_id(socket->id())
@@ -678,6 +680,11 @@ void PackRpcRequest(butil::IOBuf* req_buf,
     if (!cntl->request_id().empty()) {
         request_meta->set_request_id(cntl->request_id());
     }
+
+    if(!cntl->from_svr_name().empty()) {
+        request_meta->set_from_svr_name(cntl->from_svr_name());
+    }
+
     meta.set_correlation_id(correlation_id);
     StreamId request_stream_id = accessor.request_stream();
     if (request_stream_id != INVALID_STREAM_ID) {

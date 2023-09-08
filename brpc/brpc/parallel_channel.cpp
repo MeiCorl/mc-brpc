@@ -559,7 +559,8 @@ void ParallelChannel::CallMethod(
     // Make sure cntl->sub_count() always equal #sub-channels
     const int nchan = _chans.size();
     cntl->_pchan_sub_count = nchan;
-
+    cntl->set_from_svr_name();
+    
     const CallId cid = cntl->call_id();
     const int rc = bthread_id_lock(cid, NULL);
     if (rc != 0) {

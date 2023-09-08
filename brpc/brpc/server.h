@@ -401,6 +401,14 @@ public:
             , thread_local_data_factory(NULL) {}
     };
 
+    const static Server* _current_server;
+    static const std::string& GetSelfName() {
+        if(_current_server) {
+            return _current_server->options().server_info_name;
+        }
+        return "";
+    }
+
 public:
     Server(ProfilerLinker = ProfilerLinker());
     ~Server();

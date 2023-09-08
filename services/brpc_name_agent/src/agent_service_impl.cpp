@@ -219,6 +219,9 @@ void AgentServiceImpl::GetServers(google::protobuf::RpcController* controller,
     brpc::ClosureGuard done_guard(done);
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);
+    brpc::Controller* cntl = static_cast<brpc::Controller*>(controller);
+    LOG(INFO) << "Get req from:" << cntl->from_svr_name() << " Req:{" << request->ShortDebugString()
+              << "}";
 
     const string& service_name        = request->service_name();
     server::config::ServerConfig* cfg = Singleton<ServerConfig>::get();
