@@ -16,7 +16,7 @@ public:
     ~MCServer();
 
     void AddService(google::protobuf::Service* service);
-    void Start();
+    void Start(bool register_service = true);
 
 private:
     brpc::Server _server;

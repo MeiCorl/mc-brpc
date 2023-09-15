@@ -10,7 +10,8 @@ int main(int argc, char* argv[]) {
 
     server.AddService(&service);
 
-    server.Start();
+    // name_agent作为基础服务打包到docker镜像，通过unix_socket通信，不用注册到服务中心
+    server.Start(false);
 
     return 0;
 }

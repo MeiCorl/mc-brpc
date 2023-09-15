@@ -1,6 +1,7 @@
 #pragma once
 
 #include <butil/threading/simple_thread.h>
+#include <butil/class_name.h>
 #include <condition_variable>
 #include <mutex>
 #include <chrono>

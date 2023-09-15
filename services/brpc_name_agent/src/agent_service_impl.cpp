@@ -1,10 +1,18 @@
 #include "agent_service_impl.h"
 #include "core/utils/singleton.h"
+#include "core/utils/json_util.h"
 #include <brpc/controller.h>
+#include <bthread/bthread.h>
 #include <etcd/Client.hpp>
+#include <json2pb/rapidjson.h>
 
 using namespace name_agent;
-using server::utils::Singleton;
+using namespace server::utils;
+namespace rapidjson = butil::rapidjson;
+
+DEFINE_string(prometheus_targets_file,
+              "instance.json",
+              "the file to store instances of prometheus file_sd_config service discovery.");
 
 void AgentServiceImpl::InitializeWatcher(const string& endpoints,
                                          const string& prefix,
@@ -190,6 +198,10 @@ AgentServiceImpl::AgentServiceImpl(/* args */) {
         bind(&AgentServiceImpl::WatcherCallback, this, std::placeholders::_1);
     InitializeWatcher(server::utils::Singleton<ServerConfig>::get()->GetNsUrl(), "", callback,
                       m_pEtcdWatcher);
+
+    DumpServiceInfo();
+    m_dump_task.Init(this, 10);
+    m_dump_task.Start();
 }
 
 AgentServiceImpl::~AgentServiceImpl() { }
@@ -353,5 +365,59 @@ void AgentServiceImpl::WatcherCallback(etcd::Response response) {
             LOG(ERROR) << "[!] Invalid event type:" << static_cast<int>(ev.event_type())
                        << " key:" << ev.kv().key() << " value:" << ev.kv().as_string();
         }
+    }
+}
+
+void AgentServiceImpl::DumpServiceInfo() {
+    // todo 选主
+
+    butil::DoublyBufferedData<ServiceRegionAndGroupMap>::ScopedPtr map_ptr;
+    if (m_instancesByRegionAndGroup.Read(&map_ptr) != 0) {
+        LOG(ERROR) << "[!] Fail to read m_instancesByRegionAndGroup.";
+        return;
+    }
+    const ServiceRegionAndGroupMap& m = *(map_ptr.get());
+
+    rapidjson::StringBuffer strBuf;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuf);
+    writer.StartArray();
+    for (auto it1 = m.begin(); it1 != m.end(); it1++) {
+        const std::string& service_name = it1->first;
+        for (auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++) {
+            uint32_t region_id = it2->first;
+
+            writer.StartObject();
+            for (auto it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
+                uint32_t group_id = it3->first;
+                writer.Key("targets");
+                writer.StartArray();
+                for (const std::string& endpoint : it3->second) {
+                    writer.String(endpoint.c_str());
+                }
+                writer.EndArray();
+
+                writer.Key("labels");
+                writer.StartObject();
+                writer.Key("service_name");
+                writer.String(service_name.c_str());
+                writer.Key("region_id");
+                writer.String(std::to_string(region_id).c_str());
+                writer.Key("group_id");
+                writer.String(std::to_string(group_id).c_str());
+                writer.EndObject();
+            }
+            writer.EndObject();
+        }
+    }
+    writer.EndArray();
+
+    std::string json = formatJson(strBuf.GetString());
+    FILE* fp = fopen(FLAGS_prometheus_targets_file.c_str(), "w");
+    if (fp != NULL) {
+        fwrite(json.data(), json.size(), 1, fp);
+        fflush(fp);
+        fclose(fp);
+    } else {
+        LOG(ERROR) << "Fail to write service info to " << FLAGS_prometheus_targets_file;
     }
 }

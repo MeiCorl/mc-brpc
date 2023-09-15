@@ -154,7 +154,7 @@ void MCServer::AddService(google::protobuf::Service* service) {
     }
 }
 
-void MCServer::Start() {
+void MCServer::Start(bool register_service) {
     butil::EndPoint point;
     if (!FLAGS_listen_addr.empty()) {
         butil::str2endpoint(FLAGS_listen_addr.c_str(), &point);
@@ -175,7 +175,9 @@ void MCServer::Start() {
         exit(1);
     }
 
-    RegisterService();
+    if (register_service) {
+        RegisterService();
+    }
 
     _server.RunUntilAskedToQuit();
 }

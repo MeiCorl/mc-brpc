@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 2.8...3.27)
 
 project(brpc_name_agent)
 
-set(CMAKE_CXX_STANDARD 11)
-
 set(BIN_NAME "brpc_name_agent_d")
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../global.cmake)
@@ -12,6 +10,8 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+add_definitions(-DUSE_ASYNC_LOGSINK)
 
 file(GLOB PROTOS
     "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto"

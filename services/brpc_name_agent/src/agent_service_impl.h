@@ -7,11 +7,13 @@
 #include <butil/containers/doubly_buffered_data.h>
 #include "name_agent.pb.h"
 #include "core/config/server_config.h"
+#include "core/utils/simple_timer_task.h"
 
 namespace name_agent {
 
 using server::config::InstanceInfo;
 using server::config::ServerConfig;
+using server::utils::SimpleTimerTask;
 using std::shared_ptr;
 using std::string;
 using std::unordered_map;
@@ -21,6 +23,7 @@ using ServiceMap       = unordered_map<string, vector<string>>;
 using ServiceRegionMap = unordered_map<string, unordered_map<uint32_t, vector<string>>>;
 using ServiceRegionAndGroupMap =
     unordered_map<string, unordered_map<uint32_t, unordered_map<uint32_t, vector<string>>>>;
+
 
 class AgentServiceImpl : public AgentService {
 private:
@@ -39,6 +42,7 @@ private:
     void AddServer(const string& service_name, const InstanceInfo& info);
     void RemoveServer(const string& service_name, const InstanceInfo& info);
 
+    void DumpServiceInfo();
 public:
     AgentServiceImpl(/* args */);
     ~AgentServiceImpl();
@@ -53,5 +57,8 @@ public:
                             google::protobuf::Closure* done);
 
     void WatcherCallback(etcd::Response response);
+    
+    // 定时任务：将服务信息dump到文件公共Prometheus基于文件服务发现（目前Prometheus暂不支持直接从etcd服务发现）
+    SimpleTimerTask<AgentServiceImpl, &AgentServiceImpl::DumpServiceInfo> m_dump_task; 
 };
 } // namespace name_agent
