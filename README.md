@@ -1,2 +1,2 @@
 # mc-brpc
-### 基于百度brpc框架构建微服务实战练习（搞着玩）
+### 基于[百度brpc框架](https://brpc.apache.org/)构建微服务实战练习（搞着玩）
