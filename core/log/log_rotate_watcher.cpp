@@ -22,6 +22,14 @@ LogRotateWatcher::LogRotateWatcher(const std::string& log_path)
     _log_file = NULL;
 }
 
+LogRotateWatcher::~LogRotateWatcher() {
+    _is_asked_to_quit = true;
+    if (this->HasBeenStarted() && !this->HasBeenJoined()) {
+        this->Join();
+    }
+    LOG(INFO) << "LogRotateWatcher thread finished";
+}
+
 /**
  * 监听当前日志文件，当发现日志为删除、移动、修改则新建一个日志文件继续写
  * @date: 2023-08-12 11:28:46
@@ -102,7 +110,6 @@ void LogRotateWatcher::Run() {
         inotify_rm_watch(watch_fd, watch_wd);
         watch_wd = -1;
     }
-    LOG(INFO) << "LogRotateWatcher thread finished";
 }
 
 short epoll_to_poll_events(uint32_t epoll_events) {

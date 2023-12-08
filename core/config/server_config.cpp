@@ -26,13 +26,14 @@ ServerConfig::ServerConfig(/* args */) {
     }
     delete input;
     input = nullptr;
+    LOG(INFO) << "Get SvrConfig: " << _config.ShortDebugString();
 }
 
 ServerConfig::~ServerConfig() { }
 
-// const DbConfig& ServerConfig::GetDbConfig() { }
+const DbConfig& ServerConfig::GetDbConfig() { }
 
-// const RedisConfig& ServerConfig::GetRedisConfig() { }
+const RedisConfig& ServerConfig::GetRedisConfig() { }
 
 const LogConfig& ServerConfig::GetLogConfig() { return _config.log_config(); }
 

@@ -170,16 +170,16 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_server_5fconfig_2eproto::offse
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, instance_name_),
-  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, host_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, url_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, passwd_),
   PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, timeout_ms_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, instance_name_),
-  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, host_),
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, url_),
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, passwd_),
   PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, timeout_ms_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::server::config::LogConfig, _internal_metadata_),
@@ -244,24 +244,24 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
 const char descriptor_table_protodef_server_5fconfig_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\023server_config.proto\022\rserver.config\"E\n\014"
   "InstanceInfo\022\021\n\tregion_id\030\001 \001(\r\022\020\n\010group"
-  "_id\030\002 \001(\r\022\020\n\010endpoint\030\003 \001(\t\"C\n\010DbConfig\022"
-  "\025\n\rinstance_name\030\001 \001(\t\022\014\n\004host\030\002 \001(\t\022\022\n\n"
-  "timeout_ms\030\003 \001(\r\"F\n\013RedisConfig\022\025\n\rinsta"
-  "nce_name\030\001 \001(\t\022\014\n\004host\030\002 \001(\t\022\022\n\ntimeout_"
-  "ms\030\003 \001(\r\"a\n\tLogConfig\022\021\n\tlog_level\030\001 \001(\r"
-  "\022\025\n\rlog_threshold\030\002 \001(\r\022\023\n\013remain_days\030\003"
-  " \001(\r\022\025\n\rlog_to_stderr\030\004 \001(\010\"\254\003\n\rSvrConfi"
-  "gBase\022\016\n\006ns_url\030\001 \001(\t\022\024\n\014service_name\030\002 "
-  "\001(\t\022\021\n\tregion_id\030\003 \001(\r\022\020\n\010group_id\030\004 \001(\r"
-  "\022\?\n\ndb_configs\030\005 \003(\0132+.server.config.Svr"
-  "ConfigBase.DbConfigsEntry\022E\n\rredis_confi"
-  "gs\030\006 \003(\0132..server.config.SvrConfigBase.R"
-  "edisConfigsEntry\022,\n\nlog_config\030\007 \001(\0132\030.s"
-  "erver.config.LogConfig\032I\n\016DbConfigsEntry"
-  "\022\013\n\003key\030\001 \001(\t\022&\n\005value\030\002 \001(\0132\027.server.co"
-  "nfig.DbConfig:\0028\001\032O\n\021RedisConfigsEntry\022\013"
-  "\n\003key\030\001 \001(\t\022)\n\005value\030\002 \001(\0132\032.server.conf"
-  "ig.RedisConfig:\0028\001B\003\200\001\001b\006proto3"
+  "_id\030\002 \001(\r\022\020\n\010endpoint\030\003 \001(\t\";\n\010DbConfig\022"
+  "\013\n\003url\030\001 \001(\t\022\016\n\006passwd\030\002 \001(\t\022\022\n\ntimeout_"
+  "ms\030\003 \001(\r\">\n\013RedisConfig\022\013\n\003url\030\001 \001(\t\022\016\n\006"
+  "passwd\030\002 \001(\t\022\022\n\ntimeout_ms\030\003 \001(\r\"a\n\tLogC"
+  "onfig\022\021\n\tlog_level\030\001 \001(\r\022\025\n\rlog_threshol"
+  "d\030\002 \001(\r\022\023\n\013remain_days\030\003 \001(\r\022\025\n\rlog_to_s"
+  "tderr\030\004 \001(\010\"\254\003\n\rSvrConfigBase\022\016\n\006ns_url\030"
+  "\001 \001(\t\022\024\n\014service_name\030\002 \001(\t\022\021\n\tregion_id"
+  "\030\003 \001(\r\022\020\n\010group_id\030\004 \001(\r\022\?\n\ndb_configs\030\005"
+  " \003(\0132+.server.config.SvrConfigBase.DbCon"
+  "figsEntry\022E\n\rredis_configs\030\006 \003(\0132..serve"
+  "r.config.SvrConfigBase.RedisConfigsEntry"
+  "\022,\n\nlog_config\030\007 \001(\0132\030.server.config.Log"
+  "Config\032I\n\016DbConfigsEntry\022\013\n\003key\030\001 \001(\t\022&\n"
+  "\005value\030\002 \001(\0132\027.server.config.DbConfig:\0028"
+  "\001\032O\n\021RedisConfigsEntry\022\013\n\003key\030\001 \001(\t\022)\n\005v"
+  "alue\030\002 \001(\0132\032.server.config.RedisConfig:\002"
+  "8\001B\003\200\001\001b\006proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_server_5fconfig_2eproto_deps[1] = {
 };
@@ -276,7 +276,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_ser
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_server_5fconfig_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_server_5fconfig_2eproto = {
-  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 791,
+  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 775,
   &descriptor_table_server_5fconfig_2eproto_once, descriptor_table_server_5fconfig_2eproto_sccs, descriptor_table_server_5fconfig_2eproto_deps, 7, 0,
   schemas, file_default_instances, TableStruct_server_5fconfig_2eproto::offsets,
   file_level_metadata_server_5fconfig_2eproto, 7, file_level_enum_descriptors_server_5fconfig_2eproto, file_level_service_descriptors_server_5fconfig_2eproto,
@@ -574,14 +574,14 @@ DbConfig::DbConfig(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 DbConfig::DbConfig(const DbConfig& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  instance_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  if (!from._internal_instance_name().empty()) {
-    instance_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_instance_name(),
+  url_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_url().empty()) {
+    url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_url(),
       GetArena());
   }
-  host_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  if (!from._internal_host().empty()) {
-    host_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_host(),
+  passwd_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_passwd().empty()) {
+    passwd_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_passwd(),
       GetArena());
   }
   timeout_ms_ = from.timeout_ms_;
@@ -590,8 +590,8 @@ DbConfig::DbConfig(const DbConfig& from)
 
 void DbConfig::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_DbConfig_server_5fconfig_2eproto.base);
-  instance_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  host_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  url_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  passwd_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   timeout_ms_ = 0u;
 }
 
@@ -603,8 +603,8 @@ DbConfig::~DbConfig() {
 
 void DbConfig::SharedDtor() {
   GOOGLE_DCHECK(GetArena() == nullptr);
-  instance_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  host_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  url_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  passwd_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
 void DbConfig::ArenaDtor(void* object) {
@@ -628,8 +628,8 @@ void DbConfig::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  instance_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  host_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  url_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  passwd_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   timeout_ms_ = 0u;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
@@ -642,21 +642,21 @@ const char* DbConfig::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::i
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // string instance_name = 1;
+      // string url = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
-          auto str = _internal_mutable_instance_name();
+          auto str = _internal_mutable_url();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.DbConfig.instance_name"));
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.DbConfig.url"));
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // string host = 2;
+      // string passwd = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
-          auto str = _internal_mutable_host();
+          auto str = _internal_mutable_passwd();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.DbConfig.host"));
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.DbConfig.passwd"));
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -695,24 +695,24 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // string instance_name = 1;
-  if (this->instance_name().size() > 0) {
+  // string url = 1;
+  if (this->url().size() > 0) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_instance_name().data(), static_cast<int>(this->_internal_instance_name().length()),
+      this->_internal_url().data(), static_cast<int>(this->_internal_url().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "server.config.DbConfig.instance_name");
+      "server.config.DbConfig.url");
     target = stream->WriteStringMaybeAliased(
-        1, this->_internal_instance_name(), target);
+        1, this->_internal_url(), target);
   }
 
-  // string host = 2;
-  if (this->host().size() > 0) {
+  // string passwd = 2;
+  if (this->passwd().size() > 0) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_host().data(), static_cast<int>(this->_internal_host().length()),
+      this->_internal_passwd().data(), static_cast<int>(this->_internal_passwd().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "server.config.DbConfig.host");
+      "server.config.DbConfig.passwd");
     target = stream->WriteStringMaybeAliased(
-        2, this->_internal_host(), target);
+        2, this->_internal_passwd(), target);
   }
 
   // uint32 timeout_ms = 3;
@@ -737,18 +737,18 @@ size_t DbConfig::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // string instance_name = 1;
-  if (this->instance_name().size() > 0) {
+  // string url = 1;
+  if (this->url().size() > 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_instance_name());
+        this->_internal_url());
   }
 
-  // string host = 2;
-  if (this->host().size() > 0) {
+  // string passwd = 2;
+  if (this->passwd().size() > 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_host());
+        this->_internal_passwd());
   }
 
   // uint32 timeout_ms = 3;
@@ -789,11 +789,11 @@ void DbConfig::MergeFrom(const DbConfig& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.instance_name().size() > 0) {
-    _internal_set_instance_name(from._internal_instance_name());
+  if (from.url().size() > 0) {
+    _internal_set_url(from._internal_url());
   }
-  if (from.host().size() > 0) {
-    _internal_set_host(from._internal_host());
+  if (from.passwd().size() > 0) {
+    _internal_set_passwd(from._internal_passwd());
   }
   if (from.timeout_ms() != 0) {
     _internal_set_timeout_ms(from._internal_timeout_ms());
@@ -821,8 +821,8 @@ bool DbConfig::IsInitialized() const {
 void DbConfig::InternalSwap(DbConfig* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  instance_name_.Swap(&other->instance_name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  host_.Swap(&other->host_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  url_.Swap(&other->url_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  passwd_.Swap(&other->passwd_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   swap(timeout_ms_, other->timeout_ms_);
 }
 
@@ -848,14 +848,14 @@ RedisConfig::RedisConfig(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 RedisConfig::RedisConfig(const RedisConfig& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  instance_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  if (!from._internal_instance_name().empty()) {
-    instance_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_instance_name(),
+  url_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_url().empty()) {
+    url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_url(),
       GetArena());
   }
-  host_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  if (!from._internal_host().empty()) {
-    host_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_host(),
+  passwd_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_passwd().empty()) {
+    passwd_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_passwd(),
       GetArena());
   }
   timeout_ms_ = from.timeout_ms_;
@@ -864,8 +864,8 @@ RedisConfig::RedisConfig(const RedisConfig& from)
 
 void RedisConfig::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_RedisConfig_server_5fconfig_2eproto.base);
-  instance_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  host_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  url_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  passwd_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   timeout_ms_ = 0u;
 }
 
@@ -877,8 +877,8 @@ RedisConfig::~RedisConfig() {
 
 void RedisConfig::SharedDtor() {
   GOOGLE_DCHECK(GetArena() == nullptr);
-  instance_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  host_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  url_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  passwd_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
 void RedisConfig::ArenaDtor(void* object) {
@@ -902,8 +902,8 @@ void RedisConfig::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  instance_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  host_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  url_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  passwd_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   timeout_ms_ = 0u;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
@@ -916,21 +916,21 @@ const char* RedisConfig::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // string instance_name = 1;
+      // string url = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
-          auto str = _internal_mutable_instance_name();
+          auto str = _internal_mutable_url();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.RedisConfig.instance_name"));
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.RedisConfig.url"));
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // string host = 2;
+      // string passwd = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
-          auto str = _internal_mutable_host();
+          auto str = _internal_mutable_passwd();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.RedisConfig.host"));
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.RedisConfig.passwd"));
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -969,24 +969,24 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // string instance_name = 1;
-  if (this->instance_name().size() > 0) {
+  // string url = 1;
+  if (this->url().size() > 0) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_instance_name().data(), static_cast<int>(this->_internal_instance_name().length()),
+      this->_internal_url().data(), static_cast<int>(this->_internal_url().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "server.config.RedisConfig.instance_name");
+      "server.config.RedisConfig.url");
     target = stream->WriteStringMaybeAliased(
-        1, this->_internal_instance_name(), target);
+        1, this->_internal_url(), target);
   }
 
-  // string host = 2;
-  if (this->host().size() > 0) {
+  // string passwd = 2;
+  if (this->passwd().size() > 0) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_host().data(), static_cast<int>(this->_internal_host().length()),
+      this->_internal_passwd().data(), static_cast<int>(this->_internal_passwd().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "server.config.RedisConfig.host");
+      "server.config.RedisConfig.passwd");
     target = stream->WriteStringMaybeAliased(
-        2, this->_internal_host(), target);
+        2, this->_internal_passwd(), target);
   }
 
   // uint32 timeout_ms = 3;
@@ -1011,18 +1011,18 @@ size_t RedisConfig::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // string instance_name = 1;
-  if (this->instance_name().size() > 0) {
+  // string url = 1;
+  if (this->url().size() > 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_instance_name());
+        this->_internal_url());
   }
 
-  // string host = 2;
-  if (this->host().size() > 0) {
+  // string passwd = 2;
+  if (this->passwd().size() > 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_host());
+        this->_internal_passwd());
   }
 
   // uint32 timeout_ms = 3;
@@ -1063,11 +1063,11 @@ void RedisConfig::MergeFrom(const RedisConfig& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.instance_name().size() > 0) {
-    _internal_set_instance_name(from._internal_instance_name());
+  if (from.url().size() > 0) {
+    _internal_set_url(from._internal_url());
   }
-  if (from.host().size() > 0) {
-    _internal_set_host(from._internal_host());
+  if (from.passwd().size() > 0) {
+    _internal_set_passwd(from._internal_passwd());
   }
   if (from.timeout_ms() != 0) {
     _internal_set_timeout_ms(from._internal_timeout_ms());
@@ -1095,8 +1095,8 @@ bool RedisConfig::IsInitialized() const {
 void RedisConfig::InternalSwap(RedisConfig* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  instance_name_.Swap(&other->instance_name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  host_.Swap(&other->host_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  url_.Swap(&other->url_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  passwd_.Swap(&other->passwd_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   swap(timeout_ms_, other->timeout_ms_);
 }
 

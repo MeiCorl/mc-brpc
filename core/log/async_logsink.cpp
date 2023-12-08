@@ -205,24 +205,24 @@ void AsyncLogSink::Run() {
             _stream.str("");
         }
 
-        if (log_fd != -1) {
+        if (log_fd != -1 && !s.empty()) {
             write(log_fd, s.c_str(), s.length());
         }
     }
 }
 
 bool AsyncLogSink::OnLogMessage(int severity,
-                                   const char* file,
-                                   int line,
-                                   const butil::StringPiece& log_content) {
+                                const char* file,
+                                int line,
+                                const butil::StringPiece& log_content) {
     return OnLogMessage(severity, file, line, "", log_content);
 }
 
 bool AsyncLogSink::OnLogMessage(int severity,
-                                   const char* file,
-                                   int line,
-                                   const char* func,
-                                   const butil::StringPiece& log_content) {
+                                const char* file,
+                                int line,
+                                const char* func,
+                                const butil::StringPiece& log_content) {
     if ((logging_dest & logging::LoggingDestination::LOG_TO_SYSTEM_DEBUG_LOG) != 0) {
         fwrite(log_content.data(), log_content.length(), 1, stderr);
         fflush(stderr);

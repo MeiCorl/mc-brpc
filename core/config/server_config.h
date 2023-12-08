@@ -16,8 +16,8 @@ public:
     ServerConfig(/* args */);
     ~ServerConfig();
 
-    // const DbConfig& GetDbConfig();
-    // const RedisConfig& GetRedisConfig();
+    const DbConfig& GetDbConfig();
+    const RedisConfig& GetRedisConfig();
     const LogConfig& GetLogConfig();
 
     uint32_t GetSelfRegionId();

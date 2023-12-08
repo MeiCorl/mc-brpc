@@ -8,7 +8,10 @@
 namespace server {
 
 const static uint32_t REGISTER_TTL = 30;
+
 using server::config::ServerConfig;
+using server::logger::LogArchiveWorker;
+using server::logger::LogRotateWatcher;
 
 class MCServer {
 public:
@@ -20,11 +23,12 @@ public:
 
 private:
     brpc::Server _server;
+
     uint64_t _etcd_lease_id;
     std::shared_ptr<etcd::KeepAlive> _keep_live_ptr;
 
-    server::logger::LogRotateWatcher* _log_watcher;
-    server::logger::LogArchiveWorker* _log_archive_worker;
+    std::shared_ptr<LogRotateWatcher> _log_watcher;
+    std::shared_ptr<LogArchiveWorker> _log_archive_worker;
 
     void LoggingInit(char* argv[]);
     void RegisterNamingService();

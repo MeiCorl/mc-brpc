@@ -6,7 +6,7 @@
 namespace server {
 namespace utils {
 
-const std::string formatJson(std::string_view json) {
+std::string formatJson(std::string_view json) {
     std::ostringstream result;
     int level = 0;
     for (std::string::size_type index = 0; index < json.size(); index++) {
@@ -34,7 +34,7 @@ const std::string formatJson(std::string_view json) {
                 break;
         }
     }
-    return std::move(result.str());
+    return result.str();
 }
 
 } // namespace utils

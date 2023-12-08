@@ -8,6 +8,11 @@
 namespace server {
 namespace logger {
 
+/**
+ * 异步、批量写日志
+ * @date: 2023-09-10 09:00:00
+ * @author: meicorl
+*/
 class AsyncLogSink : public logging::LogSink, public butil::SimpleThread {
 private:
     logging::LoggingDestination logging_dest;

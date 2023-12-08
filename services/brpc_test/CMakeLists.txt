@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 2.8...3.27)
 
 project(brpc_test)
 
-set(CMAKE_CXX_STANDARD 11)
-
 set(BIN_NAME "brpc_test_d")
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../global.cmake)
@@ -18,7 +16,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_definitions(-DLOCAL_TEST)
+# add_definitions(-DLOCAL_TEST)
 add_definitions(-DUSE_ASYNC_LOGSINK)
 
 # 编译proto文件

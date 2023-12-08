@@ -10,14 +10,14 @@ message InstanceInfo {
 }
 
 message DbConfig {
-    string instance_name = 1;
-    string host = 2;
+    string url = 1;
+    string passwd = 2;
     uint32 timeout_ms = 3;
 }
 
 message RedisConfig {
-    string instance_name = 1;
-    string host = 2;
+    string url = 1;
+    string passwd = 2;
     uint32 timeout_ms = 3;
 }
 
@@ -33,7 +33,7 @@ message SvrConfigBase {
     string service_name = 2;
     uint32 region_id = 3;
     uint32 group_id = 4;
-    map<string, DbConfig> db_configs = 5;
-    map<string, RedisConfig> redis_configs = 6;
+    map<string, DbConfig> db_configs = 5;           // key: instance_name
+    map<string, RedisConfig> redis_configs = 6;     // key: instance_name
     LogConfig log_config = 7;
 }

@@ -15,7 +15,7 @@ LogArchiveWorker::~LogArchiveWorker() {
     // if (this->HasBeenStarted() && !this->HasBeenJoined()) {
     // this->Join();
     // }
-    LOG(INFO) << "[+] LogRotateWatcher thread finished";
+    LOG(INFO) << "LogRotateWatcher thread finished";
 }
 
 /**
@@ -25,7 +25,7 @@ LogArchiveWorker::~LogArchiveWorker() {
 */
 void LogArchiveWorker::Run() {
     int64_t BENCHMARK_TIME = 1691978400000000; // UTC-8 2023-08-14 10:00:00
-    LOG(INFO) << "[+] LogArchiveWorker start...";
+    LOG(INFO) << "LogArchiveWorker start...";
     while (!_is_asked_to_quit) {
         int64_t now = butil::gettimeofday_us();
 
@@ -49,6 +49,9 @@ void LogArchiveWorker::Run() {
             path_name = _log_file.substr(0, pos);
         }
 
+        // cmd example: gzip /data/log/brpc_test_d/brpc_test_d.log 
+        //              && mv /data/log/brpc_test_d/brpc_test_d.log.gz /data/log/brpc_test_d/brpc_test_d_2023-12-08_09.log.gz 
+        //              && rm -rf /data/log/brpc_test_d/brpc_test_d_2023-12-05_09.log.gz 
         std::ostringstream cmd;
         cmd << "gzip " << _log_file << " && mv " << _log_file << ".gz " << path_name << "_" << date
             << ".log.gz && rm -rf " << path_name << "_" << one_month_ago << ".log.gz";
@@ -56,7 +59,7 @@ void LogArchiveWorker::Run() {
         if (ret == -1) {
             LOG(ERROR) << "[!] system call failed.";
         }
-        LOG(INFO) << "[+] LogArchive cmd:" << cmd.str();
+        LOG(INFO) << "LogArchive cmd:" << cmd.str();
 
         bthread_usleep(5000000);
     }

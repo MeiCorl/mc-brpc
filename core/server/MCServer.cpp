@@ -25,15 +25,17 @@ MCServer::MCServer(int argc, char* argv[]) {
 }
 
 MCServer::~MCServer() {
-    if (_log_watcher) {
-        delete _log_watcher;
-        _log_watcher = nullptr;
-    }
+    // if (_log_watcher) {
+    //     delete _log_watcher;
+    //     _log_watcher = nullptr;
+    // }
 
-    if (_log_archive_worker) {
-        delete _log_archive_worker;
-        _log_archive_worker = nullptr;
-    }
+    // if (_log_archive_worker) {
+    //     delete _log_archive_worker;
+    //     _log_archive_worker = nullptr;
+    // }
+    _log_watcher.reset();
+    _log_archive_worker.reset();
 
 #ifdef USE_ASYNC_LOGSINK
     logging::LogSink* old_sink = logging::SetLogSink(nullptr);
@@ -78,11 +80,11 @@ void MCServer::LoggingInit(char* argv[]) {
     LOG(INFO) << "Using default_logsink...";
 #endif
 
-    _log_watcher = new server::logger::LogRotateWatcher(log_name);
+    _log_watcher = std::make_shared<LogRotateWatcher>(log_name);
     _log_watcher->Start();
 
     _log_archive_worker =
-        new server::logger::LogArchiveWorker(log_name, svr_config->GetLogConfig().remain_days());
+        std::make_shared<LogArchiveWorker>(log_name, svr_config->GetLogConfig().remain_days());
     _log_archive_worker->Start();
 }
 
@@ -133,7 +135,7 @@ void MCServer::RegisterService() {
     };
     _keep_live_ptr.reset(
         new etcd::KeepAlive(config->GetNsUrl(), handler, REGISTER_TTL, _etcd_lease_id));
-    LOG(INFO) << "[+] Service register succ. instance: {" << instance.ShortDebugString()
+    LOG(INFO) << "Service register succ. instance: {" << instance.ShortDebugString()
               << "}, lease_id:" << _etcd_lease_id;
 }
 

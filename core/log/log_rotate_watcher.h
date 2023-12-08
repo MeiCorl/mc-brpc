@@ -26,22 +26,8 @@ public:
      * @param log_path 要监控的文件路径
      */
     LogRotateWatcher(const std::string& log_path);
+    ~LogRotateWatcher();
 
-    ~LogRotateWatcher() { Stop(); }
-
-    /**
-     * 停止线程
-     */
-    void Stop() {
-        _is_asked_to_quit = true;
-        if (this->HasBeenStarted() && !this->HasBeenJoined()) {
-            this->Join();
-        }
-    }
-
-    /**
-     * 线程函数
-     */
     void Run();
 
 private:
