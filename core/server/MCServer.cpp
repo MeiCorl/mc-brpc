@@ -1,6 +1,6 @@
 #include "MCServer.h"
 #include "core/utils/singleton.h"
-#include "core/utils/net/net_utils.h"
+#include "core/utils/net_utils.h"
 #include <butil/files/file_path.h>
 #include <butil/file_util.h>
 #include <bthread/unstable.h>
