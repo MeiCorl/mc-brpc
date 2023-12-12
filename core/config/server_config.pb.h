@@ -384,33 +384,39 @@ class DbConfig PROTOBUF_FINAL :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kUrlFieldNumber = 1,
+    kUserFieldNumber = 1,
     kPasswdFieldNumber = 2,
-    kTimeoutMsFieldNumber = 3,
+    kIpFieldNumber = 3,
+    kDbNameFieldNumber = 5,
+    kPortFieldNumber = 4,
+    kMaxActiveFieldNumber = 6,
+    kMinIdleFieldNumber = 8,
+    kIldeTimeoutMsFieldNumber = 9,
+    kTimeoutMsFieldNumber = 10,
   };
-  // string url = 1;
-  void clear_url();
-  const std::string& url() const;
-  void set_url(const std::string& value);
-  void set_url(std::string&& value);
-  void set_url(const char* value);
-  void set_url(const char* value, size_t size);
-  std::string* mutable_url();
-  std::string* release_url();
-  void set_allocated_url(std::string* url);
+  // string user = 1;
+  void clear_user();
+  const std::string& user() const;
+  void set_user(const std::string& value);
+  void set_user(std::string&& value);
+  void set_user(const char* value);
+  void set_user(const char* value, size_t size);
+  std::string* mutable_user();
+  std::string* release_user();
+  void set_allocated_user(std::string* user);
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  std::string* unsafe_arena_release_url();
+  std::string* unsafe_arena_release_user();
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_url(
-      std::string* url);
+  void unsafe_arena_set_allocated_user(
+      std::string* user);
   private:
-  const std::string& _internal_url() const;
-  void _internal_set_url(const std::string& value);
-  std::string* _internal_mutable_url();
+  const std::string& _internal_user() const;
+  void _internal_set_user(const std::string& value);
+  std::string* _internal_mutable_user();
   public:
 
   // string passwd = 2;
@@ -438,7 +444,93 @@ class DbConfig PROTOBUF_FINAL :
   std::string* _internal_mutable_passwd();
   public:
 
-  // uint32 timeout_ms = 3;
+  // string ip = 3;
+  void clear_ip();
+  const std::string& ip() const;
+  void set_ip(const std::string& value);
+  void set_ip(std::string&& value);
+  void set_ip(const char* value);
+  void set_ip(const char* value, size_t size);
+  std::string* mutable_ip();
+  std::string* release_ip();
+  void set_allocated_ip(std::string* ip);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_ip();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_ip(
+      std::string* ip);
+  private:
+  const std::string& _internal_ip() const;
+  void _internal_set_ip(const std::string& value);
+  std::string* _internal_mutable_ip();
+  public:
+
+  // string db_name = 5;
+  void clear_db_name();
+  const std::string& db_name() const;
+  void set_db_name(const std::string& value);
+  void set_db_name(std::string&& value);
+  void set_db_name(const char* value);
+  void set_db_name(const char* value, size_t size);
+  std::string* mutable_db_name();
+  std::string* release_db_name();
+  void set_allocated_db_name(std::string* db_name);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_db_name();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_db_name(
+      std::string* db_name);
+  private:
+  const std::string& _internal_db_name() const;
+  void _internal_set_db_name(const std::string& value);
+  std::string* _internal_mutable_db_name();
+  public:
+
+  // uint32 port = 4;
+  void clear_port();
+  ::PROTOBUF_NAMESPACE_ID::uint32 port() const;
+  void set_port(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_port() const;
+  void _internal_set_port(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 max_active = 6;
+  void clear_max_active();
+  ::PROTOBUF_NAMESPACE_ID::uint32 max_active() const;
+  void set_max_active(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_max_active() const;
+  void _internal_set_max_active(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 min_idle = 8;
+  void clear_min_idle();
+  ::PROTOBUF_NAMESPACE_ID::uint32 min_idle() const;
+  void set_min_idle(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_min_idle() const;
+  void _internal_set_min_idle(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 ilde_timeout_ms = 9;
+  void clear_ilde_timeout_ms();
+  ::PROTOBUF_NAMESPACE_ID::uint32 ilde_timeout_ms() const;
+  void set_ilde_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_ilde_timeout_ms() const;
+  void _internal_set_ilde_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 timeout_ms = 10;
   void clear_timeout_ms();
   ::PROTOBUF_NAMESPACE_ID::uint32 timeout_ms() const;
   void set_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
@@ -454,8 +546,14 @@ class DbConfig PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr url_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr user_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr passwd_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr ip_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr db_name_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 port_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 max_active_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 min_idle_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 ilde_timeout_ms_;
   ::PROTOBUF_NAMESPACE_ID::uint32 timeout_ms_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_server_5fconfig_2eproto;
@@ -1292,85 +1390,85 @@ inline void InstanceInfo::unsafe_arena_set_allocated_endpoint(
 
 // DbConfig
 
-// string url = 1;
-inline void DbConfig::clear_url() {
-  url_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+// string user = 1;
+inline void DbConfig::clear_user() {
+  user_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
-inline const std::string& DbConfig::url() const {
-  // @@protoc_insertion_point(field_get:server.config.DbConfig.url)
-  return _internal_url();
+inline const std::string& DbConfig::user() const {
+  // @@protoc_insertion_point(field_get:server.config.DbConfig.user)
+  return _internal_user();
 }
-inline void DbConfig::set_url(const std::string& value) {
-  _internal_set_url(value);
-  // @@protoc_insertion_point(field_set:server.config.DbConfig.url)
+inline void DbConfig::set_user(const std::string& value) {
+  _internal_set_user(value);
+  // @@protoc_insertion_point(field_set:server.config.DbConfig.user)
 }
-inline std::string* DbConfig::mutable_url() {
-  // @@protoc_insertion_point(field_mutable:server.config.DbConfig.url)
-  return _internal_mutable_url();
+inline std::string* DbConfig::mutable_user() {
+  // @@protoc_insertion_point(field_mutable:server.config.DbConfig.user)
+  return _internal_mutable_user();
 }
-inline const std::string& DbConfig::_internal_url() const {
-  return url_.Get();
+inline const std::string& DbConfig::_internal_user() const {
+  return user_.Get();
 }
-inline void DbConfig::_internal_set_url(const std::string& value) {
+inline void DbConfig::_internal_set_user(const std::string& value) {
   
-  url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+  user_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
 }
-inline void DbConfig::set_url(std::string&& value) {
+inline void DbConfig::set_user(std::string&& value) {
   
-  url_.Set(
+  user_.Set(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
-  // @@protoc_insertion_point(field_set_rvalue:server.config.DbConfig.url)
+  // @@protoc_insertion_point(field_set_rvalue:server.config.DbConfig.user)
 }
-inline void DbConfig::set_url(const char* value) {
+inline void DbConfig::set_user(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  user_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArena());
-  // @@protoc_insertion_point(field_set_char:server.config.DbConfig.url)
+  // @@protoc_insertion_point(field_set_char:server.config.DbConfig.user)
 }
-inline void DbConfig::set_url(const char* value,
+inline void DbConfig::set_user(const char* value,
     size_t size) {
   
-  url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  user_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArena());
-  // @@protoc_insertion_point(field_set_pointer:server.config.DbConfig.url)
+  // @@protoc_insertion_point(field_set_pointer:server.config.DbConfig.user)
 }
-inline std::string* DbConfig::_internal_mutable_url() {
+inline std::string* DbConfig::_internal_mutable_user() {
   
-  return url_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  return user_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
-inline std::string* DbConfig::release_url() {
-  // @@protoc_insertion_point(field_release:server.config.DbConfig.url)
-  return url_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+inline std::string* DbConfig::release_user() {
+  // @@protoc_insertion_point(field_release:server.config.DbConfig.user)
+  return user_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
-inline void DbConfig::set_allocated_url(std::string* url) {
-  if (url != nullptr) {
+inline void DbConfig::set_allocated_user(std::string* user) {
+  if (user != nullptr) {
     
   } else {
     
   }
-  url_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), url,
+  user_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), user,
       GetArena());
-  // @@protoc_insertion_point(field_set_allocated:server.config.DbConfig.url)
+  // @@protoc_insertion_point(field_set_allocated:server.config.DbConfig.user)
 }
-inline std::string* DbConfig::unsafe_arena_release_url() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:server.config.DbConfig.url)
+inline std::string* DbConfig::unsafe_arena_release_user() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:server.config.DbConfig.user)
   GOOGLE_DCHECK(GetArena() != nullptr);
   
-  return url_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return user_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArena());
 }
-inline void DbConfig::unsafe_arena_set_allocated_url(
-    std::string* url) {
+inline void DbConfig::unsafe_arena_set_allocated_user(
+    std::string* user) {
   GOOGLE_DCHECK(GetArena() != nullptr);
-  if (url != nullptr) {
+  if (user != nullptr) {
     
   } else {
     
   }
-  url_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      url, GetArena());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:server.config.DbConfig.url)
+  user_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      user, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:server.config.DbConfig.user)
 }
 
 // string passwd = 2;
@@ -1454,7 +1552,249 @@ inline void DbConfig::unsafe_arena_set_allocated_passwd(
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:server.config.DbConfig.passwd)
 }
 
-// uint32 timeout_ms = 3;
+// string ip = 3;
+inline void DbConfig::clear_ip() {
+  ip_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& DbConfig::ip() const {
+  // @@protoc_insertion_point(field_get:server.config.DbConfig.ip)
+  return _internal_ip();
+}
+inline void DbConfig::set_ip(const std::string& value) {
+  _internal_set_ip(value);
+  // @@protoc_insertion_point(field_set:server.config.DbConfig.ip)
+}
+inline std::string* DbConfig::mutable_ip() {
+  // @@protoc_insertion_point(field_mutable:server.config.DbConfig.ip)
+  return _internal_mutable_ip();
+}
+inline const std::string& DbConfig::_internal_ip() const {
+  return ip_.Get();
+}
+inline void DbConfig::_internal_set_ip(const std::string& value) {
+  
+  ip_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void DbConfig::set_ip(std::string&& value) {
+  
+  ip_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:server.config.DbConfig.ip)
+}
+inline void DbConfig::set_ip(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  ip_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:server.config.DbConfig.ip)
+}
+inline void DbConfig::set_ip(const char* value,
+    size_t size) {
+  
+  ip_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:server.config.DbConfig.ip)
+}
+inline std::string* DbConfig::_internal_mutable_ip() {
+  
+  return ip_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* DbConfig::release_ip() {
+  // @@protoc_insertion_point(field_release:server.config.DbConfig.ip)
+  return ip_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void DbConfig::set_allocated_ip(std::string* ip) {
+  if (ip != nullptr) {
+    
+  } else {
+    
+  }
+  ip_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ip,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:server.config.DbConfig.ip)
+}
+inline std::string* DbConfig::unsafe_arena_release_ip() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:server.config.DbConfig.ip)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return ip_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void DbConfig::unsafe_arena_set_allocated_ip(
+    std::string* ip) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (ip != nullptr) {
+    
+  } else {
+    
+  }
+  ip_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      ip, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:server.config.DbConfig.ip)
+}
+
+// uint32 port = 4;
+inline void DbConfig::clear_port() {
+  port_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::_internal_port() const {
+  return port_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::port() const {
+  // @@protoc_insertion_point(field_get:server.config.DbConfig.port)
+  return _internal_port();
+}
+inline void DbConfig::_internal_set_port(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  port_ = value;
+}
+inline void DbConfig::set_port(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_port(value);
+  // @@protoc_insertion_point(field_set:server.config.DbConfig.port)
+}
+
+// string db_name = 5;
+inline void DbConfig::clear_db_name() {
+  db_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& DbConfig::db_name() const {
+  // @@protoc_insertion_point(field_get:server.config.DbConfig.db_name)
+  return _internal_db_name();
+}
+inline void DbConfig::set_db_name(const std::string& value) {
+  _internal_set_db_name(value);
+  // @@protoc_insertion_point(field_set:server.config.DbConfig.db_name)
+}
+inline std::string* DbConfig::mutable_db_name() {
+  // @@protoc_insertion_point(field_mutable:server.config.DbConfig.db_name)
+  return _internal_mutable_db_name();
+}
+inline const std::string& DbConfig::_internal_db_name() const {
+  return db_name_.Get();
+}
+inline void DbConfig::_internal_set_db_name(const std::string& value) {
+  
+  db_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void DbConfig::set_db_name(std::string&& value) {
+  
+  db_name_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:server.config.DbConfig.db_name)
+}
+inline void DbConfig::set_db_name(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  db_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:server.config.DbConfig.db_name)
+}
+inline void DbConfig::set_db_name(const char* value,
+    size_t size) {
+  
+  db_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:server.config.DbConfig.db_name)
+}
+inline std::string* DbConfig::_internal_mutable_db_name() {
+  
+  return db_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* DbConfig::release_db_name() {
+  // @@protoc_insertion_point(field_release:server.config.DbConfig.db_name)
+  return db_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void DbConfig::set_allocated_db_name(std::string* db_name) {
+  if (db_name != nullptr) {
+    
+  } else {
+    
+  }
+  db_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), db_name,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:server.config.DbConfig.db_name)
+}
+inline std::string* DbConfig::unsafe_arena_release_db_name() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:server.config.DbConfig.db_name)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return db_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void DbConfig::unsafe_arena_set_allocated_db_name(
+    std::string* db_name) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (db_name != nullptr) {
+    
+  } else {
+    
+  }
+  db_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      db_name, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:server.config.DbConfig.db_name)
+}
+
+// uint32 max_active = 6;
+inline void DbConfig::clear_max_active() {
+  max_active_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::_internal_max_active() const {
+  return max_active_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::max_active() const {
+  // @@protoc_insertion_point(field_get:server.config.DbConfig.max_active)
+  return _internal_max_active();
+}
+inline void DbConfig::_internal_set_max_active(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  max_active_ = value;
+}
+inline void DbConfig::set_max_active(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_max_active(value);
+  // @@protoc_insertion_point(field_set:server.config.DbConfig.max_active)
+}
+
+// uint32 min_idle = 8;
+inline void DbConfig::clear_min_idle() {
+  min_idle_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::_internal_min_idle() const {
+  return min_idle_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::min_idle() const {
+  // @@protoc_insertion_point(field_get:server.config.DbConfig.min_idle)
+  return _internal_min_idle();
+}
+inline void DbConfig::_internal_set_min_idle(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  min_idle_ = value;
+}
+inline void DbConfig::set_min_idle(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_min_idle(value);
+  // @@protoc_insertion_point(field_set:server.config.DbConfig.min_idle)
+}
+
+// uint32 ilde_timeout_ms = 9;
+inline void DbConfig::clear_ilde_timeout_ms() {
+  ilde_timeout_ms_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::_internal_ilde_timeout_ms() const {
+  return ilde_timeout_ms_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::ilde_timeout_ms() const {
+  // @@protoc_insertion_point(field_get:server.config.DbConfig.ilde_timeout_ms)
+  return _internal_ilde_timeout_ms();
+}
+inline void DbConfig::_internal_set_ilde_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  ilde_timeout_ms_ = value;
+}
+inline void DbConfig::set_ilde_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_ilde_timeout_ms(value);
+  // @@protoc_insertion_point(field_set:server.config.DbConfig.ilde_timeout_ms)
+}
+
+// uint32 timeout_ms = 10;
 inline void DbConfig::clear_timeout_ms() {
   timeout_ms_ = 0u;
 }

@@ -15,7 +15,7 @@ typedef HANDLE MutexHandle;
 #include <mach-o/dyld.h>
 #elif defined(OS_POSIX)
 #if defined(OS_NACL) || defined(OS_LINUX)
-#include <sys/time.h> // timespec doesn't seem to be in <time.h>
+#include <sys/time.h>  // timespec doesn't seem to be in <time.h>
 #else
 #include <sys/syscall.h>
 #endif
@@ -48,9 +48,10 @@ PathString GetDefaultLogFile() {
     wchar_t module_name[MAX_PATH];
     GetModuleFileName(NULL, module_name, MAX_PATH);
 
-    PathString log_file                  = module_name;
+    PathString log_file = module_name;
     PathString::size_type last_backslash = log_file.rfind('\\', log_file.size());
-    if (last_backslash != PathString::npos) log_file.erase(last_backslash + 1);
+    if (last_backslash != PathString::npos)
+        log_file.erase(last_backslash + 1);
     log_file += L"debug.log";
     return log_file;
 }
@@ -60,15 +61,20 @@ PathString GetDefaultLogFile() {
  * LoggingLock is copy from butil/logging.cc, since it is private
  * @note meicorl
  * @date 2023-09-01 17:00
-*/
+ */
 class LoggingLock {
 public:
-    LoggingLock() { LockLogging(); }
+    LoggingLock() {
+        LockLogging();
+    }
 
-    ~LoggingLock() { UnlockLogging(); }
+    ~LoggingLock() {
+        UnlockLogging();
+    }
 
     static void Init(logging::LogLockingState lock_log, const logging::LogChar* new_log_file) {
-        if (initialized) return;
+        if (initialized)
+            return;
         lock_log_file = lock_log;
         if (lock_log_file == logging::LogLockingState::LOCK_LOG_FILE) {
 #if defined(OS_WIN)
@@ -87,7 +93,7 @@ public:
                 if (log_mutex == NULL) {
 #if DEBUG
                     // Keep the error code for debugging
-                    int error = GetLastError(); // NOLINT
+                    int error = GetLastError();  // NOLINT
                     butil::debug::BreakDebugger();
 #endif
                     // Return nicely without putting initialized to true.
@@ -162,15 +168,15 @@ MutexHandle LoggingLock::log_mutex = NULL;
 pthread_mutex_t LoggingLock::log_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
-} // namespace
+}  // namespace
 
 volatile int AsyncLogSink::log_fd = -1;
 
-AsyncLogSink::AsyncLogSink(const logging::LoggingSettings& settings)
-    : butil::SimpleThread("LogFlushThread")
-    , logging_dest(settings.logging_dest)
-    , log_file(settings.log_file)
-    , is_asked_to_quit(false) {
+AsyncLogSink::AsyncLogSink(const logging::LoggingSettings& settings) :
+        butil::SimpleThread("LogFlushThread"),
+        logging_dest(settings.logging_dest),
+        log_file(settings.log_file),
+        is_asked_to_quit(false) {
     LoggingLock::Init(settings.lock_log, settings.log_file);
     LoggingLock logging_lock;
     if (!Init(true)) {
@@ -211,18 +217,16 @@ void AsyncLogSink::Run() {
     }
 }
 
-bool AsyncLogSink::OnLogMessage(int severity,
-                                const char* file,
-                                int line,
-                                const butil::StringPiece& log_content) {
+bool AsyncLogSink::OnLogMessage(int severity, const char* file, int line, const butil::StringPiece& log_content) {
     return OnLogMessage(severity, file, line, "", log_content);
 }
 
-bool AsyncLogSink::OnLogMessage(int severity,
-                                const char* file,
-                                int line,
-                                const char* func,
-                                const butil::StringPiece& log_content) {
+bool AsyncLogSink::OnLogMessage(
+    int severity,
+    const char* file,
+    int line,
+    const char* func,
+    const butil::StringPiece& log_content) {
     if ((logging_dest & logging::LoggingDestination::LOG_TO_SYSTEM_DEBUG_LOG) != 0) {
         fwrite(log_content.data(), log_content.length(), 1, stderr);
         fflush(stderr);
@@ -241,7 +245,7 @@ bool AsyncLogSink::Init(bool auto_create) {
         return true;
     }
     if (auto_create) {
-        log_fd = open(log_file.c_str(), O_WRONLY | O_APPEND | O_CREAT | O_EXCL, 666);
+        log_fd = open(log_file.c_str(), O_WRONLY | O_APPEND | O_CREAT | O_EXCL, 0666);
         if (log_fd == -1) {
             if (EEXIST == errno) {
                 // file already exist, just open
@@ -270,6 +274,5 @@ void AsyncLogSink::Close() {
     }
 }
 
-
-} // namespace logger
-} // namespace server
+}  // namespace logger
+}  // namespace server

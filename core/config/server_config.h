@@ -16,8 +16,8 @@ public:
     ServerConfig(/* args */);
     ~ServerConfig();
 
-    const DbConfig& GetDbConfig();
-    const RedisConfig& GetRedisConfig();
+    const google::protobuf::Map<std::string, server::config::DbConfig>& GetDbConfig();
+    const google::protobuf::Map<std::string, server::config::RedisConfig>& GetRedisConfig();
     const LogConfig& GetLogConfig();
 
     uint32_t GetSelfRegionId();

@@ -15,7 +15,7 @@ LogArchiveWorker::~LogArchiveWorker() {
     // if (this->HasBeenStarted() && !this->HasBeenJoined()) {
     // this->Join();
     // }
-    LOG(INFO) << "LogRotateWatcher thread finished";
+    LOG(INFO) << "LogArchiveWorker thread finished";
 }
 
 /**

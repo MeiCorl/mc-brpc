@@ -48,3 +48,6 @@ RUN git clone https://github.com/apache/brpc.git \
 	&& cd brpc \
 	&& sh config_brpc.sh --headers=/usr/include --libs=/usr/lib \
 	&& make -j8 
+
+# 安装mysqlclient开发库
+RUn apt install -y libmysqlclient-dev

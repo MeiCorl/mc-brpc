@@ -1,14 +1,18 @@
 #include "MCServer.h"
 #include "core/utils/singleton.h"
 #include "core/utils/net_utils.h"
-#include <butil/files/file_path.h>
-#include <butil/file_util.h>
-#include <bthread/unstable.h>
-#include <etcd/Client.hpp>
+#include "butil/files/file_path.h"
+#include "butil/file_util.h"
+#include "bthread/unstable.h"
 #include "core/extensions/mc_naming_service.h"
+#include <etcd/Client.hpp>
 
 #ifdef USE_ASYNC_LOGSINK
 #include "core/log/async_logsink.h"
+#endif
+
+#ifdef USE_MYSQL
+#include "core/mysql/db_manager.h"
 #endif
 
 using namespace server;
@@ -22,18 +26,14 @@ DEFINE_string(listen_addr,
 MCServer::MCServer(int argc, char* argv[]) {
     LoggingInit(argv);
     RegisterNamingService();
+
+    #ifdef USE_MYSQL
+    // init db if necessary
+    DBManager::get()->Init();
+    #endif
 }
 
 MCServer::~MCServer() {
-    // if (_log_watcher) {
-    //     delete _log_watcher;
-    //     _log_watcher = nullptr;
-    // }
-
-    // if (_log_archive_worker) {
-    //     delete _log_archive_worker;
-    //     _log_archive_worker = nullptr;
-    // }
     _log_watcher.reset();
     _log_archive_worker.reset();
 

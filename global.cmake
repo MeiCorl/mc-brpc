@@ -26,24 +26,12 @@ function(add_server_source SRCS)
 endfunction()
 
 function(add_custom_lib_source SRCS)
-    set(options ALL COMMON_UTIL STRING_UTIL VALIDATOR)
+    set(options ALL MYSQL REDIS KAFKA)
     cmake_parse_arguments(common_src "${options}" "" "" "" ${ARGN})
 
-    if (common_src_COMMON_UTIL OR common_src_ALL)
-        aux_source_directory(${ROOT_PATH}/core/common_utils _src)
-        message("[+] add custom source:" ${ROOT_PATH}/core/common_utils)
-        list(APPEND SRCS ${_src})
-    endif()
-
-    if (common_src_STRING_UTIL OR common_src_ALL)
-        aux_source_directory(${ROOT_PATH}/core/string_utils _src)
-        message("[+] add custom source:" ${ROOT_PATH}/core/string_utils)
-        list(APPEND SRCS ${_src})
-    endif()
-
-    if (common_src_VALIDATOR OR common_src_ALL)
-        aux_source_directory(${ROOT_PATH}/core/validator _src)
-        message("[+] add custom source:" ${ROOT_PATH}/core/validator)
+    if (common_src_MYSQL OR common_src_ALL)
+        aux_source_directory(${ROOT_PATH}/core/mysql _src)
+        message("[+] add custom source:" ${ROOT_PATH}/core/mysql)
         list(APPEND SRCS ${_src})
     endif()
 

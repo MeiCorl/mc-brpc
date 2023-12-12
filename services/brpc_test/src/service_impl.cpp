@@ -2,18 +2,19 @@
 #include "core/utils/validator/validator_util.h"
 #include "client/test.client.h"
 #include "brpc/server.h"
+#include "core/mysql/db_manager.h"
 
 using namespace server::utils;
-
 namespace test {
-ServiceImpl::ServiceImpl(/* args */) { }
+ServiceImpl::ServiceImpl(/* args */) {}
 
-ServiceImpl::~ServiceImpl() { }
+ServiceImpl::~ServiceImpl() {}
 
-void ServiceImpl::UpdateUserInfo(google::protobuf::RpcController* cntl_base,
-                                 const UpdateUserInfoReq* request,
-                                 UpdateUserInfoRes* response,
-                                 google::protobuf::Closure* done) {
+void ServiceImpl::UpdateUserInfo(
+    google::protobuf::RpcController* cntl_base,
+    const UpdateUserInfoReq* request,
+    UpdateUserInfoRes* response,
+    google::protobuf::Closure* done) {
     brpc::ClosureGuard done_guard(done);
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);
@@ -43,16 +44,40 @@ void ServiceImpl::UpdateUserInfo(google::protobuf::RpcController* cntl_base,
     }
 }
 
-void ServiceImpl::Test(google::protobuf::RpcController* cntl_base,
-                       const TestReq* request,
-                       TestRes* response,
-                       google::protobuf::Closure* done) {
+void ServiceImpl::Test(
+    google::protobuf::RpcController* cntl_base,
+    const TestReq* request,
+    TestRes* response,
+    google::protobuf::Closure* done) {
     brpc::ClosureGuard done_guard(done);
-    brpc::Controller* cntl = static_cast<brpc::Controller*>(cntl_base);
+
+    auto conn = DBManager::get()->GetDBConnection("db_master");
+    if(conn == nullptr) {
+        response->set_seq_id(request->seq_id());
+        response->set_res_code(ServerError);
+        response->set_msg(request->msg());
+        return;
+    }
+
+    std::string sql = "SELECT * FROM tbl_user_info limit 10";
+    try {
+        if (conn->query(sql)) {
+            while (conn->next()) {
+                std::ostringstream os;
+                for (unsigned i = 0; i < conn->cols(); ++i) {
+                    os << conn->value(i) << " ";
+                }
+                LOG(INFO) << os.str();
+            }
+        } else {
+            LOG(ERROR) << "[!] db query error, sql:" << sql;
+        }
+    } catch(std::exception& e) {
+        LOG(ERROR) << e.what();
+    }
 
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);
     response->set_msg(request->msg());
-    LOG(INFO) << "Res:{" << response->ShortDebugString() << "}";
 }
-} // namespace test
+}  // namespace test

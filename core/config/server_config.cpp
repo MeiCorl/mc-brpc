@@ -26,14 +26,18 @@ ServerConfig::ServerConfig(/* args */) {
     }
     delete input;
     input = nullptr;
-    LOG(INFO) << "Get SvrConfig: " << _config.ShortDebugString();
+    // LOG(INFO) << "Get SvrConfig: " << _config.ShortDebugString();
 }
 
 ServerConfig::~ServerConfig() { }
 
-const DbConfig& ServerConfig::GetDbConfig() { }
+const google::protobuf::Map<std::string, server::config::DbConfig>& ServerConfig::GetDbConfig() {
+    return _config.db_configs();
+}
 
-const RedisConfig& ServerConfig::GetRedisConfig() { }
+const google::protobuf::Map<std::string, server::config::RedisConfig>& ServerConfig::GetRedisConfig() {
+    return _config.redis_configs();
+}
 
 const LogConfig& ServerConfig::GetLogConfig() { return _config.log_config(); }
 

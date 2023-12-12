@@ -170,8 +170,14 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_server_5fconfig_2eproto::offse
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, url_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, user_),
   PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, passwd_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, ip_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, port_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, db_name_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, max_active_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, min_idle_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, ilde_timeout_ms_),
   PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, timeout_ms_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, _internal_metadata_),
@@ -224,11 +230,11 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_server_5fconfig_2eproto::offse
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::server::config::InstanceInfo)},
   { 8, -1, sizeof(::server::config::DbConfig)},
-  { 16, -1, sizeof(::server::config::RedisConfig)},
-  { 24, -1, sizeof(::server::config::LogConfig)},
-  { 33, 40, sizeof(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse)},
-  { 42, 49, sizeof(::server::config::SvrConfigBase_RedisConfigsEntry_DoNotUse)},
-  { 51, -1, sizeof(::server::config::SvrConfigBase)},
+  { 22, -1, sizeof(::server::config::RedisConfig)},
+  { 30, -1, sizeof(::server::config::LogConfig)},
+  { 39, 46, sizeof(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse)},
+  { 48, 55, sizeof(::server::config::SvrConfigBase_RedisConfigsEntry_DoNotUse)},
+  { 57, -1, sizeof(::server::config::SvrConfigBase)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -244,24 +250,27 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
 const char descriptor_table_protodef_server_5fconfig_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\023server_config.proto\022\rserver.config\"E\n\014"
   "InstanceInfo\022\021\n\tregion_id\030\001 \001(\r\022\020\n\010group"
-  "_id\030\002 \001(\r\022\020\n\010endpoint\030\003 \001(\t\";\n\010DbConfig\022"
-  "\013\n\003url\030\001 \001(\t\022\016\n\006passwd\030\002 \001(\t\022\022\n\ntimeout_"
-  "ms\030\003 \001(\r\">\n\013RedisConfig\022\013\n\003url\030\001 \001(\t\022\016\n\006"
-  "passwd\030\002 \001(\t\022\022\n\ntimeout_ms\030\003 \001(\r\"a\n\tLogC"
-  "onfig\022\021\n\tlog_level\030\001 \001(\r\022\025\n\rlog_threshol"
-  "d\030\002 \001(\r\022\023\n\013remain_days\030\003 \001(\r\022\025\n\rlog_to_s"
-  "tderr\030\004 \001(\010\"\254\003\n\rSvrConfigBase\022\016\n\006ns_url\030"
-  "\001 \001(\t\022\024\n\014service_name\030\002 \001(\t\022\021\n\tregion_id"
-  "\030\003 \001(\r\022\020\n\010group_id\030\004 \001(\r\022\?\n\ndb_configs\030\005"
-  " \003(\0132+.server.config.SvrConfigBase.DbCon"
-  "figsEntry\022E\n\rredis_configs\030\006 \003(\0132..serve"
-  "r.config.SvrConfigBase.RedisConfigsEntry"
-  "\022,\n\nlog_config\030\007 \001(\0132\030.server.config.Log"
-  "Config\032I\n\016DbConfigsEntry\022\013\n\003key\030\001 \001(\t\022&\n"
-  "\005value\030\002 \001(\0132\027.server.config.DbConfig:\0028"
-  "\001\032O\n\021RedisConfigsEntry\022\013\n\003key\030\001 \001(\t\022)\n\005v"
-  "alue\030\002 \001(\0132\032.server.config.RedisConfig:\002"
-  "8\001B\003\200\001\001b\006proto3"
+  "_id\030\002 \001(\r\022\020\n\010endpoint\030\003 \001(\t\"\246\001\n\010DbConfig"
+  "\022\014\n\004user\030\001 \001(\t\022\016\n\006passwd\030\002 \001(\t\022\n\n\002ip\030\003 \001"
+  "(\t\022\014\n\004port\030\004 \001(\r\022\017\n\007db_name\030\005 \001(\t\022\022\n\nmax"
+  "_active\030\006 \001(\r\022\020\n\010min_idle\030\010 \001(\r\022\027\n\017ilde_"
+  "timeout_ms\030\t \001(\r\022\022\n\ntimeout_ms\030\n \001(\r\">\n\013"
+  "RedisConfig\022\013\n\003url\030\001 \001(\t\022\016\n\006passwd\030\002 \001(\t"
+  "\022\022\n\ntimeout_ms\030\003 \001(\r\"a\n\tLogConfig\022\021\n\tlog"
+  "_level\030\001 \001(\r\022\025\n\rlog_threshold\030\002 \001(\r\022\023\n\013r"
+  "emain_days\030\003 \001(\r\022\025\n\rlog_to_stderr\030\004 \001(\010\""
+  "\254\003\n\rSvrConfigBase\022\016\n\006ns_url\030\001 \001(\t\022\024\n\014ser"
+  "vice_name\030\002 \001(\t\022\021\n\tregion_id\030\003 \001(\r\022\020\n\010gr"
+  "oup_id\030\004 \001(\r\022\?\n\ndb_configs\030\005 \003(\0132+.serve"
+  "r.config.SvrConfigBase.DbConfigsEntry\022E\n"
+  "\rredis_configs\030\006 \003(\0132..server.config.Svr"
+  "ConfigBase.RedisConfigsEntry\022,\n\nlog_conf"
+  "ig\030\007 \001(\0132\030.server.config.LogConfig\032I\n\016Db"
+  "ConfigsEntry\022\013\n\003key\030\001 \001(\t\022&\n\005value\030\002 \001(\013"
+  "2\027.server.config.DbConfig:\0028\001\032O\n\021RedisCo"
+  "nfigsEntry\022\013\n\003key\030\001 \001(\t\022)\n\005value\030\002 \001(\0132\032"
+  ".server.config.RedisConfig:\0028\001B\003\200\001\001b\006pro"
+  "to3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_server_5fconfig_2eproto_deps[1] = {
 };
@@ -276,7 +285,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_ser
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_server_5fconfig_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_server_5fconfig_2eproto = {
-  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 775,
+  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 883,
   &descriptor_table_server_5fconfig_2eproto_once, descriptor_table_server_5fconfig_2eproto_sccs, descriptor_table_server_5fconfig_2eproto_deps, 7, 0,
   schemas, file_default_instances, TableStruct_server_5fconfig_2eproto::offsets,
   file_level_metadata_server_5fconfig_2eproto, 7, file_level_enum_descriptors_server_5fconfig_2eproto, file_level_service_descriptors_server_5fconfig_2eproto,
@@ -574,9 +583,9 @@ DbConfig::DbConfig(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 DbConfig::DbConfig(const DbConfig& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  url_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  if (!from._internal_url().empty()) {
-    url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_url(),
+  user_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_user().empty()) {
+    user_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_user(),
       GetArena());
   }
   passwd_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
@@ -584,15 +593,31 @@ DbConfig::DbConfig(const DbConfig& from)
     passwd_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_passwd(),
       GetArena());
   }
-  timeout_ms_ = from.timeout_ms_;
+  ip_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_ip().empty()) {
+    ip_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_ip(),
+      GetArena());
+  }
+  db_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_db_name().empty()) {
+    db_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_db_name(),
+      GetArena());
+  }
+  ::memcpy(&port_, &from.port_,
+    static_cast<size_t>(reinterpret_cast<char*>(&timeout_ms_) -
+    reinterpret_cast<char*>(&port_)) + sizeof(timeout_ms_));
   // @@protoc_insertion_point(copy_constructor:server.config.DbConfig)
 }
 
 void DbConfig::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_DbConfig_server_5fconfig_2eproto.base);
-  url_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  user_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   passwd_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  timeout_ms_ = 0u;
+  ip_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  db_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  ::memset(&port_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&timeout_ms_) -
+      reinterpret_cast<char*>(&port_)) + sizeof(timeout_ms_));
 }
 
 DbConfig::~DbConfig() {
@@ -603,8 +628,10 @@ DbConfig::~DbConfig() {
 
 void DbConfig::SharedDtor() {
   GOOGLE_DCHECK(GetArena() == nullptr);
-  url_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  user_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   passwd_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  ip_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  db_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
 void DbConfig::ArenaDtor(void* object) {
@@ -628,9 +655,13 @@ void DbConfig::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  url_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  user_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   passwd_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  timeout_ms_ = 0u;
+  ip_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  db_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  ::memset(&port_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&timeout_ms_) -
+      reinterpret_cast<char*>(&port_)) + sizeof(timeout_ms_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -642,12 +673,12 @@ const char* DbConfig::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::i
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // string url = 1;
+      // string user = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
-          auto str = _internal_mutable_url();
+          auto str = _internal_mutable_user();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.DbConfig.url"));
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.DbConfig.user"));
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -660,9 +691,55 @@ const char* DbConfig::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::i
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // uint32 timeout_ms = 3;
+      // string ip = 3;
       case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+          auto str = _internal_mutable_ip();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.DbConfig.ip"));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 port = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
+          port_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // string db_name = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 42)) {
+          auto str = _internal_mutable_db_name();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.DbConfig.db_name"));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 max_active = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 48)) {
+          max_active_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 min_idle = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 64)) {
+          min_idle_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 ilde_timeout_ms = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 72)) {
+          ilde_timeout_ms_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 timeout_ms = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 80)) {
           timeout_ms_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
@@ -695,14 +772,14 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // string url = 1;
-  if (this->url().size() > 0) {
+  // string user = 1;
+  if (this->user().size() > 0) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_url().data(), static_cast<int>(this->_internal_url().length()),
+      this->_internal_user().data(), static_cast<int>(this->_internal_user().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "server.config.DbConfig.url");
+      "server.config.DbConfig.user");
     target = stream->WriteStringMaybeAliased(
-        1, this->_internal_url(), target);
+        1, this->_internal_user(), target);
   }
 
   // string passwd = 2;
@@ -715,10 +792,54 @@ failure:
         2, this->_internal_passwd(), target);
   }
 
-  // uint32 timeout_ms = 3;
+  // string ip = 3;
+  if (this->ip().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_ip().data(), static_cast<int>(this->_internal_ip().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "server.config.DbConfig.ip");
+    target = stream->WriteStringMaybeAliased(
+        3, this->_internal_ip(), target);
+  }
+
+  // uint32 port = 4;
+  if (this->port() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(4, this->_internal_port(), target);
+  }
+
+  // string db_name = 5;
+  if (this->db_name().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_db_name().data(), static_cast<int>(this->_internal_db_name().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "server.config.DbConfig.db_name");
+    target = stream->WriteStringMaybeAliased(
+        5, this->_internal_db_name(), target);
+  }
+
+  // uint32 max_active = 6;
+  if (this->max_active() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(6, this->_internal_max_active(), target);
+  }
+
+  // uint32 min_idle = 8;
+  if (this->min_idle() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(8, this->_internal_min_idle(), target);
+  }
+
+  // uint32 ilde_timeout_ms = 9;
+  if (this->ilde_timeout_ms() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(9, this->_internal_ilde_timeout_ms(), target);
+  }
+
+  // uint32 timeout_ms = 10;
   if (this->timeout_ms() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(3, this->_internal_timeout_ms(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(10, this->_internal_timeout_ms(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -737,11 +858,11 @@ size_t DbConfig::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // string url = 1;
-  if (this->url().size() > 0) {
+  // string user = 1;
+  if (this->user().size() > 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_url());
+        this->_internal_user());
   }
 
   // string passwd = 2;
@@ -751,7 +872,49 @@ size_t DbConfig::ByteSizeLong() const {
         this->_internal_passwd());
   }
 
-  // uint32 timeout_ms = 3;
+  // string ip = 3;
+  if (this->ip().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_ip());
+  }
+
+  // string db_name = 5;
+  if (this->db_name().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_db_name());
+  }
+
+  // uint32 port = 4;
+  if (this->port() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_port());
+  }
+
+  // uint32 max_active = 6;
+  if (this->max_active() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_max_active());
+  }
+
+  // uint32 min_idle = 8;
+  if (this->min_idle() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_min_idle());
+  }
+
+  // uint32 ilde_timeout_ms = 9;
+  if (this->ilde_timeout_ms() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_ilde_timeout_ms());
+  }
+
+  // uint32 timeout_ms = 10;
   if (this->timeout_ms() != 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
@@ -789,11 +952,29 @@ void DbConfig::MergeFrom(const DbConfig& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.url().size() > 0) {
-    _internal_set_url(from._internal_url());
+  if (from.user().size() > 0) {
+    _internal_set_user(from._internal_user());
   }
   if (from.passwd().size() > 0) {
     _internal_set_passwd(from._internal_passwd());
+  }
+  if (from.ip().size() > 0) {
+    _internal_set_ip(from._internal_ip());
+  }
+  if (from.db_name().size() > 0) {
+    _internal_set_db_name(from._internal_db_name());
+  }
+  if (from.port() != 0) {
+    _internal_set_port(from._internal_port());
+  }
+  if (from.max_active() != 0) {
+    _internal_set_max_active(from._internal_max_active());
+  }
+  if (from.min_idle() != 0) {
+    _internal_set_min_idle(from._internal_min_idle());
+  }
+  if (from.ilde_timeout_ms() != 0) {
+    _internal_set_ilde_timeout_ms(from._internal_ilde_timeout_ms());
   }
   if (from.timeout_ms() != 0) {
     _internal_set_timeout_ms(from._internal_timeout_ms());
@@ -821,9 +1002,16 @@ bool DbConfig::IsInitialized() const {
 void DbConfig::InternalSwap(DbConfig* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  url_.Swap(&other->url_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  user_.Swap(&other->user_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   passwd_.Swap(&other->passwd_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  swap(timeout_ms_, other->timeout_ms_);
+  ip_.Swap(&other->ip_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  db_name_.Swap(&other->db_name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DbConfig, timeout_ms_)
+      + sizeof(DbConfig::timeout_ms_)
+      - PROTOBUF_FIELD_OFFSET(DbConfig, port_)>(
+          reinterpret_cast<char*>(&port_),
+          reinterpret_cast<char*>(&other->port_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata DbConfig::GetMetadata() const {

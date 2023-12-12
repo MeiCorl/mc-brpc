@@ -10,9 +10,15 @@ message InstanceInfo {
 }
 
 message DbConfig {
-    string url = 1;
+    string user = 1;
     string passwd = 2;
-    uint32 timeout_ms = 3;
+    string ip = 3;
+    uint32 port = 4;
+    string db_name = 5;
+    uint32 max_active = 6;          // 最大活跃连接数      
+    uint32 min_idle = 8;            // 最小空闲连接数
+    uint32 ilde_timeout_ms = 9;     // 空闲连接超时时间(超过会自动释放连接)
+    uint32 timeout_ms = 10;         // 获取连接超时时间
 }
 
 message RedisConfig {
@@ -33,7 +39,7 @@ message SvrConfigBase {
     string service_name = 2;
     uint32 region_id = 3;
     uint32 group_id = 4;
-    map<string, DbConfig> db_configs = 5;           // key: instance_name
-    map<string, RedisConfig> redis_configs = 6;     // key: instance_name
+    map<string, DbConfig> db_configs = 5;           // key: cluster_name
+    map<string, RedisConfig> redis_configs = 6;     // key: cluster_name
     LogConfig log_config = 7;
 }
