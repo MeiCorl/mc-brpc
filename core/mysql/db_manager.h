@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/utils/singleton.h"
-#include "core/config/server_config.h"
 #include "db_pool.h"
 
 namespace server {

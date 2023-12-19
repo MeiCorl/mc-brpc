@@ -35,6 +35,12 @@ function(add_custom_lib_source SRCS)
         list(APPEND SRCS ${_src})
     endif()
 
+    if (common_src_REDIS OR common_src_ALL)
+        aux_source_directory(${ROOT_PATH}/core/redis _src)
+        message("[+] add custom source:" ${ROOT_PATH}/core/redis)
+        list(APPEND SRCS ${_src})
+    endif()
+
     set(${SRCS} ${${SRCS}} PARENT_SCOPE)
 endfunction()
 

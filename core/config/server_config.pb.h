@@ -673,36 +673,39 @@ class RedisConfig PROTOBUF_FINAL :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kUrlFieldNumber = 1,
-    kPasswdFieldNumber = 2,
-    kTimeoutMsFieldNumber = 3,
+    kHostFieldNumber = 1,
+    kPasswdFieldNumber = 3,
+    kPortFieldNumber = 2,
+    kPoolSizeFieldNumber = 4,
+    kTimeoutMsFieldNumber = 5,
+    kWaitTimeoutMsFieldNumber = 6,
   };
-  // string url = 1;
-  void clear_url();
-  const std::string& url() const;
-  void set_url(const std::string& value);
-  void set_url(std::string&& value);
-  void set_url(const char* value);
-  void set_url(const char* value, size_t size);
-  std::string* mutable_url();
-  std::string* release_url();
-  void set_allocated_url(std::string* url);
+  // string host = 1;
+  void clear_host();
+  const std::string& host() const;
+  void set_host(const std::string& value);
+  void set_host(std::string&& value);
+  void set_host(const char* value);
+  void set_host(const char* value, size_t size);
+  std::string* mutable_host();
+  std::string* release_host();
+  void set_allocated_host(std::string* host);
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  std::string* unsafe_arena_release_url();
+  std::string* unsafe_arena_release_host();
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_url(
-      std::string* url);
+  void unsafe_arena_set_allocated_host(
+      std::string* host);
   private:
-  const std::string& _internal_url() const;
-  void _internal_set_url(const std::string& value);
-  std::string* _internal_mutable_url();
+  const std::string& _internal_host() const;
+  void _internal_set_host(const std::string& value);
+  std::string* _internal_mutable_host();
   public:
 
-  // string passwd = 2;
+  // string passwd = 3;
   void clear_passwd();
   const std::string& passwd() const;
   void set_passwd(const std::string& value);
@@ -727,13 +730,40 @@ class RedisConfig PROTOBUF_FINAL :
   std::string* _internal_mutable_passwd();
   public:
 
-  // uint32 timeout_ms = 3;
+  // uint32 port = 2;
+  void clear_port();
+  ::PROTOBUF_NAMESPACE_ID::uint32 port() const;
+  void set_port(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_port() const;
+  void _internal_set_port(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 pool_size = 4;
+  void clear_pool_size();
+  ::PROTOBUF_NAMESPACE_ID::uint32 pool_size() const;
+  void set_pool_size(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_pool_size() const;
+  void _internal_set_pool_size(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 timeout_ms = 5;
   void clear_timeout_ms();
   ::PROTOBUF_NAMESPACE_ID::uint32 timeout_ms() const;
   void set_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
   private:
   ::PROTOBUF_NAMESPACE_ID::uint32 _internal_timeout_ms() const;
   void _internal_set_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 wait_timeout_ms = 6;
+  void clear_wait_timeout_ms();
+  ::PROTOBUF_NAMESPACE_ID::uint32 wait_timeout_ms() const;
+  void set_wait_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_wait_timeout_ms() const;
+  void _internal_set_wait_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
   // @@protoc_insertion_point(class_scope:server.config.RedisConfig)
@@ -743,9 +773,12 @@ class RedisConfig PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr url_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr host_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr passwd_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 port_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 pool_size_;
   ::PROTOBUF_NAMESPACE_ID::uint32 timeout_ms_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 wait_timeout_ms_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_server_5fconfig_2eproto;
 };
@@ -1818,88 +1851,108 @@ inline void DbConfig::set_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
 
 // RedisConfig
 
-// string url = 1;
-inline void RedisConfig::clear_url() {
-  url_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+// string host = 1;
+inline void RedisConfig::clear_host() {
+  host_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
-inline const std::string& RedisConfig::url() const {
-  // @@protoc_insertion_point(field_get:server.config.RedisConfig.url)
-  return _internal_url();
+inline const std::string& RedisConfig::host() const {
+  // @@protoc_insertion_point(field_get:server.config.RedisConfig.host)
+  return _internal_host();
 }
-inline void RedisConfig::set_url(const std::string& value) {
-  _internal_set_url(value);
-  // @@protoc_insertion_point(field_set:server.config.RedisConfig.url)
+inline void RedisConfig::set_host(const std::string& value) {
+  _internal_set_host(value);
+  // @@protoc_insertion_point(field_set:server.config.RedisConfig.host)
 }
-inline std::string* RedisConfig::mutable_url() {
-  // @@protoc_insertion_point(field_mutable:server.config.RedisConfig.url)
-  return _internal_mutable_url();
+inline std::string* RedisConfig::mutable_host() {
+  // @@protoc_insertion_point(field_mutable:server.config.RedisConfig.host)
+  return _internal_mutable_host();
 }
-inline const std::string& RedisConfig::_internal_url() const {
-  return url_.Get();
+inline const std::string& RedisConfig::_internal_host() const {
+  return host_.Get();
 }
-inline void RedisConfig::_internal_set_url(const std::string& value) {
+inline void RedisConfig::_internal_set_host(const std::string& value) {
   
-  url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+  host_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
 }
-inline void RedisConfig::set_url(std::string&& value) {
+inline void RedisConfig::set_host(std::string&& value) {
   
-  url_.Set(
+  host_.Set(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
-  // @@protoc_insertion_point(field_set_rvalue:server.config.RedisConfig.url)
+  // @@protoc_insertion_point(field_set_rvalue:server.config.RedisConfig.host)
 }
-inline void RedisConfig::set_url(const char* value) {
+inline void RedisConfig::set_host(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  host_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArena());
-  // @@protoc_insertion_point(field_set_char:server.config.RedisConfig.url)
+  // @@protoc_insertion_point(field_set_char:server.config.RedisConfig.host)
 }
-inline void RedisConfig::set_url(const char* value,
+inline void RedisConfig::set_host(const char* value,
     size_t size) {
   
-  url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  host_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArena());
-  // @@protoc_insertion_point(field_set_pointer:server.config.RedisConfig.url)
+  // @@protoc_insertion_point(field_set_pointer:server.config.RedisConfig.host)
 }
-inline std::string* RedisConfig::_internal_mutable_url() {
+inline std::string* RedisConfig::_internal_mutable_host() {
   
-  return url_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  return host_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
-inline std::string* RedisConfig::release_url() {
-  // @@protoc_insertion_point(field_release:server.config.RedisConfig.url)
-  return url_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+inline std::string* RedisConfig::release_host() {
+  // @@protoc_insertion_point(field_release:server.config.RedisConfig.host)
+  return host_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
-inline void RedisConfig::set_allocated_url(std::string* url) {
-  if (url != nullptr) {
+inline void RedisConfig::set_allocated_host(std::string* host) {
+  if (host != nullptr) {
     
   } else {
     
   }
-  url_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), url,
+  host_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), host,
       GetArena());
-  // @@protoc_insertion_point(field_set_allocated:server.config.RedisConfig.url)
+  // @@protoc_insertion_point(field_set_allocated:server.config.RedisConfig.host)
 }
-inline std::string* RedisConfig::unsafe_arena_release_url() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:server.config.RedisConfig.url)
+inline std::string* RedisConfig::unsafe_arena_release_host() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:server.config.RedisConfig.host)
   GOOGLE_DCHECK(GetArena() != nullptr);
   
-  return url_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return host_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArena());
 }
-inline void RedisConfig::unsafe_arena_set_allocated_url(
-    std::string* url) {
+inline void RedisConfig::unsafe_arena_set_allocated_host(
+    std::string* host) {
   GOOGLE_DCHECK(GetArena() != nullptr);
-  if (url != nullptr) {
+  if (host != nullptr) {
     
   } else {
     
   }
-  url_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      url, GetArena());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:server.config.RedisConfig.url)
+  host_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      host, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:server.config.RedisConfig.host)
 }
 
-// string passwd = 2;
+// uint32 port = 2;
+inline void RedisConfig::clear_port() {
+  port_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 RedisConfig::_internal_port() const {
+  return port_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 RedisConfig::port() const {
+  // @@protoc_insertion_point(field_get:server.config.RedisConfig.port)
+  return _internal_port();
+}
+inline void RedisConfig::_internal_set_port(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  port_ = value;
+}
+inline void RedisConfig::set_port(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_port(value);
+  // @@protoc_insertion_point(field_set:server.config.RedisConfig.port)
+}
+
+// string passwd = 3;
 inline void RedisConfig::clear_passwd() {
   passwd_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
@@ -1980,7 +2033,27 @@ inline void RedisConfig::unsafe_arena_set_allocated_passwd(
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:server.config.RedisConfig.passwd)
 }
 
-// uint32 timeout_ms = 3;
+// uint32 pool_size = 4;
+inline void RedisConfig::clear_pool_size() {
+  pool_size_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 RedisConfig::_internal_pool_size() const {
+  return pool_size_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 RedisConfig::pool_size() const {
+  // @@protoc_insertion_point(field_get:server.config.RedisConfig.pool_size)
+  return _internal_pool_size();
+}
+inline void RedisConfig::_internal_set_pool_size(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  pool_size_ = value;
+}
+inline void RedisConfig::set_pool_size(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_pool_size(value);
+  // @@protoc_insertion_point(field_set:server.config.RedisConfig.pool_size)
+}
+
+// uint32 timeout_ms = 5;
 inline void RedisConfig::clear_timeout_ms() {
   timeout_ms_ = 0u;
 }
@@ -1998,6 +2071,26 @@ inline void RedisConfig::_internal_set_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint3
 inline void RedisConfig::set_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   _internal_set_timeout_ms(value);
   // @@protoc_insertion_point(field_set:server.config.RedisConfig.timeout_ms)
+}
+
+// uint32 wait_timeout_ms = 6;
+inline void RedisConfig::clear_wait_timeout_ms() {
+  wait_timeout_ms_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 RedisConfig::_internal_wait_timeout_ms() const {
+  return wait_timeout_ms_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 RedisConfig::wait_timeout_ms() const {
+  // @@protoc_insertion_point(field_get:server.config.RedisConfig.wait_timeout_ms)
+  return _internal_wait_timeout_ms();
+}
+inline void RedisConfig::_internal_set_wait_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  wait_timeout_ms_ = value;
+}
+inline void RedisConfig::set_wait_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_wait_timeout_ms(value);
+  // @@protoc_insertion_point(field_set:server.config.RedisConfig.wait_timeout_ms)
 }
 
 // -------------------------------------------------------------------

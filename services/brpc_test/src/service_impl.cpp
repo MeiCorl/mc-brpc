@@ -3,6 +3,7 @@
 #include "client/test.client.h"
 #include "brpc/server.h"
 #include "core/mysql/db_manager.h"
+#include "core/redis/redis_manager.h"
 
 using namespace server::utils;
 namespace test {
@@ -67,7 +68,8 @@ void ServiceImpl::Test(
                 for (unsigned i = 0; i < conn->cols(); ++i) {
                     os << conn->value(i) << " ";
                 }
-                LOG(INFO) << os.str();
+                auto redis = RedisManager::get()->GetRedisConnection("redis_master");
+                redis->set(conn->value(0), os.str(), std::chrono::milliseconds(3600000));
             }
         } else {
             LOG(ERROR) << "[!] db query error, sql:" << sql;

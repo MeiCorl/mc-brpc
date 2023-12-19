@@ -51,3 +51,16 @@ RUN git clone https://github.com/apache/brpc.git \
 
 # 安装mysqlclient开发库
 RUn apt install -y libmysqlclient-dev
+
+# 安装redis-plus-plus
+RUN git clone https://github.com/redis/hiredis.git \
+	&& cd hiredis \
+	&& make \
+	&& make install \
+	&& cd .. \
+	&& git clone https://github.com/sewenew/redis-plus-plus.git \
+	&& cd redis-plus-plus \
+	&& mkdir build && cd build \
+	&& cmake .. \
+	&& make -j4 \
+	&& make install

@@ -15,22 +15,32 @@
 #include "core/mysql/db_manager.h"
 #endif
 
+#ifdef USE_REDIS
+#include "core/redis/redis_manager.h"
+#endif
+
 using namespace server;
 using server::utils::NetUtil;
 
-DEFINE_string(listen_addr,
-              "",
-              "Server listen address, may be IPV4/IPV6/UDS."
-              "If this is set, the flag port will be ignored");
+DEFINE_string(
+    listen_addr,
+    "",
+    "Server listen address, may be IPV4/IPV6/UDS."
+    "If this is set, the flag port will be ignored");
 
 MCServer::MCServer(int argc, char* argv[]) {
     LoggingInit(argv);
     RegisterNamingService();
 
-    #ifdef USE_MYSQL
+#ifdef USE_MYSQL
     // init db if necessary
     DBManager::get()->Init();
-    #endif
+#endif
+
+#ifdef USE_REDIS
+    // init redis cluster if necessary
+    RedisManager::get()->Init();
+#endif
 }
 
 MCServer::~MCServer() {
@@ -52,7 +62,7 @@ MCServer::~MCServer() {
  * 初始化日志文件及日志监听线程、日志归档线程
  * @date: 2023-08-14 17:08:23
  * @author: meicorl
-*/
+ */
 void MCServer::LoggingInit(char* argv[]) {
     ServerConfig* svr_config = utils::Singleton<ServerConfig>::get();
 
@@ -62,7 +72,7 @@ void MCServer::LoggingInit(char* argv[]) {
         log_settings.logging_dest = logging::LOG_TO_ALL;
     }
 
-    std::string log_name  = server::logger::get_log_name(argv[0]);
+    std::string log_name = server::logger::get_log_name(argv[0]);
     log_settings.log_file = log_name.c_str();
 
     butil::FilePath log_path = butil::FilePath(server::logger::get_log_path(argv[0]));
@@ -83,8 +93,7 @@ void MCServer::LoggingInit(char* argv[]) {
     _log_watcher = std::make_shared<LogRotateWatcher>(log_name);
     _log_watcher->Start();
 
-    _log_archive_worker =
-        std::make_shared<LogArchiveWorker>(log_name, svr_config->GetLogConfig().remain_days());
+    _log_archive_worker = std::make_shared<LogArchiveWorker>(log_name, svr_config->GetLogConfig().remain_days());
     _log_archive_worker->Start();
 }
 
@@ -93,8 +102,9 @@ void MCServer::RegisterNamingService() {
     brpc::NamingServiceExtension()->RegisterOrDie("mc", new brpc::policy::McNamingService());
 }
 
-std::string MCServer::BuildServiceName(const std::string& original_service_name,
-                                       const server::config::InstanceInfo& instance) {
+std::string MCServer::BuildServiceName(
+    const std::string& original_service_name,
+    const server::config::InstanceInfo& instance) {
     std::hash<std::string> hasher;
     return original_service_name + ":" + std::to_string(hasher(instance.SerializeAsString()));
 }
@@ -108,14 +118,12 @@ void MCServer::RegisterService() {
     instance.set_endpoint(butil::endpoint2str(_server.listen_address()).c_str());
     etcd::Response resp = etcd.leasegrant(REGISTER_TTL).get();
     if (resp.error_code() != 0) {
-        LOG(ERROR) << "[!] etcd failed, err_code: " << resp.error_code()
-                   << ", err_msg:" << resp.error_message();
+        LOG(ERROR) << "[!] etcd failed, err_code: " << resp.error_code() << ", err_msg:" << resp.error_message();
         exit(1);
     }
-    _etcd_lease_id          = resp.value().lease();
-    etcd::Response response = etcd.set(BuildServiceName(config->GetSelfName(), instance),
-                                       instance.SerializeAsString(), _etcd_lease_id)
-                                  .get();
+    _etcd_lease_id = resp.value().lease();
+    etcd::Response response =
+        etcd.set(BuildServiceName(config->GetSelfName(), instance), instance.SerializeAsString(), _etcd_lease_id).get();
     if (response.error_code() != 0) {
         LOG(ERROR) << "[!] Fail to register service, err_code: " << response.error_code()
                    << ", err_msg:" << response.error_message();
@@ -133,8 +141,7 @@ void MCServer::RegisterService() {
             LOG(FATAL) << "[!] Etcd lease expire: " << e.what();
         }
     };
-    _keep_live_ptr.reset(
-        new etcd::KeepAlive(config->GetNsUrl(), handler, REGISTER_TTL, _etcd_lease_id));
+    _keep_live_ptr.reset(new etcd::KeepAlive(config->GetNsUrl(), handler, REGISTER_TTL, _etcd_lease_id));
     LOG(INFO) << "Service register succ. instance: {" << instance.ShortDebugString()
               << "}, lease_id:" << _etcd_lease_id;
 }

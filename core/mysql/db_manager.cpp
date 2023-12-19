@@ -1,7 +1,6 @@
 #include "brpc/extension.h"
 
 #include "db_manager.h"
-#include "core/utils/singleton.h"
 
 using namespace server::db;
 using namespace server::config;
