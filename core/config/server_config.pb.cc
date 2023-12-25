@@ -16,7 +16,9 @@
 #include <google/protobuf/port_def.inc>
 extern PROTOBUF_INTERNAL_EXPORT_server_5fconfig_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_DbConfig_server_5fconfig_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_server_5fconfig_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_LogConfig_server_5fconfig_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_server_5fconfig_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RedisConfig_server_5fconfig_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_server_5fconfig_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_RedisConfig_server_5fconfig_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_server_5fconfig_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RedisNodeInfo_server_5fconfig_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_server_5fconfig_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_RedisSentineInfo_server_5fconfig_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_server_5fconfig_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_SvrConfigBase_DbConfigsEntry_DoNotUse_server_5fconfig_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_server_5fconfig_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_SvrConfigBase_RedisConfigsEntry_DoNotUse_server_5fconfig_2eproto;
 namespace server {
@@ -29,9 +31,19 @@ class DbConfigDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<DbConfig> _instance;
 } _DbConfig_default_instance_;
+class RedisNodeInfoDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<RedisNodeInfo> _instance;
+} _RedisNodeInfo_default_instance_;
+class RedisSentineInfoDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<RedisSentineInfo> _instance;
+} _RedisSentineInfo_default_instance_;
 class RedisConfigDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<RedisConfig> _instance;
+  const ::server::config::RedisNodeInfo* redis_info_;
+  const ::server::config::RedisSentineInfo* sentine_info_;
 } _RedisConfig_default_instance_;
 class LogConfigDefaultTypeInternal {
  public:
@@ -104,8 +116,39 @@ static void InitDefaultsscc_info_RedisConfig_server_5fconfig_2eproto() {
   ::server::config::RedisConfig::InitAsDefaultInstance();
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RedisConfig_server_5fconfig_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_RedisConfig_server_5fconfig_2eproto}, {}};
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_RedisConfig_server_5fconfig_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 2, 0, InitDefaultsscc_info_RedisConfig_server_5fconfig_2eproto}, {
+      &scc_info_RedisNodeInfo_server_5fconfig_2eproto.base,
+      &scc_info_RedisSentineInfo_server_5fconfig_2eproto.base,}};
+
+static void InitDefaultsscc_info_RedisNodeInfo_server_5fconfig_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::server::config::_RedisNodeInfo_default_instance_;
+    new (ptr) ::server::config::RedisNodeInfo();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::server::config::RedisNodeInfo::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RedisNodeInfo_server_5fconfig_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_RedisNodeInfo_server_5fconfig_2eproto}, {}};
+
+static void InitDefaultsscc_info_RedisSentineInfo_server_5fconfig_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::server::config::_RedisSentineInfo_default_instance_;
+    new (ptr) ::server::config::RedisSentineInfo();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::server::config::RedisSentineInfo::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_RedisSentineInfo_server_5fconfig_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_RedisSentineInfo_server_5fconfig_2eproto}, {
+      &scc_info_RedisNodeInfo_server_5fconfig_2eproto.base,}};
 
 static void InitDefaultsscc_info_SvrConfigBase_server_5fconfig_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -152,7 +195,7 @@ static void InitDefaultsscc_info_SvrConfigBase_RedisConfigsEntry_DoNotUse_server
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_SvrConfigBase_RedisConfigsEntry_DoNotUse_server_5fconfig_2eproto}, {
       &scc_info_RedisConfig_server_5fconfig_2eproto.base,}};
 
-static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_server_5fconfig_2eproto[7];
+static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_server_5fconfig_2eproto[9];
 static constexpr ::PROTOBUF_NAMESPACE_ID::EnumDescriptor const** file_level_enum_descriptors_server_5fconfig_2eproto = nullptr;
 static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_server_5fconfig_2eproto = nullptr;
 
@@ -180,16 +223,31 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_server_5fconfig_2eproto::offse
   PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, ilde_timeout_ms_),
   PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, timeout_ms_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisNodeInfo, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, host_),
-  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, port_),
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisNodeInfo, host_),
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisNodeInfo, port_),
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisNodeInfo, type_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisSentineInfo, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisSentineInfo, sentines_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, _internal_metadata_),
+  ~0u,  // no _extensions_
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, _oneof_case_[0]),
+  ~0u,  // no _weak_field_map_
+  offsetof(::server::config::RedisConfigDefaultTypeInternal, redis_info_),
+  offsetof(::server::config::RedisConfigDefaultTypeInternal, sentine_info_),
   PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, passwd_),
   PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, pool_size_),
   PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, timeout_ms_),
   PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, wait_timeout_ms_),
+  PROTOBUF_FIELD_OFFSET(::server::config::RedisConfig, info_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::server::config::LogConfig, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -233,16 +291,20 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_server_5fconfig_2eproto::offse
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::server::config::InstanceInfo)},
   { 8, -1, sizeof(::server::config::DbConfig)},
-  { 22, -1, sizeof(::server::config::RedisConfig)},
-  { 33, -1, sizeof(::server::config::LogConfig)},
-  { 42, 49, sizeof(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse)},
-  { 51, 58, sizeof(::server::config::SvrConfigBase_RedisConfigsEntry_DoNotUse)},
-  { 60, -1, sizeof(::server::config::SvrConfigBase)},
+  { 22, -1, sizeof(::server::config::RedisNodeInfo)},
+  { 30, -1, sizeof(::server::config::RedisSentineInfo)},
+  { 36, -1, sizeof(::server::config::RedisConfig)},
+  { 48, -1, sizeof(::server::config::LogConfig)},
+  { 57, 64, sizeof(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse)},
+  { 66, 73, sizeof(::server::config::SvrConfigBase_RedisConfigsEntry_DoNotUse)},
+  { 75, -1, sizeof(::server::config::SvrConfigBase)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::server::config::_InstanceInfo_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::server::config::_DbConfig_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::server::config::_RedisNodeInfo_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::server::config::_RedisSentineInfo_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::server::config::_RedisConfig_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::server::config::_LogConfig_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::server::config::_SvrConfigBase_DbConfigsEntry_DoNotUse_default_instance_),
@@ -257,42 +319,49 @@ const char descriptor_table_protodef_server_5fconfig_2eproto[] PROTOBUF_SECTION_
   "\022\014\n\004user\030\001 \001(\t\022\016\n\006passwd\030\002 \001(\t\022\n\n\002ip\030\003 \001"
   "(\t\022\014\n\004port\030\004 \001(\r\022\017\n\007db_name\030\005 \001(\t\022\022\n\nmax"
   "_active\030\006 \001(\r\022\020\n\010min_idle\030\010 \001(\r\022\027\n\017ilde_"
-  "timeout_ms\030\t \001(\r\022\022\n\ntimeout_ms\030\n \001(\r\"y\n\013"
-  "RedisConfig\022\014\n\004host\030\001 \001(\t\022\014\n\004port\030\002 \001(\r\022"
-  "\016\n\006passwd\030\003 \001(\t\022\021\n\tpool_size\030\004 \001(\r\022\022\n\nti"
-  "meout_ms\030\005 \001(\r\022\027\n\017wait_timeout_ms\030\006 \001(\r\""
-  "a\n\tLogConfig\022\021\n\tlog_level\030\001 \001(\r\022\025\n\rlog_t"
-  "hreshold\030\002 \001(\r\022\023\n\013remain_days\030\003 \001(\r\022\025\n\rl"
-  "og_to_stderr\030\004 \001(\010\"\254\003\n\rSvrConfigBase\022\016\n\006"
-  "ns_url\030\001 \001(\t\022\024\n\014service_name\030\002 \001(\t\022\021\n\tre"
-  "gion_id\030\003 \001(\r\022\020\n\010group_id\030\004 \001(\r\022\?\n\ndb_co"
-  "nfigs\030\005 \003(\0132+.server.config.SvrConfigBas"
-  "e.DbConfigsEntry\022E\n\rredis_configs\030\006 \003(\0132"
-  "..server.config.SvrConfigBase.RedisConfi"
-  "gsEntry\022,\n\nlog_config\030\007 \001(\0132\030.server.con"
-  "fig.LogConfig\032I\n\016DbConfigsEntry\022\013\n\003key\030\001"
-  " \001(\t\022&\n\005value\030\002 \001(\0132\027.server.config.DbCo"
-  "nfig:\0028\001\032O\n\021RedisConfigsEntry\022\013\n\003key\030\001 \001"
-  "(\t\022)\n\005value\030\002 \001(\0132\032.server.config.RedisC"
-  "onfig:\0028\001B\003\200\001\001b\006proto3"
+  "timeout_ms\030\t \001(\r\022\022\n\ntimeout_ms\030\n \001(\r\"9\n\r"
+  "RedisNodeInfo\022\014\n\004host\030\001 \001(\t\022\014\n\004port\030\002 \001("
+  "\r\022\014\n\004type\030\003 \001(\t\"B\n\020RedisSentineInfo\022.\n\010s"
+  "entines\030\001 \003(\0132\034.server.config.RedisNodeI"
+  "nfo\"\322\001\n\013RedisConfig\0222\n\nredis_info\030\001 \001(\0132"
+  "\034.server.config.RedisNodeInfoH\000\0227\n\014senti"
+  "ne_info\030\002 \001(\0132\037.server.config.RedisSenti"
+  "neInfoH\000\022\016\n\006passwd\030\003 \001(\t\022\021\n\tpool_size\030\004 "
+  "\001(\r\022\022\n\ntimeout_ms\030\005 \001(\r\022\027\n\017wait_timeout_"
+  "ms\030\006 \001(\rB\006\n\004info\"a\n\tLogConfig\022\021\n\tlog_lev"
+  "el\030\001 \001(\r\022\025\n\rlog_threshold\030\002 \001(\r\022\023\n\013remai"
+  "n_days\030\003 \001(\r\022\025\n\rlog_to_stderr\030\004 \001(\010\"\254\003\n\r"
+  "SvrConfigBase\022\016\n\006ns_url\030\001 \001(\t\022\024\n\014service"
+  "_name\030\002 \001(\t\022\021\n\tregion_id\030\003 \001(\r\022\020\n\010group_"
+  "id\030\004 \001(\r\022\?\n\ndb_configs\030\005 \003(\0132+.server.co"
+  "nfig.SvrConfigBase.DbConfigsEntry\022E\n\rred"
+  "is_configs\030\006 \003(\0132..server.config.SvrConf"
+  "igBase.RedisConfigsEntry\022,\n\nlog_config\030\007"
+  " \001(\0132\030.server.config.LogConfig\032I\n\016DbConf"
+  "igsEntry\022\013\n\003key\030\001 \001(\t\022&\n\005value\030\002 \001(\0132\027.s"
+  "erver.config.DbConfig:\0028\001\032O\n\021RedisConfig"
+  "sEntry\022\013\n\003key\030\001 \001(\t\022)\n\005value\030\002 \001(\0132\032.ser"
+  "ver.config.RedisConfig:\0028\001B\003\200\001\001b\006proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_server_5fconfig_2eproto_deps[1] = {
 };
-static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_server_5fconfig_2eproto_sccs[7] = {
+static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_server_5fconfig_2eproto_sccs[9] = {
   &scc_info_DbConfig_server_5fconfig_2eproto.base,
   &scc_info_InstanceInfo_server_5fconfig_2eproto.base,
   &scc_info_LogConfig_server_5fconfig_2eproto.base,
   &scc_info_RedisConfig_server_5fconfig_2eproto.base,
+  &scc_info_RedisNodeInfo_server_5fconfig_2eproto.base,
+  &scc_info_RedisSentineInfo_server_5fconfig_2eproto.base,
   &scc_info_SvrConfigBase_server_5fconfig_2eproto.base,
   &scc_info_SvrConfigBase_DbConfigsEntry_DoNotUse_server_5fconfig_2eproto.base,
   &scc_info_SvrConfigBase_RedisConfigsEntry_DoNotUse_server_5fconfig_2eproto.base,
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_server_5fconfig_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_server_5fconfig_2eproto = {
-  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 942,
-  &descriptor_table_server_5fconfig_2eproto_once, descriptor_table_server_5fconfig_2eproto_sccs, descriptor_table_server_5fconfig_2eproto_deps, 7, 0,
+  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 1159,
+  &descriptor_table_server_5fconfig_2eproto_once, descriptor_table_server_5fconfig_2eproto_sccs, descriptor_table_server_5fconfig_2eproto_deps, 9, 0,
   schemas, file_default_instances, TableStruct_server_5fconfig_2eproto::offsets,
-  file_level_metadata_server_5fconfig_2eproto, 7, file_level_enum_descriptors_server_5fconfig_2eproto, file_level_service_descriptors_server_5fconfig_2eproto,
+  file_level_metadata_server_5fconfig_2eproto, 9, file_level_enum_descriptors_server_5fconfig_2eproto, file_level_service_descriptors_server_5fconfig_2eproto,
 };
 
 // Force running AddDescriptors() at dynamic initialization time.
@@ -1025,12 +1094,533 @@ void DbConfig::InternalSwap(DbConfig* other) {
 
 // ===================================================================
 
-void RedisConfig::InitAsDefaultInstance() {
+void RedisNodeInfo::InitAsDefaultInstance() {
 }
-class RedisConfig::_Internal {
+class RedisNodeInfo::_Internal {
  public:
 };
 
+RedisNodeInfo::RedisNodeInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:server.config.RedisNodeInfo)
+}
+RedisNodeInfo::RedisNodeInfo(const RedisNodeInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  host_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_host().empty()) {
+    host_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_host(),
+      GetArena());
+  }
+  type_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_type().empty()) {
+    type_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_type(),
+      GetArena());
+  }
+  port_ = from.port_;
+  // @@protoc_insertion_point(copy_constructor:server.config.RedisNodeInfo)
+}
+
+void RedisNodeInfo::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_RedisNodeInfo_server_5fconfig_2eproto.base);
+  host_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  type_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  port_ = 0u;
+}
+
+RedisNodeInfo::~RedisNodeInfo() {
+  // @@protoc_insertion_point(destructor:server.config.RedisNodeInfo)
+  SharedDtor();
+  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+void RedisNodeInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArena() == nullptr);
+  host_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  type_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void RedisNodeInfo::ArenaDtor(void* object) {
+  RedisNodeInfo* _this = reinterpret_cast< RedisNodeInfo* >(object);
+  (void)_this;
+}
+void RedisNodeInfo::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void RedisNodeInfo::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const RedisNodeInfo& RedisNodeInfo::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_RedisNodeInfo_server_5fconfig_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void RedisNodeInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:server.config.RedisNodeInfo)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  host_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  type_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  port_ = 0u;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* RedisNodeInfo::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // string host = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          auto str = _internal_mutable_host();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.RedisNodeInfo.host"));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 port = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
+          port_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // string type = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+          auto str = _internal_mutable_type();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.RedisNodeInfo.type"));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag,
+            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+            ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* RedisNodeInfo::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:server.config.RedisNodeInfo)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // string host = 1;
+  if (this->host().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_host().data(), static_cast<int>(this->_internal_host().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "server.config.RedisNodeInfo.host");
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_host(), target);
+  }
+
+  // uint32 port = 2;
+  if (this->port() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(2, this->_internal_port(), target);
+  }
+
+  // string type = 3;
+  if (this->type().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_type().data(), static_cast<int>(this->_internal_type().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "server.config.RedisNodeInfo.type");
+    target = stream->WriteStringMaybeAliased(
+        3, this->_internal_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:server.config.RedisNodeInfo)
+  return target;
+}
+
+size_t RedisNodeInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:server.config.RedisNodeInfo)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // string host = 1;
+  if (this->host().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_host());
+  }
+
+  // string type = 3;
+  if (this->type().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_type());
+  }
+
+  // uint32 port = 2;
+  if (this->port() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_port());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void RedisNodeInfo::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:server.config.RedisNodeInfo)
+  GOOGLE_DCHECK_NE(&from, this);
+  const RedisNodeInfo* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<RedisNodeInfo>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:server.config.RedisNodeInfo)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:server.config.RedisNodeInfo)
+    MergeFrom(*source);
+  }
+}
+
+void RedisNodeInfo::MergeFrom(const RedisNodeInfo& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:server.config.RedisNodeInfo)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.host().size() > 0) {
+    _internal_set_host(from._internal_host());
+  }
+  if (from.type().size() > 0) {
+    _internal_set_type(from._internal_type());
+  }
+  if (from.port() != 0) {
+    _internal_set_port(from._internal_port());
+  }
+}
+
+void RedisNodeInfo::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:server.config.RedisNodeInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void RedisNodeInfo::CopyFrom(const RedisNodeInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:server.config.RedisNodeInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool RedisNodeInfo::IsInitialized() const {
+  return true;
+}
+
+void RedisNodeInfo::InternalSwap(RedisNodeInfo* other) {
+  using std::swap;
+  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  host_.Swap(&other->host_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  type_.Swap(&other->type_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  swap(port_, other->port_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata RedisNodeInfo::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
+void RedisSentineInfo::InitAsDefaultInstance() {
+}
+class RedisSentineInfo::_Internal {
+ public:
+};
+
+RedisSentineInfo::RedisSentineInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena),
+  sentines_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:server.config.RedisSentineInfo)
+}
+RedisSentineInfo::RedisSentineInfo(const RedisSentineInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message(),
+      sentines_(from.sentines_) {
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:server.config.RedisSentineInfo)
+}
+
+void RedisSentineInfo::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_RedisSentineInfo_server_5fconfig_2eproto.base);
+}
+
+RedisSentineInfo::~RedisSentineInfo() {
+  // @@protoc_insertion_point(destructor:server.config.RedisSentineInfo)
+  SharedDtor();
+  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+void RedisSentineInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArena() == nullptr);
+}
+
+void RedisSentineInfo::ArenaDtor(void* object) {
+  RedisSentineInfo* _this = reinterpret_cast< RedisSentineInfo* >(object);
+  (void)_this;
+}
+void RedisSentineInfo::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void RedisSentineInfo::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const RedisSentineInfo& RedisSentineInfo::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_RedisSentineInfo_server_5fconfig_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void RedisSentineInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:server.config.RedisSentineInfo)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  sentines_.Clear();
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* RedisSentineInfo::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // repeated .server.config.RedisNodeInfo sentines = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_sentines(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag,
+            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+            ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* RedisSentineInfo::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:server.config.RedisSentineInfo)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated .server.config.RedisNodeInfo sentines = 1;
+  for (unsigned int i = 0,
+      n = static_cast<unsigned int>(this->_internal_sentines_size()); i < n; i++) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, this->_internal_sentines(i), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:server.config.RedisSentineInfo)
+  return target;
+}
+
+size_t RedisSentineInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:server.config.RedisSentineInfo)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .server.config.RedisNodeInfo sentines = 1;
+  total_size += 1UL * this->_internal_sentines_size();
+  for (const auto& msg : this->sentines_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void RedisSentineInfo::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:server.config.RedisSentineInfo)
+  GOOGLE_DCHECK_NE(&from, this);
+  const RedisSentineInfo* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<RedisSentineInfo>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:server.config.RedisSentineInfo)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:server.config.RedisSentineInfo)
+    MergeFrom(*source);
+  }
+}
+
+void RedisSentineInfo::MergeFrom(const RedisSentineInfo& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:server.config.RedisSentineInfo)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  sentines_.MergeFrom(from.sentines_);
+}
+
+void RedisSentineInfo::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:server.config.RedisSentineInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void RedisSentineInfo::CopyFrom(const RedisSentineInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:server.config.RedisSentineInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool RedisSentineInfo::IsInitialized() const {
+  return true;
+}
+
+void RedisSentineInfo::InternalSwap(RedisSentineInfo* other) {
+  using std::swap;
+  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  sentines_.InternalSwap(&other->sentines_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata RedisSentineInfo::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
+void RedisConfig::InitAsDefaultInstance() {
+  ::server::config::_RedisConfig_default_instance_.redis_info_ = const_cast< ::server::config::RedisNodeInfo*>(
+      ::server::config::RedisNodeInfo::internal_default_instance());
+  ::server::config::_RedisConfig_default_instance_.sentine_info_ = const_cast< ::server::config::RedisSentineInfo*>(
+      ::server::config::RedisSentineInfo::internal_default_instance());
+}
+class RedisConfig::_Internal {
+ public:
+  static const ::server::config::RedisNodeInfo& redis_info(const RedisConfig* msg);
+  static const ::server::config::RedisSentineInfo& sentine_info(const RedisConfig* msg);
+};
+
+const ::server::config::RedisNodeInfo&
+RedisConfig::_Internal::redis_info(const RedisConfig* msg) {
+  return *msg->info_.redis_info_;
+}
+const ::server::config::RedisSentineInfo&
+RedisConfig::_Internal::sentine_info(const RedisConfig* msg) {
+  return *msg->info_.sentine_info_;
+}
+void RedisConfig::set_allocated_redis_info(::server::config::RedisNodeInfo* redis_info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArena();
+  clear_info();
+  if (redis_info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(redis_info);
+    if (message_arena != submessage_arena) {
+      redis_info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, redis_info, submessage_arena);
+    }
+    set_has_redis_info();
+    info_.redis_info_ = redis_info;
+  }
+  // @@protoc_insertion_point(field_set_allocated:server.config.RedisConfig.redis_info)
+}
+void RedisConfig::set_allocated_sentine_info(::server::config::RedisSentineInfo* sentine_info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArena();
+  clear_info();
+  if (sentine_info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(sentine_info);
+    if (message_arena != submessage_arena) {
+      sentine_info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, sentine_info, submessage_arena);
+    }
+    set_has_sentine_info();
+    info_.sentine_info_ = sentine_info;
+  }
+  // @@protoc_insertion_point(field_set_allocated:server.config.RedisConfig.sentine_info)
+}
 RedisConfig::RedisConfig(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
   SharedCtor();
@@ -1040,29 +1630,38 @@ RedisConfig::RedisConfig(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 RedisConfig::RedisConfig(const RedisConfig& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  host_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  if (!from._internal_host().empty()) {
-    host_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_host(),
-      GetArena());
-  }
   passwd_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_passwd().empty()) {
     passwd_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_passwd(),
       GetArena());
   }
-  ::memcpy(&port_, &from.port_,
+  ::memcpy(&pool_size_, &from.pool_size_,
     static_cast<size_t>(reinterpret_cast<char*>(&wait_timeout_ms_) -
-    reinterpret_cast<char*>(&port_)) + sizeof(wait_timeout_ms_));
+    reinterpret_cast<char*>(&pool_size_)) + sizeof(wait_timeout_ms_));
+  clear_has_info();
+  switch (from.info_case()) {
+    case kRedisInfo: {
+      _internal_mutable_redis_info()->::server::config::RedisNodeInfo::MergeFrom(from._internal_redis_info());
+      break;
+    }
+    case kSentineInfo: {
+      _internal_mutable_sentine_info()->::server::config::RedisSentineInfo::MergeFrom(from._internal_sentine_info());
+      break;
+    }
+    case INFO_NOT_SET: {
+      break;
+    }
+  }
   // @@protoc_insertion_point(copy_constructor:server.config.RedisConfig)
 }
 
 void RedisConfig::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_RedisConfig_server_5fconfig_2eproto.base);
-  host_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   passwd_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  ::memset(&port_, 0, static_cast<size_t>(
+  ::memset(&pool_size_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&wait_timeout_ms_) -
-      reinterpret_cast<char*>(&port_)) + sizeof(wait_timeout_ms_));
+      reinterpret_cast<char*>(&pool_size_)) + sizeof(wait_timeout_ms_));
+  clear_has_info();
 }
 
 RedisConfig::~RedisConfig() {
@@ -1073,8 +1672,10 @@ RedisConfig::~RedisConfig() {
 
 void RedisConfig::SharedDtor() {
   GOOGLE_DCHECK(GetArena() == nullptr);
-  host_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   passwd_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (has_info()) {
+    clear_info();
+  }
 }
 
 void RedisConfig::ArenaDtor(void* object) {
@@ -1092,17 +1693,40 @@ const RedisConfig& RedisConfig::default_instance() {
 }
 
 
+void RedisConfig::clear_info() {
+// @@protoc_insertion_point(one_of_clear_start:server.config.RedisConfig)
+  switch (info_case()) {
+    case kRedisInfo: {
+      if (GetArena() == nullptr) {
+        delete info_.redis_info_;
+      }
+      break;
+    }
+    case kSentineInfo: {
+      if (GetArena() == nullptr) {
+        delete info_.sentine_info_;
+      }
+      break;
+    }
+    case INFO_NOT_SET: {
+      break;
+    }
+  }
+  _oneof_case_[0] = INFO_NOT_SET;
+}
+
+
 void RedisConfig::Clear() {
 // @@protoc_insertion_point(message_clear_start:server.config.RedisConfig)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  host_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   passwd_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  ::memset(&port_, 0, static_cast<size_t>(
+  ::memset(&pool_size_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&wait_timeout_ms_) -
-      reinterpret_cast<char*>(&port_)) + sizeof(wait_timeout_ms_));
+      reinterpret_cast<char*>(&pool_size_)) + sizeof(wait_timeout_ms_));
+  clear_info();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -1114,19 +1738,17 @@ const char* RedisConfig::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // string host = 1;
+      // .server.config.RedisNodeInfo redis_info = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
-          auto str = _internal_mutable_host();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "server.config.RedisConfig.host"));
+          ptr = ctx->ParseMessage(_internal_mutable_redis_info(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // uint32 port = 2;
+      // .server.config.RedisSentineInfo sentine_info = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
-          port_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_sentine_info(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -1188,20 +1810,20 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // string host = 1;
-  if (this->host().size() > 0) {
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_host().data(), static_cast<int>(this->_internal_host().length()),
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "server.config.RedisConfig.host");
-    target = stream->WriteStringMaybeAliased(
-        1, this->_internal_host(), target);
+  // .server.config.RedisNodeInfo redis_info = 1;
+  if (_internal_has_redis_info()) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        1, _Internal::redis_info(this), target, stream);
   }
 
-  // uint32 port = 2;
-  if (this->port() != 0) {
+  // .server.config.RedisSentineInfo sentine_info = 2;
+  if (_internal_has_sentine_info()) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(2, this->_internal_port(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        2, _Internal::sentine_info(this), target, stream);
   }
 
   // string passwd = 3;
@@ -1248,25 +1870,11 @@ size_t RedisConfig::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // string host = 1;
-  if (this->host().size() > 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_host());
-  }
-
   // string passwd = 3;
   if (this->passwd().size() > 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_passwd());
-  }
-
-  // uint32 port = 2;
-  if (this->port() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_port());
   }
 
   // uint32 pool_size = 4;
@@ -1290,6 +1898,25 @@ size_t RedisConfig::ByteSizeLong() const {
         this->_internal_wait_timeout_ms());
   }
 
+  switch (info_case()) {
+    // .server.config.RedisNodeInfo redis_info = 1;
+    case kRedisInfo: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *info_.redis_info_);
+      break;
+    }
+    // .server.config.RedisSentineInfo sentine_info = 2;
+    case kSentineInfo: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *info_.sentine_info_);
+      break;
+    }
+    case INFO_NOT_SET: {
+      break;
+    }
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
         _internal_metadata_, total_size, &_cached_size_);
@@ -1321,14 +1948,8 @@ void RedisConfig::MergeFrom(const RedisConfig& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.host().size() > 0) {
-    _internal_set_host(from._internal_host());
-  }
   if (from.passwd().size() > 0) {
     _internal_set_passwd(from._internal_passwd());
-  }
-  if (from.port() != 0) {
-    _internal_set_port(from._internal_port());
   }
   if (from.pool_size() != 0) {
     _internal_set_pool_size(from._internal_pool_size());
@@ -1338,6 +1959,19 @@ void RedisConfig::MergeFrom(const RedisConfig& from) {
   }
   if (from.wait_timeout_ms() != 0) {
     _internal_set_wait_timeout_ms(from._internal_wait_timeout_ms());
+  }
+  switch (from.info_case()) {
+    case kRedisInfo: {
+      _internal_mutable_redis_info()->::server::config::RedisNodeInfo::MergeFrom(from._internal_redis_info());
+      break;
+    }
+    case kSentineInfo: {
+      _internal_mutable_sentine_info()->::server::config::RedisSentineInfo::MergeFrom(from._internal_sentine_info());
+      break;
+    }
+    case INFO_NOT_SET: {
+      break;
+    }
   }
 }
 
@@ -1362,14 +1996,15 @@ bool RedisConfig::IsInitialized() const {
 void RedisConfig::InternalSwap(RedisConfig* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  host_.Swap(&other->host_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   passwd_.Swap(&other->passwd_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(RedisConfig, wait_timeout_ms_)
       + sizeof(RedisConfig::wait_timeout_ms_)
-      - PROTOBUF_FIELD_OFFSET(RedisConfig, port_)>(
-          reinterpret_cast<char*>(&port_),
-          reinterpret_cast<char*>(&other->port_));
+      - PROTOBUF_FIELD_OFFSET(RedisConfig, pool_size_)>(
+          reinterpret_cast<char*>(&pool_size_),
+          reinterpret_cast<char*>(&other->pool_size_));
+  swap(info_, other->info_);
+  swap(_oneof_case_[0], other->_oneof_case_[0]);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata RedisConfig::GetMetadata() const {
@@ -2179,6 +2814,12 @@ template<> PROTOBUF_NOINLINE ::server::config::InstanceInfo* Arena::CreateMaybeM
 }
 template<> PROTOBUF_NOINLINE ::server::config::DbConfig* Arena::CreateMaybeMessage< ::server::config::DbConfig >(Arena* arena) {
   return Arena::CreateMessageInternal< ::server::config::DbConfig >(arena);
+}
+template<> PROTOBUF_NOINLINE ::server::config::RedisNodeInfo* Arena::CreateMaybeMessage< ::server::config::RedisNodeInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::server::config::RedisNodeInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::server::config::RedisSentineInfo* Arena::CreateMaybeMessage< ::server::config::RedisSentineInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::server::config::RedisSentineInfo >(arena);
 }
 template<> PROTOBUF_NOINLINE ::server::config::RedisConfig* Arena::CreateMaybeMessage< ::server::config::RedisConfig >(Arena* arena) {
   return Arena::CreateMessageInternal< ::server::config::RedisConfig >(arena);

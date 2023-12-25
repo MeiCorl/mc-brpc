@@ -53,7 +53,7 @@ void ServiceImpl::Test(
     brpc::ClosureGuard done_guard(done);
 
     auto conn = DBManager::get()->GetDBConnection("db_master");
-    if(conn == nullptr) {
+    if (conn == nullptr) {
         response->set_seq_id(request->seq_id());
         response->set_res_code(ServerError);
         response->set_msg(request->msg());
@@ -62,19 +62,36 @@ void ServiceImpl::Test(
 
     std::string sql = "SELECT * FROM tbl_user_info limit 10";
     try {
+        // TEST mysql
         if (conn->query(sql)) {
             while (conn->next()) {
                 std::ostringstream os;
                 for (unsigned i = 0; i < conn->cols(); ++i) {
                     os << conn->value(i) << " ";
                 }
-                auto redis = RedisManager::get()->GetRedisConnection("redis_master");
-                redis->set(conn->value(0), os.str(), std::chrono::milliseconds(3600000));
+                LOG(INFO) << os.str();
+
+                // TEST redis cluster
+                auto cluster = RedisManager::get()->GetRedisConnection("redis_cluster");
+                if (!cluster) {
+                    return;
+                }
+                cluster->set(conn->value(0), os.str(), std::chrono::milliseconds(3600000));
             }
         } else {
             LOG(ERROR) << "[!] db query error, sql:" << sql;
         }
-    } catch(std::exception& e) {
+
+        // TEST single redis
+        std::vector<std::string> ll = {"123", "abc", "PHQ"};
+        auto redis = RedisManager::get()->GetRedisConnection("redis_single");
+        if (!redis) {
+            return;
+        }
+        redis->lpush("list_1", ll.begin(), ll.end());
+        redis->lpush("list_1", {1, 2, 3, 4, 5});
+        redis->expire("list_1", std::chrono::seconds(3600));
+    } catch (std::exception& e) {
         LOG(ERROR) << e.what();
     }
 

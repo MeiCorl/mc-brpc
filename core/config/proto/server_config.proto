@@ -21,9 +21,21 @@ message DbConfig {
     uint32 timeout_ms = 10;         // 获取连接超时时间
 }
 
-message RedisConfig {
+message RedisNodeInfo {
     string host = 1;                // 集群一个master节点ip（redis-plus-plus会自动连接到其他master节点和slave节点，每个master节点维护一个连接池）
     uint32 port = 2;
+    string type = 3;                // (默认)单实例：single     集群: cluster  (注：哨兵节点信息不用配置此字段)
+}
+ 
+message RedisSentineInfo {
+    repeated RedisNodeInfo sentines = 1; // sentine哨兵节点信息
+}
+
+message RedisConfig {
+    oneof info {
+        RedisNodeInfo redis_info = 1;       // 单实例redis和集群配置redis_info（集群模式只需配置一个master节点ip port）
+        RedisSentineInfo sentine_info = 2;  // 哨兵模式配置sentine_info
+    }
     string passwd = 3;
     uint32 pool_size = 4;           // 连接池大小，默认3
     uint32 timeout_ms = 5;          // 命令超时时间

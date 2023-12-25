@@ -2,6 +2,7 @@
 
 #include <sw/redis++/redis++.h>
 #include "core/utils/singleton.h"
+#include "redis_wrapper.h"
 
 namespace server {
 namespace redis {
@@ -12,7 +13,7 @@ class redisManager {
 public:
     void Init();
 
-    RedisCluster* GetRedisConnection(std::string_view cluster_name);
+    RedisWrapper* GetRedisConnection(std::string_view cluster_name);
 };
 
 }  // namespace redis
