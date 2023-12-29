@@ -22,6 +22,8 @@
 using namespace server;
 using server::utils::NetUtil;
 
+DEFINE_string(gflags_path, "../conf/gflags.conf", "path of gflags.conf");
+
 DEFINE_string(
     listen_addr,
     "",
@@ -29,7 +31,16 @@ DEFINE_string(
     "If this is set, the flag port will be ignored");
 
 MCServer::MCServer(int argc, char* argv[]) {
+    // 解析gflags
+    if (FILE* file = fopen(FLAGS_gflags_path.c_str(), "r")) {
+        google::SetCommandLineOption("flagfile", FLAGS_gflags_path.c_str());
+        fclose(file);
+    }
+
+    // 初始化日志（会额外触发server.conf全局配置解析)
     LoggingInit(argv);
+
+    // 注册服务
     RegisterNamingService();
 
 #ifdef USE_MYSQL
@@ -53,8 +64,9 @@ MCServer::~MCServer() {
         delete old_sink;
     }
 #endif
-
-    _keep_live_ptr->Cancel();
+    if (_keep_live_ptr) {
+        _keep_live_ptr->Cancel();
+    }
     UnRegisterService();
 }
 
