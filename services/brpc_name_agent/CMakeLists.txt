@@ -13,10 +13,18 @@ include_directories(
 
 add_definitions(-DUSE_ASYNC_LOGSINK)
 
-file(GLOB PROTOS
-    "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto"
+# file(GLOB PROTOS
+#     "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto"
+# )
+# protobuf_generate_cpp(PB_SRCS PB_HDRS ${PROTOS})
+
+# 自定义name_agent.proto代码生成路径到core/extensions供其他服务使用
+set(PROTO_FILE ${CMAKE_CURRENT_SOURCE_DIR}/proto/name_agent.proto)
+set(PROTO_PATH ${CMAKE_CURRENT_SOURCE_DIR}/proto)
+set(OUT_PATH ${ROOT_PATH}/core/extensions)
+execute_process(
+    COMMAND /usr/bin/protoc --proto_path=${PROTO_PATH} --cpp_out=${OUT_PATH} ${PROTO_FILE}
 )
-protobuf_generate_cpp(PB_SRCS PB_HDRS ${PROTOS})
 
 add_server_source(SERVER_SRCS)
 

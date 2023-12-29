@@ -5,7 +5,7 @@
 #include <functional>
 #include <etcd/Watcher.hpp>
 #include <butil/containers/doubly_buffered_data.h>
-#include "name_agent.pb.h"
+#include "core/extensions/name_agent.pb.h"
 #include "core/config/server_config.h"
 #include "core/utils/simple_timer_task.h"
 
