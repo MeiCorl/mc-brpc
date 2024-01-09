@@ -10,14 +10,19 @@ using namespace name_agent;
 using namespace server::utils;
 namespace rapidjson = butil::rapidjson;
 
-DEFINE_string(prometheus_targets_file,
-              "instance.json",
-              "the file to store instances of prometheus file_sd_config service discovery.");
+DEFINE_uint32(prometheus_targets_dump_interval, 10, "prometheus targets dumpinterval");
+DEFINE_string(
+    prometheus_targets_file,
+    "instance.json",
+    "the file to store instances of prometheus file_sd_config service discovery.");
 
-void AgentServiceImpl::InitializeWatcher(const string& endpoints,
-                                         const string& prefix,
-                                         std::function<void(etcd::Response)> callback,
-                                         shared_ptr<etcd::Watcher>& watcher) {
+const std::string NAME_AGENT_DUMP_LOCK = "name_agent_dump_lock";
+
+void AgentServiceImpl::InitializeWatcher(
+    const string& endpoints,
+    const string& prefix,
+    std::function<void(etcd::Response)> callback,
+    shared_ptr<etcd::Watcher>& watcher) {
     etcd::Client client(endpoints);
     // wait until the client connects to etcd server
     while (!client.head().get().is_ok()) {
@@ -52,14 +57,14 @@ void AgentServiceImpl::InitServers() {
     ServiceRegionAndGroupMap m3;
     for (uint32_t i = 0; i < response.keys().size(); i++) {
         const std::string& key = response.key(i);
-        string service_name    = key.substr(0, key.find(":"));
+        string service_name = key.substr(0, key.find(":"));
         InstanceInfo info;
         if (!info.ParseFromString(response.value(i).as_string())) {
             LOG(ERROR) << "[!] Invalid service info: " << response.value(i).as_string();
             continue;
         }
-        LOG(INFO) << "[+] InitService service_name:" << service_name << ", instance: {"
-                  << info.ShortDebugString() << "}";
+        LOG(INFO) << "[+] InitService service_name:" << service_name << ", instance: {" << info.ShortDebugString()
+                  << "}";
         m1[service_name].emplace_back(info.endpoint());
         m2[service_name][info.region_id()].emplace_back(info.endpoint());
         m3[service_name][info.region_id()][info.group_id()].emplace_back(info.endpoint());
@@ -76,8 +81,8 @@ void AgentServiceImpl::InitServers() {
     auto modify_fptr2 = [&m2](ServiceRegionMap& map) -> int {
         for (auto it1 = m2.begin(); it1 != m2.end(); it1++) {
             for (auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++) {
-                map[it1->first][it2->first].insert(map[it1->first][it2->first].end(),
-                                                   it2->second.begin(), it2->second.end());
+                map[it1->first][it2->first].insert(
+                    map[it1->first][it2->first].end(), it2->second.begin(), it2->second.end());
             }
         }
         return 1;
@@ -88,9 +93,8 @@ void AgentServiceImpl::InitServers() {
         for (auto it1 = m3.begin(); it1 != m3.end(); it1++) {
             for (auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++) {
                 for (auto it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
-                    map[it1->first][it2->first][it3->first]
-                        .insert(map[it1->first][it2->first][it3->first].end(), it3->second.begin(),
-                                it3->second.end());
+                    map[it1->first][it2->first][it3->first].insert(
+                        map[it1->first][it2->first][it3->first].end(), it3->second.begin(), it3->second.end());
                 }
             }
         }
@@ -118,18 +122,18 @@ void AgentServiceImpl::AddServer(const string& service_name, const InstanceInfo&
     };
     m_instancesByRegionAndGroup.Modify(modify_fptr3);
 
-    LOG(INFO) << "[+] AddServer service:" << service_name
-              << " instance_info:" << info.ShortDebugString();
+    LOG(INFO) << "[+] AddServer service:" << service_name << " instance_info:" << info.ShortDebugString();
 }
 
 void AgentServiceImpl::RemoveServer(const string& service_name, const InstanceInfo& info) {
     auto modify_fptr1 = [&service_name, &info](ServiceMap& map) -> int {
         if (map.count(service_name)) {
-            map[service_name].erase(std::remove_if(map[service_name].begin(), map[service_name].end(),
-                                                   [&](const string& endpoint) {
-                                                       return endpoint == info.endpoint();
-                                                   }),
-                                    map[service_name].end());
+            map[service_name].erase(
+                std::remove_if(
+                    map[service_name].begin(),
+                    map[service_name].end(),
+                    [&](const string& endpoint) { return endpoint == info.endpoint(); }),
+                map[service_name].end());
             if (map[service_name].empty()) {
                 map.erase(service_name);
             }
@@ -138,16 +142,14 @@ void AgentServiceImpl::RemoveServer(const string& service_name, const InstanceIn
     };
     m_instances.Modify(modify_fptr1);
 
-
     auto modify_fptr2 = [&service_name, &info](ServiceRegionMap& map) -> int {
         if (map.count(service_name) && map[service_name].count(info.region_id())) {
-            map[service_name][info.region_id()]
-                .erase(std::remove_if(map[service_name][info.region_id()].begin(),
-                                      map[service_name][info.region_id()].end(),
-                                      [&](const string& endpoint) {
-                                          return endpoint == info.endpoint();
-                                      }),
-                       map[service_name][info.region_id()].end());
+            map[service_name][info.region_id()].erase(
+                std::remove_if(
+                    map[service_name][info.region_id()].begin(),
+                    map[service_name][info.region_id()].end(),
+                    [&](const string& endpoint) { return endpoint == info.endpoint(); }),
+                map[service_name][info.region_id()].end());
             if (map[service_name][info.region_id()].empty()) {
                 map[service_name].erase(info.region_id());
             }
@@ -160,17 +162,15 @@ void AgentServiceImpl::RemoveServer(const string& service_name, const InstanceIn
     };
     m_instancesByRegion.Modify(modify_fptr2);
 
-
     auto modify_fptr3 = [&service_name, &info](ServiceRegionAndGroupMap& map) -> int {
         if (map.count(service_name) && map[service_name].count(info.region_id()) &&
             map[service_name][info.region_id()].count(info.group_id())) {
-            map[service_name][info.region_id()][info.group_id()]
-                .erase(std::remove_if(map[service_name][info.region_id()][info.group_id()].begin(),
-                                      map[service_name][info.region_id()][info.group_id()].end(),
-                                      [&](const string& endpoint) {
-                                          return endpoint == info.endpoint();
-                                      }),
-                       map[service_name][info.region_id()][info.group_id()].end());
+            map[service_name][info.region_id()][info.group_id()].erase(
+                std::remove_if(
+                    map[service_name][info.region_id()][info.group_id()].begin(),
+                    map[service_name][info.region_id()][info.group_id()].end(),
+                    [&](const string& endpoint) { return endpoint == info.endpoint(); }),
+                map[service_name][info.region_id()][info.group_id()].end());
             if (map[service_name][info.region_id()][info.group_id()].empty()) {
                 map[service_name][info.region_id()].erase(info.group_id());
             }
@@ -187,8 +187,7 @@ void AgentServiceImpl::RemoveServer(const string& service_name, const InstanceIn
     };
     m_instancesByRegionAndGroup.Modify(modify_fptr3);
 
-    LOG(INFO) << "[+] RemoveServer service:" << service_name
-              << " instance_info:" << info.ShortDebugString();
+    LOG(INFO) << "[+] RemoveServer service:" << service_name << " instance_info:" << info.ShortDebugString();
 }
 
 AgentServiceImpl::AgentServiceImpl(/* args */) {
@@ -196,20 +195,19 @@ AgentServiceImpl::AgentServiceImpl(/* args */) {
 
     std::function<void(etcd::Response)> callback =
         bind(&AgentServiceImpl::WatcherCallback, this, std::placeholders::_1);
-    InitializeWatcher(server::utils::Singleton<ServerConfig>::get()->GetNsUrl(), "", callback,
-                      m_pEtcdWatcher);
+    InitializeWatcher(Singleton<ServerConfig>::get()->GetNsUrl(), "", callback, m_pEtcdWatcher);
 
-    DumpServiceInfo();
-    m_dump_task.Init(this, 10);
+    m_dump_task.Init(this, FLAGS_prometheus_targets_dump_interval);
     m_dump_task.Start();
 }
 
-AgentServiceImpl::~AgentServiceImpl() { }
+AgentServiceImpl::~AgentServiceImpl() {}
 
-void AgentServiceImpl::Test(google::protobuf::RpcController* controller,
-                            const name_agent::TestReq* request,
-                            name_agent::TestRes* response,
-                            google::protobuf::Closure* done) {
+void AgentServiceImpl::Test(
+    google::protobuf::RpcController* controller,
+    const name_agent::TestReq* request,
+    name_agent::TestRes* response,
+    google::protobuf::Closure* done) {
     brpc::ClosureGuard done_guard(done);
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);
@@ -224,21 +222,21 @@ void AgentServiceImpl::Test(google::protobuf::RpcController* controller,
     }
 }
 
-void AgentServiceImpl::GetServers(google::protobuf::RpcController* controller,
-                                  const name_agent::GetServersReq* request,
-                                  name_agent::GetServersRes* response,
-                                  google::protobuf::Closure* done) {
+void AgentServiceImpl::GetServers(
+    google::protobuf::RpcController* controller,
+    const name_agent::GetServersReq* request,
+    name_agent::GetServersRes* response,
+    google::protobuf::Closure* done) {
     brpc::ClosureGuard done_guard(done);
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);
     brpc::Controller* cntl = static_cast<brpc::Controller*>(controller);
-    LOG(INFO) << "Get req from:" << cntl->from_svr_name() << " Req:{" << request->ShortDebugString()
-              << "}";
+    LOG(INFO) << "Get req from:" << cntl->from_svr_name() << " Req:{" << request->ShortDebugString() << "}";
 
-    const string& service_name        = request->service_name();
+    const string& service_name = request->service_name();
     server::config::ServerConfig* cfg = Singleton<ServerConfig>::get();
-    uint32_t region_id                = cfg->GetSelfRegionId();
-    uint32_t group_id                 = cfg->GetSelfGroupId();
+    uint32_t region_id = cfg->GetSelfRegionId();
+    uint32_t group_id = cfg->GetSelfGroupId();
 
     if (request->group_strategy() == server::config::GroupStrategy::STRATEGY_GROUPS_ONE_REGION) {
         // 直接本大区路由
@@ -252,9 +250,8 @@ void AgentServiceImpl::GetServers(google::protobuf::RpcController* controller,
 
         if (m.count(service_name) != 0 && m.at(service_name).count(region_id) != 0 &&
             !m.at(service_name).at(region_id).empty()) {
-            google::protobuf::RepeatedPtrField<string>
-                endpoints(m.at(service_name).at(region_id).begin(),
-                          m.at(service_name).at(region_id).end());
+            google::protobuf::RepeatedPtrField<string> endpoints(
+                m.at(service_name).at(region_id).begin(), m.at(service_name).at(region_id).end());
             response->mutable_endpoints()->Swap(&endpoints);
         } else {
             // todo 是否有指定默认大区
@@ -273,9 +270,9 @@ void AgentServiceImpl::GetServers(google::protobuf::RpcController* controller,
         if (m.count(service_name) != 0 && m.at(service_name).count(region_id) != 0 &&
             m.at(service_name).at(region_id).count(group_id) != 0 &&
             !m.at(service_name).at(region_id).at(group_id).empty()) {
-            google::protobuf::RepeatedPtrField<string>
-                endpoints(m.at(service_name).at(region_id).at(group_id).begin(),
-                          m.at(service_name).at(region_id).at(group_id).end());
+            google::protobuf::RepeatedPtrField<string> endpoints(
+                m.at(service_name).at(region_id).at(group_id).begin(),
+                m.at(service_name).at(region_id).at(group_id).end());
             response->mutable_endpoints()->Swap(&endpoints);
         } else {
             response->set_res_code(NotFound);
@@ -318,14 +315,14 @@ void AgentServiceImpl::GetServers(google::protobuf::RpcController* controller,
         if (m.count(service_name) != 0 && m.at(service_name).count(region_id) != 0 &&
             m.at(service_name).at(region_id).count(group_id) != 0 &&
             !m.at(service_name).at(region_id).at(group_id).empty()) {
-            google::protobuf::RepeatedPtrField<string>
-                endpoints(m.at(service_name).at(region_id).at(group_id).begin(),
-                          m.at(service_name).at(region_id).at(group_id).end());
+            google::protobuf::RepeatedPtrField<string> endpoints(
+                m.at(service_name).at(region_id).at(group_id).begin(),
+                m.at(service_name).at(region_id).at(group_id).end());
             response->mutable_endpoints()->Swap(&endpoints);
         } else if (m.count(service_name) != 0 && m.at(service_name).count(region_id) != 0) {
             google::protobuf::RepeatedPtrField<string> endpoints;
-            for (auto it = m.at(service_name).at(region_id).begin();
-                 it != m.at(service_name).at(region_id).end(); it++) {
+            for (auto it = m.at(service_name).at(region_id).begin(); it != m.at(service_name).at(region_id).end();
+                 it++) {
                 for (const string& endpoint : it->second) {
                     response->add_endpoints(endpoint);
                 }
@@ -341,14 +338,16 @@ void AgentServiceImpl::GetServers(google::protobuf::RpcController* controller,
 
 void AgentServiceImpl::WatcherCallback(etcd::Response response) {
     for (const etcd::Event& ev : response.events()) {
-        string key          = ev.kv().key();
+        string key = ev.kv().key();
+        if(key == NAME_AGENT_DUMP_LOCK) {
+            return;
+        }
         string service_name = key.substr(0, key.find(":"));
 
         if (ev.event_type() == etcd::Event::EventType::PUT) {
             InstanceInfo info;
             if (!info.ParseFromString(ev.kv().as_string())) {
-                LOG(ERROR) << "[!] Invalid service info, key:" << ev.kv().key()
-                           << " , value:" << ev.kv().as_string();
+                LOG(ERROR) << "[!] Invalid service info, key:" << ev.kv().key() << " , value:" << ev.kv().as_string();
                 continue;
             }
 
@@ -362,14 +361,28 @@ void AgentServiceImpl::WatcherCallback(etcd::Response response) {
 
             RemoveServer(service_name, info);
         } else {
-            LOG(ERROR) << "[!] Invalid event type:" << static_cast<int>(ev.event_type())
-                       << " key:" << ev.kv().key() << " value:" << ev.kv().as_string();
+            LOG(ERROR) << "[!] Invalid event type:" << static_cast<int>(ev.event_type()) << " key:" << ev.kv().key()
+                       << " value:" << ev.kv().as_string();
         }
     }
 }
 
 void AgentServiceImpl::DumpServiceInfo() {
-    // todo 选主
+    // 选主执行，当有多个brpc_name_agnet实例时，只需要有一个实例执行dump任务就行
+    // 支持某个nage_agent进程挂掉后，下次会由另一个name_agent进程执行dump任务
+    ServerConfig* config = Singleton<ServerConfig>::get();
+    etcd::Client etcd(config->GetNsUrl());
+    etcd::Response resp1 = etcd.leasegrant(FLAGS_prometheus_targets_dump_interval - 1).get();
+    if (resp1.error_code() != 0) {
+        LOG(ERROR) << "[!] etcd failed, err_code: " << resp1.error_code() << ", err_msg:" << resp1.error_message();
+        return;
+    }
+    int64_t lease_id = resp1.value().lease();
+    etcd::Response resp2 =
+        etcd.add(NAME_AGENT_DUMP_LOCK, "dump_lock", lease_id).get();  // key存在会失败, 只有第一个add会成功
+    if (resp2.error_code() != 0) {
+        return;
+    }
 
     butil::DoublyBufferedData<ServiceRegionAndGroupMap>::ScopedPtr map_ptr;
     if (m_instancesByRegionAndGroup.Read(&map_ptr) != 0) {
