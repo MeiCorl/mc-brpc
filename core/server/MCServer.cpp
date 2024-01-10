@@ -142,18 +142,21 @@ void MCServer::RegisterService() {
         exit(1);
     }
 
-    std::function<void(std::exception_ptr)> handler = [](std::exception_ptr eptr) {
+    std::function<void(std::exception_ptr)> handler = [this](std::exception_ptr eptr) {
         try {
             if (eptr) {
                 std::rethrow_exception(eptr);
             }
         } catch (const std::runtime_error& e) {
-            LOG(FATAL) << "[!] Etcd keepalive failure: " << e.what();
+            LOG(FATAL) << "[!] Etcd connection  failure: " << e.what();
         } catch (const std::out_of_range& e) {
-            LOG(FATAL) << "[!] Etcd lease expire: " << e.what();
+            LOG(FATAL) << "[!] Etcd lease expire: " << e.what() << ", try register again.";
+            this->RegisterService();
         }
     };
-    _keep_live_ptr.reset(new etcd::KeepAlive(config->GetNsUrl(), handler, REGISTER_TTL, _etcd_lease_id));
+
+    // 注册信息到期前5s进行续约，避免租约到期后续约失败
+    _keep_live_ptr.reset(new etcd::KeepAlive(config->GetNsUrl(), handler, REGISTER_TTL - 5, _etcd_lease_id));
     LOG(INFO) << "Service register succ. instance: {" << instance.ShortDebugString()
               << "}, lease_id:" << _etcd_lease_id;
 }
