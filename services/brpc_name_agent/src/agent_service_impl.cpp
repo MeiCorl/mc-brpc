@@ -10,7 +10,7 @@ using namespace name_agent;
 using namespace server::utils;
 namespace rapidjson = butil::rapidjson;
 
-DEFINE_uint32(prometheus_targets_dump_interval, 10, "prometheus targets dumpinterval");
+DEFINE_uint32(prometheus_targets_dump_interval, 10, "prometheus targets dump interval(seconds)");
 DEFINE_string(
     prometheus_targets_file,
     "instance.json",
@@ -52,58 +52,32 @@ void AgentServiceImpl::InitServers() {
     etcd::Client etcd(Singleton<ServerConfig>::get()->GetNsUrl());
     etcd::Response response = etcd.ls("").get();
 
-    ServiceMap m1;
-    ServiceRegionMap m2;
-    ServiceRegionAndGroupMap m3;
     for (uint32_t i = 0; i < response.keys().size(); i++) {
         const std::string& key = response.key(i);
+        if (key == NAME_AGENT_DUMP_LOCK) {
+            continue;
+        }
+
         string service_name = key.substr(0, key.find(":"));
         InstanceInfo info;
         if (!info.ParseFromString(response.value(i).as_string())) {
             LOG(ERROR) << "[!] Invalid service info: " << response.value(i).as_string();
             continue;
         }
-        LOG(INFO) << "[+] InitService service_name:" << service_name << ", instance: {" << info.ShortDebugString()
-                  << "}";
-        m1[service_name].emplace_back(info.endpoint());
-        m2[service_name][info.region_id()].emplace_back(info.endpoint());
-        m3[service_name][info.region_id()][info.group_id()].emplace_back(info.endpoint());
+        AddServer(service_name, info);
     }
-
-    auto modify_fptr1 = [&m1](ServiceMap& map) -> int {
-        for (auto it = m1.begin(); it != m1.end(); it++) {
-            map[it->first].insert(map[it->first].end(), it->second.begin(), it->second.end());
-        }
-        return 1;
-    };
-    m_instances.Modify(modify_fptr1);
-
-    auto modify_fptr2 = [&m2](ServiceRegionMap& map) -> int {
-        for (auto it1 = m2.begin(); it1 != m2.end(); it1++) {
-            for (auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++) {
-                map[it1->first][it2->first].insert(
-                    map[it1->first][it2->first].end(), it2->second.begin(), it2->second.end());
-            }
-        }
-        return 1;
-    };
-    m_instancesByRegion.Modify(modify_fptr2);
-
-    auto modify_fptr3 = [&m3](ServiceRegionAndGroupMap& map) -> int {
-        for (auto it1 = m3.begin(); it1 != m3.end(); it1++) {
-            for (auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++) {
-                for (auto it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
-                    map[it1->first][it2->first][it3->first].insert(
-                        map[it1->first][it2->first][it3->first].end(), it3->second.begin(), it3->second.end());
-                }
-            }
-        }
-        return 1;
-    };
-    m_instancesByRegionAndGroup.Modify(modify_fptr3);
 }
 
 void AgentServiceImpl::AddServer(const string& service_name, const InstanceInfo& info) {
+    {
+        // 去重
+        BAIDU_SCOPED_LOCK(m_mtx);
+        if (m_endPoints.count(info.endpoint())) {
+            return;
+        }
+        m_endPoints.insert(info.endpoint());
+    }
+
     auto modify_fptr1 = [&service_name, &info](ServiceMap& map) -> int {
         map[service_name].emplace_back(info.endpoint());
         return 1;
@@ -187,6 +161,10 @@ void AgentServiceImpl::RemoveServer(const string& service_name, const InstanceIn
     };
     m_instancesByRegionAndGroup.Modify(modify_fptr3);
 
+    {
+        BAIDU_SCOPED_LOCK(m_mtx);
+        m_endPoints.erase(info.endpoint());
+    }
     LOG(INFO) << "[+] RemoveServer service:" << service_name << " instance_info:" << info.ShortDebugString();
 }
 
@@ -339,7 +317,7 @@ void AgentServiceImpl::GetServers(
 void AgentServiceImpl::WatcherCallback(etcd::Response response) {
     for (const etcd::Event& ev : response.events()) {
         string key = ev.kv().key();
-        if(key == NAME_AGENT_DUMP_LOCK) {
+        if (key == NAME_AGENT_DUMP_LOCK) {
             return;
         }
         string service_name = key.substr(0, key.find(":"));
@@ -430,6 +408,7 @@ void AgentServiceImpl::DumpServiceInfo() {
         fwrite(json.data(), json.size(), 1, fp);
         fflush(fp);
         fclose(fp);
+        LOG(INFO) << FLAGS_prometheus_targets_file << " updated.";
     } else {
         LOG(ERROR) << "Fail to write service info to " << FLAGS_prometheus_targets_file;
     }
