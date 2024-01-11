@@ -35,7 +35,8 @@ private:
 
     std::string BuildServiceName(const std::string& original_service_name,
                                  const server::config::InstanceInfo& instance);
-    void RegisterService();
+    bool RegisterService();
+    void TryRegisterAgain();
     void UnRegisterService();
 };
 
