@@ -1,12 +1,12 @@
 # 简介
-### &emsp;&emsp; mc-brpc是基于[百度brpc框架](https://brpc.apache.org/)快速开发rpc服务的集成框架，目的是简化构建brpc服务以及发起brpc请求的流程和代码开发量。主要在brpc的基础上增加了以下功能：
+### &emsp;&emsp; mc-brpc是基于[百度brpc框架](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量。其次，mc-brpc在brpc的基础上扩展增加了以下功能以更好的支持rpc服务开发：
 * **服务注册**：brpc对于rpc服务中一些功能并未提供具体实现，而是需要用户自己去扩展实现。如服务注册，因为不同用户使用的服务注册中心不一样，有Zookeeper、Eureka、Nacos、Consul、Etcd、甚至自研的注册中心等，不同注册中心注册和发现流程可能不一样，不太好统一，因此只好交由用户根据去实现服务注册这部分；而对于服务发现这部分，brpc默认支持基于文件、dns、bns、http、consul、nacos等的服务发现，并支持用户扩展NamingService实现自定义的服务发现。mc-brpc在brpc的基础上实现了服务自动注册到etcd，并提供了NamingService的扩展(<font color=#00ffff>McNamingService</font>)用以支持自定义的服务发现(**mc:\/\/service_name**)
 
 * **名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息，并为mc-brpc提供服务发现，主要是为了支持在服务跨机房甚至跨大区部署时，brpc请求能支持按指定大区和机房进行路由，此外name_agent还将服务信息dump出来作为promethus监控的targets，以及后续拟支持户端主动容灾功(暂未实现)等
 
 * **日志异步刷盘**：brpc提供了日志刷盘抽象工具类LogSink，并提供了一个默认的实现DefaultLogSink，但是DefaultLogSink写日志是同步写，且每写一条日志都会写磁盘，性能较差，在日志量大以及对性能要求较高的场景下很难使用，而百度内部使用的ComlogSink实现似乎未开源(看代码没找到)，因此mc-brpc自己实现了个<font color=#00ffff>AsyncLogSink</font>先将日志写缓冲区再批量刷盘(也得感谢brpc插件式的设计，极大的方便了用户自己做功能扩展)，AsyncLogSink写日志先写缓冲区，再由后台线程每秒批量刷盘，性能相比DefaultLogSink由10倍以上提升，但是在服务崩溃的情况下可能会丢失最近1s内的日志
 
-* **日志自动归档**：<font color=#00ffff>LogRotateWatcher</font>及<font color=#00ffff>LogArchiveWorker</font>每小时对日志进行归档压缩，方便日志查询，并删除一个月以前的日志(时间可以通过配置指定)避免磁盘写满
+* **日志自动滚动归档**：<font color=#00ffff>LogRotateWatcher</font>及<font color=#00ffff>LogArchiveWorker</font>每小时对日志进行滚动压缩归档，方便日志查询，并删除一段时间(默认1个月，可以公共通过log配置的remain_days属性指定)以前的日志，避免磁盘写满
 
 * **自动生成rpc客户端代码**：当通过某个服务通过proto文件定义好接口后，其它服务若想调用该服务的接口，只需要在CMakeLists.txt(参考services/brpc_test/CmakeLists.txt)中调用<font color=#ffff00>auto_gen_client_code</font>即可为指定proto生成对应的同步客户端(<font color=#00ffff>SyncClient</font>)、半同步客户端(<font color=#00ffff>SemiSyncClient</font>)及异步客户端(<font color=#00ffff>ASyncClient</font>)，简化发起brpc调用的流程。其原理是通过一个mc-brpc提供的protobuf插件<font color=#00ff00>codexx</font>(core/plugins/codexx)解析对应proto文件然后生成相应客户端代码
 
@@ -109,7 +109,7 @@ MCServer::MCServer(int argc, char* argv[]) {
     // 初始化日志（会额外触发server.conf全局配置解析)
     LoggingInit(argv);
 
-    // 注册服务
+    // 注册名字服务(McNamingService)
     RegisterNamingService();
 
 #ifdef USE_MYSQL
@@ -284,7 +284,7 @@ void AgentServiceImpl::WatcherCallback(etcd::Response response) {
     }
 ]
 ```
-假设上述文件路径为：/etc/prometheus/instance.json，则在为prometheus配置以下抓取任务即可实现对每个mc-brpc服务实例metrics监控：
+假设上述文件路径为：/etc/prometheus/instance.json，则为prometheus配置以下抓取任务即可实现对每个mc-brpc服务实例metrics监控：
 ```yaml
 scrape_configs:
     # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
@@ -335,7 +335,7 @@ int McNamingService::GetServers(const char* service_name, std::vector<ServerNode
 }
 ```
 brpc访问下游是通过channel发起请求，channel可以看做是带有lb策略的(rr、c_murmurhash等负载均衡策略)面向一台或一组服务器的交互通道, 它可以被所以线程共用，不需要反复创建，mc-brpc在此基础上提供了<font color=#00ffff>ChannelManager</font>, 它用于按照指定机房策略和lb策略获取下游的channel并缓存，上游可以通过`SharedPtrChannel channel_ptr = 
-        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);`获取某个下游服务的channel并发起访问，其中`using SingletonChannel = server::utils::Singleton<ChannelManager>;`  但更多情况下我们不想使用这种，因为这样发起brpc请求的业务代码比较繁琐，首先要获取对应服务的channel，然后要用该channel初始化一个stub对象，同时还行要声明一个<font color=#00ffff>brpc::Controller</font>对象用于存储rpc请求元数据，最后在通过该stub对象发起rpc调用。这个过程对于每个brpc请求都是一样的，我们可以提供一个统一的实现，不用在业务层去写过多代码，也就是我们后续要提到的自动生成客户端代码部分，为需要调用的服务生成一个<font color=#00ffff>Client</font>对象，直接通过<font color=#00ffff>Client</font>对象就可以发起rpc调用。  
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);`获取某个下游服务的channel并发起访问，其中`using SingletonChannel = server::utils::Singleton<ChannelManager>;`  但更多情况下我们不想使用这种方式，因为这样发起brpc请求的业务代码比较繁琐，首先要获取对应服务的channel，然后要用该channel初始化一个stub对象，同时还行要声明一个<font color=#00ffff>brpc::Controller</font>对象用于存储rpc请求元数据，最后在通过该stub对象发起rpc调用。这个过程对于每个brpc请求都是一样的，我们可以提供一个统一的实现，不用在业务层去写过多代码，也就是我们后续要提到的自动生成客户端代码部分，为需要调用的服务生成一个<font color=#00ffff>Client</font>对象，直接通过<font color=#00ffff>Client</font>对象就可以发起rpc调用。  
 
 ## 3. 自动生成rpc客户端代码
 &emsp;&emsp; 原生brpc发起客户端调用示例如下：
@@ -420,7 +420,7 @@ test::ASyncClient client("brpc_test");
 test::TestReq req;
 req.set_seq_id(request->seq_id());
 req.set_msg("hello world");
-client.Test(&req, &res, [](bool isFailed, TestRes* res) {
+client.Test(&req, [](bool isFailed, TestRes* res) {
     if(isFailed) {
         LOG(ERROR) << "[!] Rpc Failed.";
         return;
@@ -471,3 +471,87 @@ public:
     void Test(const TestReq* req, TestRes* res);
 };
 ```
+
+## 4. 滚动异步日志
+&emsp;&emsp; brpc写日志是通过<font color=#ffff00>LOG</font>宏进行流式写入的(如：`LOG(INFO) << "abc" << 123;`)，<font color=#ffff00>LOG</font>宏定义涉及到的其它宏定义如下：
+```c++
+// A few definitions of macros that don't generate much code. These are used
+// by LOG() and LOG_IF, etc. Since these are used all over our code, it's
+// better to have compact code for these operations.
+#define BAIDU_COMPACT_LOG_EX(severity, ClassName, ...)  \
+    ::logging::ClassName(__FILE__, __LINE__,  __func__, \
+    ::logging::BLOG_##severity, ##__VA_ARGS__)
+
+#define BAIDU_COMPACK_LOG(severity)             \
+    BAIDU_COMPACT_LOG_EX(severity, LogMessage)
+
+// Helper macro which avoids evaluating the arguments to a stream if
+// the condition doesn't hold.
+#define BAIDU_LAZY_STREAM(stream, condition)                            \
+    !(condition) ? (void) 0 : ::logging::LogMessageVoidify() & (stream)
+
+// We use the preprocessor's merging operator, "##", so that, e.g.,
+// LOG(INFO) becomes the token BAIDU_COMPACK_LOG(INFO).  There's some funny
+// subtle difference between ostream member streaming functions (e.g.,
+// ostream::operator<<(int) and ostream non-member streaming functions
+// (e.g., ::operator<<(ostream&, string&): it turns out that it's
+// impossible to stream something like a string directly to an unnamed
+// ostream. We employ a neat hack by calling the stream() member
+// function of LogMessage which seems to avoid the problem.
+#define LOG_STREAM(severity) BAIDU_COMPACK_LOG(severity).stream()
+
+#define LOG(severity)                                                   \
+    BAIDU_LAZY_STREAM(LOG_STREAM(severity), LOG_IS_ON(severity))
+#define LOG_IF(severity, condition)                                     \
+    BAIDU_LAZY_STREAM(LOG_STREAM(severity), LOG_IS_ON(severity) && (condition))
+```
+分析源码后可以知道，brpc通过LOG打印日志的过程如下：  
+1. **获取当前线程里的LogStream对象**：通过`LOG(security_level)`宏展开后会生成一个<font color=#00ffff>LogMessage</font>临时对象, 并通过该临时对象的`stream()`方法返回一个<font color=#00ffff>LogStream</font>类型的成员指针指向对象的引用，而成员指针在LogMessage对象构造的时候被初始化为指向一个ThreadLocal的<font color=#00ffff>LogStream</font>对象，因此即相当于获取当了当前线程的<font color=#00ffff>LogStream</font>对象。
+2. **将日志写入到LogStream对象**：<font color=#00ffff>LogStream</font>继承了std::ostream，因此可以通过c++流插入运算符(`<<`)直接向其中写入日志数据，这里写入的时候会先往<font color=#00ffff>LogStream</font>中写入一些前缀信息，如日志级别、打印时间、文件名及代码行数、函数名(mc-brpc新增了trace_id，便于服务调用全链路追踪)等，之后再是写入用户想要写入的日志内容
+3. **日志持久化到文件**：<font color=#00ffff>LogStream</font>只充当了个缓冲区，还需要将缓冲区的内容写入到文件进行持久化，brpc将这部分功能交由<font color=#00ffff>LogSink</font>来完成(用户可以继承LogSink类并重写OnLogMessage方法来实现定制化的写入)。具体实现为当LOG所在代码行结束时则会触发<font color=#00ffff>LogMessage</font>临时对象的析构，析构函数中则会调用通过其<font color=#00ffff>LogStream</font>成员指针调用`LogStream::Flush()`, 之后则交由服务当前正在使用的<font color=#00ffff>LogSink</font>对象(没有就使用<font color=#00ffff>DefaultLogSink</font>)来完成将<font color=#00ffff>LogStream</font>缓冲区的内容写入到日志文件
+
+### ASyncLogSink  
+由于<font color=#00ffff>DefaultLogSink</font>采用同步写日志文件的方式，并且没打印一条日志都会触发日志文件写入，效率较低，在日志量较大的场景下可能对系统性能影响比较大。因此mc-brpc提供了<font color=#00ffff>ASyncLogSink</font>对日志进行异步写入。其核心实现如下(详情请看源码)：
+```c++
+bool AsyncLogSink::OnLogMessage(
+    int severity,
+    const char* file,
+    int line,
+    const char* func,
+    const butil::StringPiece& log_content) {
+    if ((logging_dest & logging::LoggingDestination::LOG_TO_SYSTEM_DEBUG_LOG) != 0) {
+        fwrite(log_content.data(), log_content.length(), 1, stderr);
+        fflush(stderr);
+    }
+
+    if ((logging_dest & logging::LoggingDestination::LOG_TO_FILE) != 0) {
+        LoggingLock logging_lock;
+        _stream << log_content;
+    }
+
+    return true;
+}
+
+void AsyncLogSink::Run() {
+    LOG(INFO) << "LogFlushThread start...";
+    while (!is_asked_to_quit) {
+        bthread_usleep(1000000);
+
+        std::string s;
+        {
+            LoggingLock logging_lock;
+            if (log_fd == -1) {
+                Init();
+            }
+
+            s = _stream.str();
+            _stream.str("");
+        }
+
+        if (log_fd != -1 && !s.empty()) {
+            write(log_fd, s.c_str(), s.length());
+        }
+    }
+}
+```
+其核心思想也比较简单，即在<font color=#00ffff>LogMessage</font>临时对象析构时，先将<font color=#00ffff>LogStream</font>缓冲区的数据加锁写入到一个全局的buffer中，再由后台线程每秒批量刷盘。经测试验证，通过这种方式写入日志性能相比<font color=#00ffff>DefaultLogSink</font>有10倍以上的提升，但是在程序崩溃的情况下，这种方式可能会导致最近1秒内日志丢失(可以通过先写到操作系统文件缓冲区但刷新到磁盘进行优化改进).
