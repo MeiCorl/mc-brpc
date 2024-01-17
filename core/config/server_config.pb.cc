@@ -222,6 +222,7 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_server_5fconfig_2eproto::offse
   PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, min_idle_),
   PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, ilde_timeout_ms_),
   PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, timeout_ms_),
+  PROTOBUF_FIELD_OFFSET(::server::config::DbConfig, refresh_interval_ms_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::server::config::RedisNodeInfo, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -291,13 +292,13 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_server_5fconfig_2eproto::offse
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::server::config::InstanceInfo)},
   { 8, -1, sizeof(::server::config::DbConfig)},
-  { 22, -1, sizeof(::server::config::RedisNodeInfo)},
-  { 30, -1, sizeof(::server::config::RedisSentineInfo)},
-  { 36, -1, sizeof(::server::config::RedisConfig)},
-  { 48, -1, sizeof(::server::config::LogConfig)},
-  { 57, 64, sizeof(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse)},
-  { 66, 73, sizeof(::server::config::SvrConfigBase_RedisConfigsEntry_DoNotUse)},
-  { 75, -1, sizeof(::server::config::SvrConfigBase)},
+  { 23, -1, sizeof(::server::config::RedisNodeInfo)},
+  { 31, -1, sizeof(::server::config::RedisSentineInfo)},
+  { 37, -1, sizeof(::server::config::RedisConfig)},
+  { 49, -1, sizeof(::server::config::LogConfig)},
+  { 58, 65, sizeof(::server::config::SvrConfigBase_DbConfigsEntry_DoNotUse)},
+  { 67, 74, sizeof(::server::config::SvrConfigBase_RedisConfigsEntry_DoNotUse)},
+  { 76, -1, sizeof(::server::config::SvrConfigBase)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -315,33 +316,34 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
 const char descriptor_table_protodef_server_5fconfig_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\023server_config.proto\022\rserver.config\"E\n\014"
   "InstanceInfo\022\021\n\tregion_id\030\001 \001(\r\022\020\n\010group"
-  "_id\030\002 \001(\r\022\020\n\010endpoint\030\003 \001(\t\"\246\001\n\010DbConfig"
+  "_id\030\002 \001(\r\022\020\n\010endpoint\030\003 \001(\t\"\303\001\n\010DbConfig"
   "\022\014\n\004user\030\001 \001(\t\022\016\n\006passwd\030\002 \001(\t\022\n\n\002ip\030\003 \001"
   "(\t\022\014\n\004port\030\004 \001(\r\022\017\n\007db_name\030\005 \001(\t\022\022\n\nmax"
   "_active\030\006 \001(\r\022\020\n\010min_idle\030\010 \001(\r\022\027\n\017ilde_"
-  "timeout_ms\030\t \001(\r\022\022\n\ntimeout_ms\030\n \001(\r\"9\n\r"
-  "RedisNodeInfo\022\014\n\004host\030\001 \001(\t\022\014\n\004port\030\002 \001("
-  "\r\022\014\n\004type\030\003 \001(\t\"B\n\020RedisSentineInfo\022.\n\010s"
-  "entines\030\001 \003(\0132\034.server.config.RedisNodeI"
-  "nfo\"\322\001\n\013RedisConfig\0222\n\nredis_info\030\001 \001(\0132"
-  "\034.server.config.RedisNodeInfoH\000\0227\n\014senti"
-  "ne_info\030\002 \001(\0132\037.server.config.RedisSenti"
-  "neInfoH\000\022\016\n\006passwd\030\003 \001(\t\022\021\n\tpool_size\030\004 "
-  "\001(\r\022\022\n\ntimeout_ms\030\005 \001(\r\022\027\n\017wait_timeout_"
-  "ms\030\006 \001(\rB\006\n\004info\"a\n\tLogConfig\022\021\n\tlog_lev"
-  "el\030\001 \001(\r\022\025\n\rlog_threshold\030\002 \001(\r\022\023\n\013remai"
-  "n_days\030\003 \001(\r\022\025\n\rlog_to_stderr\030\004 \001(\010\"\254\003\n\r"
-  "SvrConfigBase\022\016\n\006ns_url\030\001 \001(\t\022\024\n\014service"
-  "_name\030\002 \001(\t\022\021\n\tregion_id\030\003 \001(\r\022\020\n\010group_"
-  "id\030\004 \001(\r\022\?\n\ndb_configs\030\005 \003(\0132+.server.co"
-  "nfig.SvrConfigBase.DbConfigsEntry\022E\n\rred"
-  "is_configs\030\006 \003(\0132..server.config.SvrConf"
-  "igBase.RedisConfigsEntry\022,\n\nlog_config\030\007"
-  " \001(\0132\030.server.config.LogConfig\032I\n\016DbConf"
-  "igsEntry\022\013\n\003key\030\001 \001(\t\022&\n\005value\030\002 \001(\0132\027.s"
-  "erver.config.DbConfig:\0028\001\032O\n\021RedisConfig"
-  "sEntry\022\013\n\003key\030\001 \001(\t\022)\n\005value\030\002 \001(\0132\032.ser"
-  "ver.config.RedisConfig:\0028\001B\003\200\001\001b\006proto3"
+  "timeout_ms\030\t \001(\r\022\022\n\ntimeout_ms\030\n \001(\r\022\033\n\023"
+  "refresh_interval_ms\030\013 \001(\r\"9\n\rRedisNodeIn"
+  "fo\022\014\n\004host\030\001 \001(\t\022\014\n\004port\030\002 \001(\r\022\014\n\004type\030\003"
+  " \001(\t\"B\n\020RedisSentineInfo\022.\n\010sentines\030\001 \003"
+  "(\0132\034.server.config.RedisNodeInfo\"\322\001\n\013Red"
+  "isConfig\0222\n\nredis_info\030\001 \001(\0132\034.server.co"
+  "nfig.RedisNodeInfoH\000\0227\n\014sentine_info\030\002 \001"
+  "(\0132\037.server.config.RedisSentineInfoH\000\022\016\n"
+  "\006passwd\030\003 \001(\t\022\021\n\tpool_size\030\004 \001(\r\022\022\n\ntime"
+  "out_ms\030\005 \001(\r\022\027\n\017wait_timeout_ms\030\006 \001(\rB\006\n"
+  "\004info\"a\n\tLogConfig\022\021\n\tlog_level\030\001 \001(\r\022\025\n"
+  "\rlog_threshold\030\002 \001(\r\022\023\n\013remain_days\030\003 \001("
+  "\r\022\025\n\rlog_to_stderr\030\004 \001(\010\"\254\003\n\rSvrConfigBa"
+  "se\022\016\n\006ns_url\030\001 \001(\t\022\024\n\014service_name\030\002 \001(\t"
+  "\022\021\n\tregion_id\030\003 \001(\r\022\020\n\010group_id\030\004 \001(\r\022\?\n"
+  "\ndb_configs\030\005 \003(\0132+.server.config.SvrCon"
+  "figBase.DbConfigsEntry\022E\n\rredis_configs\030"
+  "\006 \003(\0132..server.config.SvrConfigBase.Redi"
+  "sConfigsEntry\022,\n\nlog_config\030\007 \001(\0132\030.serv"
+  "er.config.LogConfig\032I\n\016DbConfigsEntry\022\013\n"
+  "\003key\030\001 \001(\t\022&\n\005value\030\002 \001(\0132\027.server.confi"
+  "g.DbConfig:\0028\001\032O\n\021RedisConfigsEntry\022\013\n\003k"
+  "ey\030\001 \001(\t\022)\n\005value\030\002 \001(\0132\032.server.config."
+  "RedisConfig:\0028\001B\003\200\001\001b\006proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_server_5fconfig_2eproto_deps[1] = {
 };
@@ -358,7 +360,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_ser
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_server_5fconfig_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_server_5fconfig_2eproto = {
-  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 1159,
+  false, false, descriptor_table_protodef_server_5fconfig_2eproto, "server_config.proto", 1188,
   &descriptor_table_server_5fconfig_2eproto_once, descriptor_table_server_5fconfig_2eproto_sccs, descriptor_table_server_5fconfig_2eproto_deps, 9, 0,
   schemas, file_default_instances, TableStruct_server_5fconfig_2eproto::offsets,
   file_level_metadata_server_5fconfig_2eproto, 9, file_level_enum_descriptors_server_5fconfig_2eproto, file_level_service_descriptors_server_5fconfig_2eproto,
@@ -677,8 +679,8 @@ DbConfig::DbConfig(const DbConfig& from)
       GetArena());
   }
   ::memcpy(&port_, &from.port_,
-    static_cast<size_t>(reinterpret_cast<char*>(&timeout_ms_) -
-    reinterpret_cast<char*>(&port_)) + sizeof(timeout_ms_));
+    static_cast<size_t>(reinterpret_cast<char*>(&refresh_interval_ms_) -
+    reinterpret_cast<char*>(&port_)) + sizeof(refresh_interval_ms_));
   // @@protoc_insertion_point(copy_constructor:server.config.DbConfig)
 }
 
@@ -689,8 +691,8 @@ void DbConfig::SharedCtor() {
   ip_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   db_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   ::memset(&port_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&timeout_ms_) -
-      reinterpret_cast<char*>(&port_)) + sizeof(timeout_ms_));
+      reinterpret_cast<char*>(&refresh_interval_ms_) -
+      reinterpret_cast<char*>(&port_)) + sizeof(refresh_interval_ms_));
 }
 
 DbConfig::~DbConfig() {
@@ -733,8 +735,8 @@ void DbConfig::Clear() {
   ip_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   db_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   ::memset(&port_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&timeout_ms_) -
-      reinterpret_cast<char*>(&port_)) + sizeof(timeout_ms_));
+      reinterpret_cast<char*>(&refresh_interval_ms_) -
+      reinterpret_cast<char*>(&port_)) + sizeof(refresh_interval_ms_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -814,6 +816,13 @@ const char* DbConfig::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::i
       case 10:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 80)) {
           timeout_ms_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 refresh_interval_ms = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 88)) {
+          refresh_interval_ms_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -915,6 +924,12 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(10, this->_internal_timeout_ms(), target);
   }
 
+  // uint32 refresh_interval_ms = 11;
+  if (this->refresh_interval_ms() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(11, this->_internal_refresh_interval_ms(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -994,6 +1009,13 @@ size_t DbConfig::ByteSizeLong() const {
         this->_internal_timeout_ms());
   }
 
+  // uint32 refresh_interval_ms = 11;
+  if (this->refresh_interval_ms() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_refresh_interval_ms());
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
         _internal_metadata_, total_size, &_cached_size_);
@@ -1052,6 +1074,9 @@ void DbConfig::MergeFrom(const DbConfig& from) {
   if (from.timeout_ms() != 0) {
     _internal_set_timeout_ms(from._internal_timeout_ms());
   }
+  if (from.refresh_interval_ms() != 0) {
+    _internal_set_refresh_interval_ms(from._internal_refresh_interval_ms());
+  }
 }
 
 void DbConfig::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -1080,8 +1105,8 @@ void DbConfig::InternalSwap(DbConfig* other) {
   ip_.Swap(&other->ip_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   db_name_.Swap(&other->db_name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(DbConfig, timeout_ms_)
-      + sizeof(DbConfig::timeout_ms_)
+      PROTOBUF_FIELD_OFFSET(DbConfig, refresh_interval_ms_)
+      + sizeof(DbConfig::refresh_interval_ms_)
       - PROTOBUF_FIELD_OFFSET(DbConfig, port_)>(
           reinterpret_cast<char*>(&port_),
           reinterpret_cast<char*>(&other->port_));

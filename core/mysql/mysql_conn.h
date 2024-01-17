@@ -54,13 +54,22 @@ public:
     bool rollback();
 
     // 更新空闲时间点
-    void refreshAliveTime();
+    void refreshFreeTime();
 
     // 计算连接空闲时长
-    long long getAliveTime();
+    long long getFreeTime();
 
     // 返回当前连接id
     unsigned long id();
+
+    // 返回上次sql执行错误码
+    uint32_t errNo();
+
+    // 返回上次sql执行错误信息
+    std::string errMsg();
+
+    // 检测刷新连接，避免长时间空闲被服务器断开
+    bool refresh();
 
 private:
     // 每次搜索都需要更新结果集
@@ -70,7 +79,7 @@ private:
     MYSQL_RES* m_result = nullptr;
     MYSQL_ROW m_row;
 
-    std::chrono::steady_clock::time_point m_aliveTime;
+    std::chrono::steady_clock::time_point m_freeTime;
 };
 
 }  // namespace db

@@ -97,13 +97,13 @@ void MysqlConn::freeResult() {
     }
 }
 
-void MysqlConn::refreshAliveTime() {
-    m_aliveTime = std::chrono::steady_clock::now();
+void MysqlConn::refreshFreeTime() {
+    m_freeTime = std::chrono::steady_clock::now();
 }
 
 // 计算连接空闲时长
-long long MysqlConn::getAliveTime() {
-    std::chrono::nanoseconds res = std::chrono::steady_clock::now() - m_aliveTime;               // 纳秒
+long long MysqlConn::getFreeTime() {
+    std::chrono::nanoseconds res = std::chrono::steady_clock::now() - m_freeTime;                // 纳秒
     std::chrono::milliseconds mil = std::chrono::duration_cast<std::chrono::milliseconds>(res);  // 将纳秒转成毫秒妙
 
     return mil.count();
@@ -112,6 +112,23 @@ long long MysqlConn::getAliveTime() {
 // 返回当前连接id
 unsigned long MysqlConn::id() {
     return m_conn->thread_id;
+}
+
+uint32_t MysqlConn::errNo() {
+    return mysql_errno(m_conn);
+}
+
+std::string MysqlConn::errMsg() {
+    return mysql_error(m_conn);
+}
+
+bool MysqlConn::refresh() {
+    int res_code = mysql_ping(m_conn);
+    if (res_code == 0) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 }  // namespace db

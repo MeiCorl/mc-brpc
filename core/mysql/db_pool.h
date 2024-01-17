@@ -40,6 +40,7 @@ private:
     bthread::Mutex m_mtx;
     bthread::ConditionVariable m_cond;
 
+    void CheckDbConfigs();
     bool AddConnect();
     void RecycleConnection();
 

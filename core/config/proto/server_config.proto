@@ -15,10 +15,11 @@ message DbConfig {
     string ip = 3;
     uint32 port = 4;
     string db_name = 5;
-    uint32 max_active = 6;          // 最大活跃连接数      
-    uint32 min_idle = 8;            // 最小空闲连接数
-    uint32 ilde_timeout_ms = 9;     // 空闲连接超时时间(超过会自动释放连接)
-    uint32 timeout_ms = 10;         // 获取连接超时时间
+    uint32 max_active = 6;              // 最大活跃连接数      
+    uint32 min_idle = 8;                // 最小空闲连接数
+    uint32 ilde_timeout_ms = 9;         // 空闲连接超时时间(超过会自动释放连接)
+    uint32 timeout_ms = 10;             // 获取连接超时时间
+    uint32 refresh_interval_ms = 11;    // 连接刷新时间(空闲超过此时间会自动发送心跳至MySQL Server进行保活)
 }
 
 message RedisNodeInfo {

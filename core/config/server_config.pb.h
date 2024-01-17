@@ -401,6 +401,7 @@ class DbConfig PROTOBUF_FINAL :
     kMinIdleFieldNumber = 8,
     kIldeTimeoutMsFieldNumber = 9,
     kTimeoutMsFieldNumber = 10,
+    kRefreshIntervalMsFieldNumber = 11,
   };
   // string user = 1;
   void clear_user();
@@ -547,6 +548,15 @@ class DbConfig PROTOBUF_FINAL :
   void _internal_set_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
+  // uint32 refresh_interval_ms = 11;
+  void clear_refresh_interval_ms();
+  ::PROTOBUF_NAMESPACE_ID::uint32 refresh_interval_ms() const;
+  void set_refresh_interval_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_refresh_interval_ms() const;
+  void _internal_set_refresh_interval_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
   // @@protoc_insertion_point(class_scope:server.config.DbConfig)
  private:
   class _Internal;
@@ -563,6 +573,7 @@ class DbConfig PROTOBUF_FINAL :
   ::PROTOBUF_NAMESPACE_ID::uint32 min_idle_;
   ::PROTOBUF_NAMESPACE_ID::uint32 ilde_timeout_ms_;
   ::PROTOBUF_NAMESPACE_ID::uint32 timeout_ms_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 refresh_interval_ms_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_server_5fconfig_2eproto;
 };
@@ -2210,6 +2221,26 @@ inline void DbConfig::_internal_set_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 v
 inline void DbConfig::set_timeout_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   _internal_set_timeout_ms(value);
   // @@protoc_insertion_point(field_set:server.config.DbConfig.timeout_ms)
+}
+
+// uint32 refresh_interval_ms = 11;
+inline void DbConfig::clear_refresh_interval_ms() {
+  refresh_interval_ms_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::_internal_refresh_interval_ms() const {
+  return refresh_interval_ms_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 DbConfig::refresh_interval_ms() const {
+  // @@protoc_insertion_point(field_get:server.config.DbConfig.refresh_interval_ms)
+  return _internal_refresh_interval_ms();
+}
+inline void DbConfig::_internal_set_refresh_interval_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  refresh_interval_ms_ = value;
+}
+inline void DbConfig::set_refresh_interval_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_refresh_interval_ms(value);
+  // @@protoc_insertion_point(field_set:server.config.DbConfig.refresh_interval_ms)
 }
 
 // -------------------------------------------------------------------
