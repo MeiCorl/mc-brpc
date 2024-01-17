@@ -11,8 +11,6 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_definitions(-DUSE_ASYNC_LOGSINK)
-
 # file(GLOB PROTOS
 #     "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto"
 # )
@@ -36,5 +34,4 @@ add_library(common_objs OBJECT ${SERVER_SRCS} ${SRCS} ${COMM_SRCS} ${PB_SRCS})
 
 # 生成可执行文件
 add_executable(${BIN_NAME} "main.cpp" $<TARGET_OBJECTS:common_objs>)
-
-target_link_libraries(${BIN_NAME} ${BRPC_LIB} ${DYNAMIC_LIB} etcd-cpp-api)
+custom_link_libraries(${BIN_NAME})
