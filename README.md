@@ -1,5 +1,5 @@
 # 简介
-### &emsp;&emsp; mc-brpc是基于[百度brpc框架](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量。其次，mc-brpc在brpc的基础上扩展增加了以下功能以更好的支持rpc服务开发：
+### &emsp;&emsp; [mc-brpc](https://github.com/MeiCorl/mc-brpc)是基于[百度brpc框架](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量。其次，mc-brpc在brpc的基础上扩展增加了以下功能以更好的支持rpc服务开发：
 * **服务注册**：brpc对于rpc服务中一些功能并未提供具体实现，而是需要用户自己去扩展实现。如服务注册，因为不同用户使用的服务注册中心不一样，有Zookeeper、Eureka、Nacos、Consul、Etcd、甚至自研的注册中心等，不同注册中心注册和发现流程可能不一样，不太好统一，因此只好交由用户根据去实现服务注册这部分；而对于服务发现这部分，brpc默认支持基于文件、dns、bns、http、consul、nacos等的服务发现，并支持用户扩展NamingService实现自定义的服务发现。mc-brpc在brpc的基础上实现了服务自动注册到etcd，并提供了NamingService的扩展(<font color=#00ffff>McNamingService</font>)用以支持自定义的服务发现(**mc:\/\/service_name**)
 
 * **名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息，并为mc-brpc提供服务发现，主要是为了支持在服务跨机房甚至跨大区部署时，brpc请求能支持按指定大区和机房进行路由，此外name_agent还将服务信息dump出来作为promethus监控的targets，以及后续拟支持户端主动容灾功(暂未实现)等
@@ -149,8 +149,8 @@ ServerConfig::ServerConfig(/* args */) {
     input = nullptr;
 }
 ```
-4. 根据3中服务日志配置，初始化日志输出文件路径并创建日志文件监听线程和日志归档线程(二者配合实现日志分时归档压缩)，以及判断是否需要使用异步日志写入AsyncLogSink(需要CMakeLists.txt中定义<font color=#ffff00>USE_ASYNC_LOGSINK</font>宏)。
-5. 根据3中服务配置，初始化DB连接池(需要CMakeLists.txt中定义<font color=#ffff00>USE_MYSQL</font>宏)及Redis连接池(需要CMakeLists.txt中定义<font color=#ffff00>USE_REDIS</font>宏)。
+4. 根据3中服务日志配置，初始化日志输出文件路径并创建日志文件监听线程和日志归档线程(二者配合实现日志分时归档压缩)，以及判断是否需要使用异步日志写入AsyncLogSink(CMakeLists.txt中add_server_source添加<font color=#ffff00>ASYNCLOG</font>选项, 如`add_server_source(SERVER_SRCS ASYNCLOG)`, 这样会触发<font color=#ffff00>USE_ASYNC_LOGSINK</font>宏定义)。
+5. 根据3中服务配置，初始化DB连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_MYSQL</font>选项，触发定义<font color=#ffff00>USE_MYSQL</font>宏定义以及MySQL相关源文件及依赖库引入)及Redis连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_REDIS</font>选项，触发<font color=#ffff00>USE_REDIS</font>宏定义及相关源文件和依赖库引入)。
 6. 注册自定义的名字服务<font color=#00ffff>McNamingService</font>用以支持**mc:\/\/** 前缀的服务发现
 
 ### 启动过程
@@ -165,7 +165,7 @@ ServerConfig::ServerConfig(/* args */) {
 ### 服务注册
 MCSever启动会时，会从服务配置里获取注册中心地址、当前服务名、大区id、及机房id等，并自动向etcd注册服务信息，这里使用的了[etcd-cpp-apiv3](https://github.com/etcd-cpp-apiv3/etcd-cpp-apiv3)。注册key为"*服务名:实例id*"(这里实例id设计比较简单，直接用实例信息序列化后的字符串计算hash code，暂时没有实际用处), value为实例信息(server::config::InstanceInfo, 参考core/config/server_config.proto)序列化后字符串。
 ```c++
-void MCServer::RegisterService() {
+bool MCServer::RegisterService() {
     ServerConfig* config = utils::Singleton<ServerConfig>::get();
     etcd::Client etcd(config->GetNsUrl());
     server::config::InstanceInfo instance;
@@ -175,7 +175,7 @@ void MCServer::RegisterService() {
     etcd::Response resp = etcd.leasegrant(REGISTER_TTL).get();
     if (resp.error_code() != 0) {
         LOG(ERROR) << "[!] etcd failed, err_code: " << resp.error_code() << ", err_msg:" << resp.error_message();
-        exit(1);
+        return false;
     }
     _etcd_lease_id = resp.value().lease();
     etcd::Response response =
@@ -183,23 +183,46 @@ void MCServer::RegisterService() {
     if (response.error_code() != 0) {
         LOG(ERROR) << "[!] Fail to register service, err_code: " << response.error_code()
                    << ", err_msg:" << response.error_message();
-        exit(1);
+        return false;
     }
 
-    std::function<void(std::exception_ptr)> handler = [](std::exception_ptr eptr) {
+    std::function<void(std::exception_ptr)> handler = [this](std::exception_ptr eptr) {
         try {
             if (eptr) {
                 std::rethrow_exception(eptr);
             }
         } catch (const std::runtime_error& e) {
-            LOG(FATAL) << "[!] Etcd keepalive failure: " << e.what();
+            LOG(FATAL) << "[!] Etcd connection failure: " << e.what();
         } catch (const std::out_of_range& e) {
             LOG(FATAL) << "[!] Etcd lease expire: " << e.what();
         }
+
+        // KeepAlive续约有时因为一些原因lease已经过期则会失败，或者etcd重启也会失败，需要发起重新注册
+        // 注意需要新起一个线程发起重新注册，否则会出现死锁（不新起线程的话，那重新注册的逻辑是运行在当前
+        // handler所在线程的，而旧的KeepAlive对象析构又需要等待当前handler所在线程结束，具体请看KeepAlive源码）
+        auto fn = std::bind(&MCServer::TryRegisterAgain, this);
+        std::thread(fn).detach();
     };
-    _keep_live_ptr.reset(new etcd::KeepAlive(config->GetNsUrl(), handler, REGISTER_TTL, _etcd_lease_id));
+
+    // 注册信息到期前5s进行续约，避免租约到期后续约失败
+    _keep_live_ptr.reset(new etcd::KeepAlive(config->GetNsUrl(), handler, REGISTER_TTL - 5, _etcd_lease_id));
     LOG(INFO) << "Service register succ. instance: {" << instance.ShortDebugString()
               << "}, lease_id:" << _etcd_lease_id;
+    return true;
+}
+
+/**
+ * 用于在一些异常情况下(如etcd重启或者旧的lease过期导致keepalive对象失败退出)重新发起注册
+ **/
+void MCServer::TryRegisterAgain() {
+    do {
+        LOG(INFO) << "Try register again.";
+        bool is_succ = RegisterService();
+        if (is_succ) {
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    } while (true);
 }
 
 std::string MCServer::BuildServiceName(
@@ -511,7 +534,7 @@ public:
 3. **日志持久化到文件**：<font color=#00ffff>LogStream</font>只充当了个缓冲区，还需要将缓冲区的内容写入到文件进行持久化，brpc将这部分功能交由<font color=#00ffff>LogSink</font>来完成(用户可以继承LogSink类并重写OnLogMessage方法来实现定制化的写入)。具体实现为当LOG所在代码行结束时则会触发<font color=#00ffff>LogMessage</font>临时对象的析构，析构函数中则会调用通过其<font color=#00ffff>LogStream</font>成员指针调用`LogStream::Flush()`, 之后则交由服务当前正在使用的<font color=#00ffff>LogSink</font>对象(没有就使用<font color=#00ffff>DefaultLogSink</font>)来完成将<font color=#00ffff>LogStream</font>缓冲区的内容写入到日志文件
 
 ### ASyncLogSink  
-由于<font color=#00ffff>DefaultLogSink</font>采用同步写日志文件的方式，并且没打印一条日志都会触发日志文件写入，效率较低，在日志量较大的场景下可能对系统性能影响比较大。因此mc-brpc提供了<font color=#00ffff>ASyncLogSink</font>对日志进行异步写入。其核心实现如下(详情请看源码)：
+由于<font color=#00ffff>DefaultLogSink</font>采用同步写日志文件的方式，并且每打印一条日志都会触发日志文件写入，效率较低，在日志量较大的场景下可能对系统性能影响比较大。因此mc-brpc提供了<font color=#00ffff>ASyncLogSink</font>对日志进行异步写入。其核心实现如下(详情请看源码)：
 ```c++
 bool AsyncLogSink::OnLogMessage(
     int severity,
@@ -554,4 +577,482 @@ void AsyncLogSink::Run() {
     }
 }
 ```
-其核心思想也比较简单，即在<font color=#00ffff>LogMessage</font>临时对象析构时，先将<font color=#00ffff>LogStream</font>缓冲区的数据加锁写入到一个全局的buffer中，再由后台线程每秒批量刷盘。经测试验证，通过这种方式写入日志性能相比<font color=#00ffff>DefaultLogSink</font>有10倍以上的提升，但是在程序崩溃的情况下，这种方式可能会导致最近1秒内日志丢失(可以通过先写到操作系统文件缓冲区但刷新到磁盘进行优化改进).
+其核心思想也比较简单，即在<font color=#00ffff>LogMessage</font>临时对象析构时，先将<font color=#00ffff>LogStream</font>缓冲区的数据加锁写入到一个全局的buffer中，再由后台线程每秒批量刷盘。经测试验证，通过这种方式写入日志性能相比<font color=#00ffff>DefaultLogSink</font>有10倍以上的提升，但是在程序崩溃的情况下，这种方式可能会导致最近1秒内日志丢失(可以通过先写到操作系统文件缓冲区但不刷新到磁盘进行优化改进)。想要使用<font color=#00ffff>ASyncLogSink</font>，只需要在CMakeLists.txt的add_server_source中增加<font color=#ffff00>ASYNCLOG</font>选项即可。
+
+### 日志滚动压缩归档
+
+为了方便日志查询，mc-brpc会默认按小时滚动切割并压缩日志文件，避免单个日志文件过大，同时方便日志查询；此外，mc-brpc会删除一段时间以前的日志(默认30天，可通过日志配置remain_days指定)，避免磁盘文件写满。滚动压缩通过<font color=#00ffff>LogArchiveWorker</font>和<font color=#00ffff>LogRotateWatcher</font>线程配合完成完成。其中，<font color=#00ffff>LogArchiveWorker</font>负责在整点通过`gzip`对上一小时的日志文件(.log)进行压缩，并按`%Y-%m-%d_%H`的时间格式生成对应压缩归档文件；<font color=#00ffff>LogRotateWatcher</font>则负责对当前正在写的日志文件(.log)进行事件监听，当当前监听文件发生删除或者移动事件时，生成一个新的.log日志文件并监听以及通知<font color=#00ffff>LogSink</font>关闭旧的文件句柄并重新打开新的日志文件进行写入。效果示例如下:
+![image.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/47f788034c294ed2bface28cd10e1dde~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2199&h=622&s=309680&e=png&b=2d2e28)
+
+### 全链路日志
+当代的互联网的服务，通常都是用复杂的、大规模分布式集群来实现的，不同服务间可能存在复杂的rpc调用关系，我们希望能通过某种方式将某个请求的调用链路日志全部串联起来便于问题排查，这属于分布式服务调用链路追踪的一部分，目前大部分分布式系统的跟踪系统实现都是基于[Google-Dapper](https://bigbully.github.io/Dapper-translation/)，brpc的[rpcz](https://github.com/apache/brpc/blob/master/docs/cn/rpcz.md)功能也实现了类似功能，但是没有支持将调用链路的日志串联起来，因此mc-brpc在brpc的基础上为日志前缀增加了`trace_id`，当我们把服务日志全部上报到ES等日志查询工具时，可以通过`trace_id`将整个请求链路的日志串联起来，便于问题分析排查。需要修改<font color=#ffffff>*PrintLogPrefix函数(butil/logging.cc)*</font>并在gflags开启`rpcz`功能:
+```c++
+// butil/logging.cc
+void PrintLogPrefix(...) {
+    // ...
+
+    // add trace_id if has
+    brpc::Span* span = (brpc::Span*)bthread::tls_bls.rpcz_parent_span;
+    if(span) {
+        os << " {trace_id:" << span->trace_id() << "}";
+    }
+
+    // ...
+}
+```
+当开启`rpcz`功能后，brpc server在收到请求会创建一个`Span`对象(里面包含了上游传过来的trace_id，如果当前server是请求链路的第一个节点则会自动生成一个trace_id)，并将`Span`对象保存到bthread local对象(`bthread::tls_bls.rpcz_parent_span`)里面：  
+```c++
+// baidu_rpc_protocol.cpp
+void ProcessRpcRequest(...) {
+    // ...
+
+    Span* span = NULL;
+    if (IsTraceable(request_meta.has_trace_id())) {
+        // 这里request_meta.trace_id()为上游传过来的trace_id，为0则自动生成一个trace_id
+        span = Span::CreateServerSpan(
+            request_meta.trace_id(), request_meta.span_id(),
+            request_meta.parent_span_id(), msg->base_real_us());
+        accessor.set_span(span);
+        span->set_log_id(request_meta.log_id());
+        span->set_remote_side(cntl->remote_side());
+        span->set_protocol(PROTOCOL_BAIDU_STD);
+        span->set_received_us(msg->received_us());
+        span->set_start_parse_us(start_parse_us);
+        span->set_request_size(msg->payload.size() + msg->meta.size() + 12);
+    }
+
+    // ...
+    
+    if (span) {
+        span->set_start_callback_us(butil::cpuwide_time_us());
+        span->AsParent();  // 等价于bthread::tls_bls.rpcz_parent_span = this;  将当前span对象设置为bthread local对象
+    }
+
+    /// ...
+}
+```
+日志中打印的`trace_id`即从`bthread::tls_bls.rpcz_parent_span`中获取的。同时，当从当前服务向其它brpc服务发起rpc请求时，会将当前Span里面的trace_id写入到request_meta中传递下去，下游收到请求再从request_meta元数据中获取trace_id构建`Span`对象，因此也就可以通过`Span`对象里的trace_id将整个请求的日志串联起来：
+```c++
+// brpc/channel.cpp
+void Channel::CallMethod(...) {
+    // ...
+
+    if (cntl->_sender == NULL && IsTraceable(Span::tls_parent())) {
+        const int64_t start_send_us = butil::cpuwide_time_us();
+        const std::string* method_name = NULL;
+        if (_get_method_name) {
+            method_name = &_get_method_name(method, cntl);
+        } else if (method) {
+            method_name = &method->full_name();
+        } else {
+            const static std::string NULL_METHOD_STR = "null-method";
+            method_name = &NULL_METHOD_STR;
+        }
+
+        Span* span = Span::CreateClientSpan(
+            *method_name, start_send_real_us - start_send_us);
+        span->set_log_id(cntl->log_id());
+        span->set_base_cid(correlation_id);
+        span->set_protocol(_options.protocol);
+        span->set_start_send_us(start_send_us);
+        cntl->_span = span;   // here add span to cntl
+    }
+
+    // ...
+}
+
+// baidu_rpc_protocol.cpp
+void PackRpcRequest(...) {
+    // ...
+
+    Span* span = accessor.span();  // here get span from cntl
+    if (span) {
+        request_meta->set_trace_id(span->trace_id());
+        request_meta->set_span_id(span->span_id());
+        request_meta->set_parent_span_id(span->parent_span_id());
+    }
+
+    SerializeRpcHeaderAndMeta(req_buf, meta, req_size + attached_size);
+    req_buf->append(request_body);
+    if (attached_size) {
+        req_buf->append(cntl->request_attachment());
+    }
+
+    // ...
+}
+```
+
+其中request_meta的定义如下(brpc/policy/baidu_rpc_meta.proto)：
+```proto
+message RpcRequestMeta {
+    required string service_name = 1;
+    required string method_name = 2;
+    optional int64 log_id = 3;
+    optional int64 trace_id = 4;
+    optional int64 span_id = 5;
+    optional int64 parent_span_id = 6;
+    optional string request_id = 7;     // correspond to x-request-id in http header
+    optional int32 timeout_ms = 8;      // client's timeout setting for current call
+    optional string from_svr_name = 9;  // add by mc-brpc
+}
+```
+其中，from_svr_name是mc-brpc在brpc的基础上新增的，用于被调用方获取上游服务名，如下：
+```c++
+brpc::Controller* cntl = static_cast<brpc::Controller*>(cntl_base);
+LOG(INFO) << "From:" << cntl->from_svr_name();
+```
+
+具体实现和trace_id的传递过程类似：
+1. MCServer在启动时会将当前服务名保存到brpc::ServerOptions的server_info_name中：
+```c++
+MCServer::Start() {
+    // ...
+    brpc::ServerOptions options;
+    options.server_info_name = utils::Singleton<ServerConfig>::get()->GetSelfName();
+    if (_server.Start(point, &options) != 0) {
+        LOG(ERROR) << "[!] Fail to start Server";
+        exit(1);
+    }
+    // ...
+}
+```
+2. 发起rpc请求时，将server_info_name写入到request_meta传递给下游：
+```c++
+// Channel::CallMethod(brpc/channel.cpp)
+cntl->set_from_svr_name();
+
+// PackRpcRequest(baidu_rpc_protocol.cpp) 
+if(!cntl->from_svr_name().empty()) {
+    request_meta->set_from_svr_name(cntl->from_svr_name());
+}
+```
+
+3. 下游收到请求，从request_meta读取server_info_name并保存至当前请求Controller对象
+```c++
+// ProcessRpcRequest(baidu_rpc_protocol.cpp)
+cntl->set_from_svr_name(request_meta.from_svr_name())
+```
+
+## DB连接管理
+mc-brpc基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)提供了面向对象的MySQL的操作类<font color=#00ffff>MysqlConn</font>，并提供了对应的连接池实现<font color=#00ffff>DBPool</font>，通过<font color=#00ffff>DBPool</font>对MySQl连接进行管理(创建连接、释放连接、连接保活等)。
+```c++
+class DBPool {
+private:
+    std::string m_clusterName;  // 当前pool对应集群名称
+    DbConfig m_dbConf;          // db参数配置（server.conf中指定)
+    /**
+        message DbConfig {
+           string user = 1;
+           string passwd = 2;
+           string ip = 3;
+           uint32 port = 4;
+           string db_name = 5;
+           uint32 max_active = 6;               // 最大活跃连接数
+           uint32 min_idle = 8;                 // 最小空闲连接数
+           uint32 ilde_timeout_ms = 9;          // 空闲连接超时时间(超过会自动释放连接)
+           uint32 timeout_ms = 10;              // 获取连接超时时间
+           uint32 refresh_interval_ms = 11;     // 连接刷新时间(空闲超过此时间会自动发送心跳至MySQL Server进行保活)
+       }*/
+    uint32_t m_curActive;  // 当前活跃连接数量
+
+    std::queue<MysqlConn*> m_connQue;  // 空闲连接队列
+    bthread::Mutex m_mtx;
+    bthread::ConditionVariable m_cond;
+
+    void CheckDbConfigs();
+    bool AddConnect();
+    void RecycleConnection();
+
+public:
+    DBPool(const std::string& cluster_name, const DbConfig& db_conf);
+    DBPool(const DBPool& pool) = delete;
+    DBPool& operator=(const DBPool& pool) = delete;
+    DBPool(DBPool&& pool) = delete;
+    DBPool& operator=(DBPool&& pool) = delete;
+    ~DBPool();
+
+    std::shared_ptr<MysqlConn> GetConnection();
+};
+```
+<font color=#00ffff>DBPool</font>目前支持设置连接池最大活跃连接数、最小空闲连接数、空闲连接超时时间、获取连接超时时间、空闲连接保活刷新时间等。<font color=#00ffff>DBPool</font>通过一个队列保存当前空闲连接，获取时从队头取一个空闲链接，并返回连接对象<font color=#00ffff>MysqlConn</font>的shared_ptr指针，通过自定义shared_ptr的析构函数来实现shared_ptr销毁的时候将对应的<font color=#00ffff>MysqlConn</font>返还至空闲连接队列(由此可保证队头的连接既是空闲时间最长的连接)。获取连接操作因为需要操作共享的连接队列，因此必须加锁执行，但需要注意得使用`bthread::Mutex`，不能使用c++标准库提供的`std::Mutex`(前者是协程锁，阻塞bthread但不阻塞pthread；后者是线程锁，会直接导致pthread阻塞，性能差很多，甚至可能导致死锁现象)
+```c++
+/**
+ * 获取从队列头部获取一个连接（也即空闲最久的连接），释放连接时自动将连接插入队列尾部
+ */
+std::shared_ptr<MysqlConn> DBPool::GetConnection() {
+    std::unique_lock<bthread::Mutex> lck(m_mtx);
+    // 当空闲连接队列为空则判断：1、当前最大活跃连接数已达上限，则等待  2、当前最大活跃连接数未达上限，新建连接
+    if (m_connQue.empty()) {
+        if (m_curActive >= m_dbConf.max_active()) {
+            LOG(INFO) << "WaitForConnection, size:" << m_connQue.size() << ", active_size:" << m_curActive;
+            int64_t timeout_us = m_dbConf.timeout_ms() * 1000;
+            int64_t start_us = butil::gettimeofday_us();
+            while (m_connQue.empty()) {
+                int status = m_cond.wait_for(lck, timeout_us);
+                if (status == ETIMEDOUT) {
+                    // 获取链接超时返回nullptr
+                    LOG(ERROR) << "[!] get db connection timeout:" << status << " [" << m_clusterName << "."
+                               << m_dbConf.db_name() << "], conn_timeout_ms:" << m_dbConf.timeout_ms();
+                    return nullptr;
+                }
+                timeout_us -= (butil::gettimeofday_us() - start_us);
+            }
+        } else {
+            bool is_succ = AddConnect();
+            if (!is_succ) {
+                return nullptr;
+            }
+        }
+    }
+
+    // 自定义shared_ptr析构方法, 重新将连接放回到连接池中, 而不是销毁
+    std::shared_ptr<MysqlConn> connptr(m_connQue.front(), [this](MysqlConn* conn) {
+        std::unique_lock<bthread::Mutex> lck(this->m_mtx);
+        conn->refreshFreeTime();
+        LOG(DEBUG) << "release connection, id:" << conn->id();
+        this->m_connQue.push(conn);
+        this->m_curActive--;
+        this->m_cond.notify_one();
+    });
+
+    LOG(DEBUG) << "get connection, id:" << connptr->id();
+    m_connQue.pop();
+    m_curActive++;
+    return connptr;
+}
+```
+同时<font color=#00ffff>DBPool</font>会维护一个后台线程，定期对长期空闲的连接进行释放以及发送心跳至MySQL以保活(默认情况下MySQL连接如果超过8小时没有请求会被服务端断开连接)，当当前空闲连接数大于最小空闲连接数时，对空闲超时的连接进行释放；否则，对第一个空闲超过指定刷新时间(默认1小时)的连接进行刷新(内部通过ping向MySQL Server发送心跳信息，避免连接被断开)并从队头移到队尾(这里每次只刷新一个连接，避免后台线程占锁太久)。
+```c++
+DBPool::DBPool(const std::string& cluster_name, const DbConfig& db_conf) :
+        m_clusterName(cluster_name), m_dbConf(db_conf), m_curActive(0) {
+    // 检查配置参数合法性并未未配置的参数指定默认值
+    CheckDbConfigs();
+
+    // 创建子线程用于销毁空闲链接
+    std::thread(&DBPool::RecycleConnection, this).detach();
+
+    LOG(INFO) << "db pool inited[" << m_clusterName << "]";
+}
+
+/**
+ * 子线程--每5s执行一次检测并释放空闲(超时)连接，以及对剩余连接进行保活检测
+ */
+void DBPool::RecycleConnection() {
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::unique_lock<bthread::Mutex> lck(m_mtx);
+        if ((m_connQue.size() > m_dbConf.min_idle())) {
+            // 释放空闲超时的连接
+            while (m_connQue.size() > m_dbConf.min_idle()) {
+                MysqlConn* recyConn = m_connQue.front();
+                if (recyConn->getFreeTime() >= m_dbConf.ilde_timeout_ms()) {
+                    LOG(INFO) << "recycle connection, id:" << recyConn->id() << "[" << m_clusterName << "."
+                              << m_dbConf.db_name() << "]";
+                    m_connQue.pop();
+                    delete recyConn;
+                } else {
+                    break;
+                }
+            }
+        } else {
+            // 对长时间空闲的连接进行保活检测，必要时重连
+            if (!m_connQue.empty()) {
+                MysqlConn* conn = m_connQue.front();
+                if (conn->getFreeTime() > m_dbConf.refresh_interval_ms()) {
+                    if (!conn->refresh()) {
+                        // 刷新失败剔除连接
+                        m_connQue.pop();
+                    } else {
+                        // 刷新成功将连接移到尾部
+                        LOG(INFO) << "connection refreshed, id:" << conn->id();
+                        conn->refreshFreeTime();
+                        m_connQue.pop();
+                        m_connQue.push(conn);
+                    }
+                }
+            }
+        }
+    }
+}
+```
+一般情况下，用户不需要手动创建<font color=#00ffff>DBPool</font>以及<font color=#00ffff>MysqlConn</font>，而是应该通过<font color=#00ffff>DBManager</font>从<font color=#00ffff>DBPool</font>里面获取<font color=#00ffff>MysqlCon</font>连接并进行操作。通过mc-brpc构建brpc服务时，如果需要用到MySQL，只需要：
+1. 在CMakeLists.txt里面add_server_source添加<font color=#ffff00>USE_MYSQL</font>选项，这样会自动定义<font color=#ffff00>USE_MYSQL</font>宏并引入MySQL相关源文件和依赖库。
+2. 在server.conf中配置好DB的相关配置，<font color=#00ffff>MCServer</font>启动会自动解析配置并为配置的每个DB集群创建对应的连接池对象(`DBManager::get()->Init();`)并注册到一个全局map中。
+```c++
+void DbManager::Init() {
+    const google::protobuf::Map<std::string, DbConfig>& db_confs =
+        server::utils::Singleton<ServerConfig>::get()->GetDbConfig();
+    for (auto it = db_confs.begin(); it != db_confs.end(); ++it) {
+        brpc::Extension<DBPool>::instance()->RegisterOrDie(it->first, new DBPool(it->first, it->second));
+    }
+}
+```
+使用示例如下：
+```c++
+// 从db_master集群获取一个MysqlConn连接
+auto conn = DBManager::get()->GetDBConnection("db_master");
+if (conn == nullptr) {
+    // todo: error handler
+    return;
+}
+
+std::string sql = "SELECT * FROM tbl_user_info limit 10";
+try {
+    if (conn->query(sql)) {
+        while (conn->next()) {
+            std::ostringstream os;
+            for (unsigned i = 0; i < conn->cols(); ++i) {
+                os << conn->value(i) << " ";
+            }
+            LOG(INFO) << os.str();
+        }
+    } else {
+        LOG(ERROR) << "[!] db query error, sql:" << sql << ", err_no:" << conn->errNo()
+                       << ", err_msg:" << conn->errMsg();
+    }
+} catch(std::exception& e) {
+    LOG(ERROR) << e.what();
+}
+```
+
+## Redis连接管理
+mc-brpc基于[redis++](https://github.com/sewenew/redis-plus-plus)提供了Redis的操作类<font color=#00ffff>RedisWrapper</font>，它支持STL风格操作。与MySQL客户端代码不同的是，这里不需要单独实现连接池，因为[redis++](https://github.com/sewenew/redis-plus-plus)已经提供了这个功能，它会自动为配置里指定的redis实例(集群)维护一个连接池，但redis++对集群模式Redis和其它模式redis(单实例Redis、哨兵模式主从Redis)的操作分别是通过`sw::redis::RedisCluster`和`sw::redis::Redis`来完成的，那么如果我们服务里面原来使用的是单实例Redis，代码里是通过`sw::redis::Redis`来进行操作的，后面如果想切换到Redis集群，那就需要修改相关Redis操作代码，因此我们提供<font color=#00ffff>RedisWrapper</font>来屏蔽这些差异，业务层统一使用<font color=#00ffff>RedisWrapper</font>来进行Redis操作就行，<font color=#00ffff>RedisWrapper</font>内自动判断当前是对单实例Redis进行操作还是对集群模式Redis进行操作，简化业务代码开发。实现原理也很简单，通过`std::variant`(需要c++ 17及以上，低版本可以使用union代替)来存放`sw::redis::RedisCluster`和`sw::redis::Redis`, 操作redis时先判断当前`std::variant`中存放的实际类型再调对应类型的API，部分实例如下：
+```c++
+class RedisWrapper {
+private:
+    std::variant<Redis *, RedisCluster *> p_instance;
+
+public:
+    RedisWrapper(Redis *redis) : p_instance(redis) {}
+    RedisWrapper(RedisCluster *cluster): p_instance(cluster) {}
+
+    /**
+     * @param key Key.
+     * @param val Value.
+     * @param ttl Timeout on the key. If `ttl` is 0ms, do not set timeout.
+     * @param type Options for set command:
+     *             - UpdateType::EXIST: Set the key only if it already exists.
+     *             - UpdateType::NOT_EXIST: Set the key only if it does not exist.
+     *             - UpdateType::ALWAYS: Always set the key no matter whether it exists.
+     * @return Whether the key has been set.
+     * @retval true If the key has been set.
+     * @retval false If the key was not set, because of the given option.
+     */
+    bool set(const StringView &key,
+             const StringView &val,
+             const std::chrono::milliseconds &ttl = std::chrono::milliseconds(0),
+             UpdateType type = UpdateType::ALWAYS) {
+        if (std::holds_alternative<Redis*>(p_instance)) {
+            return std::get<Redis*>(p_instance)->set(key, val, ttl, type);
+        } else if (std::holds_alternative<RedisCluster*>(p_instance)) {
+            return std::get<RedisCluster*>(p_instance)->set(key, val, ttl, type);
+        } else {
+            throw std::runtime_error("Redis p_instance not found.");
+        }
+    }
+
+    /**
+     @brief Set multiple fields of the given hash.
+    *
+    * Example:
+    * @code{.cpp}
+    *       std::unordered_map<std::string, std::string> m = {{"f1", "v1"}, {"f2", "v2"}};
+    *       redis.hset("hash", m.begin(), m.end());
+    * @endcode
+    * @param key Key where the hash is stored.
+    * @param first Iterator to the first field to be set.
+    * @param last Off-the-end iterator to the given range.
+    * @return Number of fields that have been added, i.e. fields that not existed before.
+    */
+    template <typename Input>
+    auto hset(const StringView &key, Input first, Input last) ->
+        typename std::enable_if<!std::is_convertible<Input, StringView>::value, long long>::type {
+        if (std::holds_alternative<Redis *>(p_instance)) {
+            return std::get<Redis *>(p_instance)->hset(key, first, last);
+        } else if (std::holds_alternative<RedisCluster *>(p_instance)) {
+            return std::get<RedisCluster *>(p_instance)->hset(key, first, last);
+        } else {
+            throw std::runtime_error("Redis p_instance not found.");
+        }
+    }
+
+    // ...
+};
+```
+同样，mc-brpc提供了<font color=#00ffff>RedisManager</font>类来完成解析Redis配置、为每个redis实例(集群)创建<font color=#00ffff>RedisWrapper</font>实例并注册到全局配置map中。用户一般情况下也不需要自己手动创建<font color=#00ffff>RedisWrapper</font>，而是应该使用<font color=#00ffff>RedisManager</font>来获取对应Redis实例(集群)的操作对象。通过mc-brpc构建brpc服务时，如果需要用到Redis，只需要：
+
+1. 在CMakeLists.txt里面add_server_source添加USE_Redis选项，这样会自动定义USE_Redis宏并引入redis++相关源文件和依赖库。
+2. 在server.conf中配置好Redis的相关配置，MCServer启动会自动解析配置并为配置的每个Redis实例(集群)创建对应的<font color=#00ffff>RedisWrapper</font>对象(`RedisManager::get()->Init();`)并注册到一个全局map中。
+```c++
+void redisManager::Init() {
+    const google::protobuf::Map<std::string, RedisConfig>& redis_confs =
+        server::utils::Singleton<ServerConfig>::get()->GetRedisConfig();
+    for (auto it = redis_confs.begin(); it != redis_confs.end(); ++it) {
+        if (it->second.has_redis_info()) {
+            ConnectionOptions conn_options;
+            conn_options.host = it->second.redis_info().host();
+            conn_options.port = it->second.redis_info().port();
+            conn_options.socket_timeout =
+                std::chrono::milliseconds(it->second.timeout_ms() > 0 ? it->second.timeout_ms() : 1500);
+            conn_options.password = it->second.passwd();
+
+            ConnectionPoolOptions pool_options;
+            pool_options.wait_timeout =
+                std::chrono::milliseconds(it->second.wait_timeout_ms() > 0 ? it->second.wait_timeout_ms() : 1000);
+            pool_options.size = it->second.pool_size() > 0 ? it->second.pool_size() : 3;
+
+            // 注册Cluster/Redis信息
+            if (it->second.redis_info().type() == "cluster") {
+                RedisCluster* cluster = new RedisCluster(conn_options, pool_options);
+                brpc::Extension<RedisWrapper>::instance()->RegisterOrDie(it->first, new RedisWrapper(cluster));
+                LOG(INFO) << "redis cluster inited: " << it->first;
+            } else {
+                Redis* redis = new Redis(conn_options, pool_options);
+                brpc::Extension<RedisWrapper>::instance()->RegisterOrDie(it->first, new RedisWrapper(redis));
+                LOG(INFO) << "single redis inited: " << it->first;
+            }
+        } else if (it->second.has_sentine_info()) {
+            SentinelOptions sentinel_opts;
+            for (auto& sentine : it->second.sentine_info().sentines()) {
+                sentinel_opts.nodes.emplace_back(make_pair(sentine.host(), sentine.port()));
+            }
+            sentinel_opts.socket_timeout =
+                std::chrono::milliseconds(it->second.timeout_ms() > 0 ? it->second.timeout_ms() : 1500);
+            auto sentinel = std::make_shared<Sentinel>(sentinel_opts);
+
+            ConnectionOptions conn_options;
+            conn_options.socket_timeout =
+                std::chrono::milliseconds(it->second.timeout_ms() > 0 ? it->second.timeout_ms() : 1500);
+            conn_options.password = it->second.passwd();
+
+            ConnectionPoolOptions pool_options;
+            pool_options.wait_timeout =
+                std::chrono::milliseconds(it->second.wait_timeout_ms() > 0 ? it->second.wait_timeout_ms() : 1000);
+            pool_options.size = it->second.pool_size() > 0 ? it->second.pool_size() : 3;
+
+            // 注册Redis信息
+            Redis* redis = new Redis(sentinel, "master_name", Role::MASTER, conn_options, pool_options);
+            brpc::Extension<RedisWrapper>::instance()->RegisterOrDie(it->first, new RedisWrapper(redis));
+            LOG(INFO) << "redis sentine inited: " << it->first;
+        }
+    }
+}
+```
+使用示例如下：
+```c++
+// 从redis_cluster获取一个连接对象
+auto cluster = RedisManager::get()->GetRedisConnection("redis_cluster");
+if (!cluster) {
+    return;
+}
+cluster->set("key", "value", std::chrono::milliseconds(3600000));
+
+// 从单实例Redis获取一个连接对象
+std::vector<std::string> ll = {"123", "abc", "PHQ"};
+auto redis = RedisManager::get()->GetRedisConnection("redis_single");
+if (!redis) {
+    return;
+}
+redis->lpush("list_1", ll.begin(), ll.end());
+redis->expire("list_1", std::chrono::seconds(3600));
+```
