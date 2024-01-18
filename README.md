@@ -234,7 +234,7 @@ std::string MCServer::BuildServiceName(
 ```
 
 ### brpc_name_agent
-mc-brpc服务并不直接从服务中心做服务发现，而是引入了一个基础服务brpc_name_agent作为名字服务代理。brpc_name_agent本身也是基于mc-brpc创建，它从etcd订阅了key事件通知，当有新的服务实例注册或者取消注册时，brpc_name_agent将对应服务实例信息添加至本地内存或者从本地内存移除(典型读多写少场景，使用DoublyBufferedData存储数据)。因此，每个name_agent实例都包含全部注册到etcd的服务实例信息。默认情况下，brpc_name_agent使用unix域套接字进行通信(unix:/var/brpc_name_agent.sock)，因此它不需要注册到etcd中，name_agent进程需要部署到每个服务器上供该服务器上的其他mc-brpc服务进程做服务发现。
+mc-brpc服务并不直接从服务中心做服务发现，而是引入了一个基础服务brpc_name_agent作为名字服务代理。brpc_name_agent本身也是基于mc-brpc创建，它从etcd订阅了key事件通知，当有新的服务实例注册或者取消注册时，brpc_name_agent将对应服务实例信息添加至本地内存或者从本地内存移除(典型读多写少场景，使用<font color=#00ffff>DoublyBufferedData</font>存储数据)。因此，每个name_agent实例都包含全部注册到etcd的服务实例信息。默认情况下，brpc_name_agent使用unix域套接字进行通信(unix:/var/brpc_name_agent.sock)，因此它不需要注册到etcd中，name_agent进程需要部署到每个服务器上供该服务器上的其他mc-brpc服务进程做服务发现。
 ```c++
 void AgentServiceImpl::WatcherCallback(etcd::Response response) {
     for (const etcd::Event& ev : response.events()) {
@@ -402,7 +402,7 @@ brpc访问下游是通过channel发起请求，channel可以看做是带有lb策
 3. 创建一个controller对象用户保存rpc过程中的一些控制数据等
 4. 通过stub对象向目标服务发起rpc调用  
 
-通过上述同步调用示例，可以看出发起rpc调用的流程较长，如果需要向多个不同服务的不同接口发起rpc调用需要编写大量重复类似的代码。因此，mc-brpc对此过程进行了简化，我们提供了个插件codexx（代码实现：core/extensions/codexx.cpp），它通过对目标服务的proto文件进行解析，为每个目标服务生成对应的同步客户端(<font color=#00ffff>SyncClient</font>)、半同步客户端(<font color=#00ffff>SemiSyncClient</font>)及异步客户端(<font color=#00ffff>ASyncClient</font>)，简化发起brpc调用的流程。只需要在CMakeList.txt中对添加下面两行即可：
+通过上述同步调用示例，可以看出发起rpc调用的流程较长，如果需要向多个不同服务的不同接口发起rpc调用需要编写大量重复类似的代码。因此，mc-brpc对此过程进行了简化，我们提供了个插件<font color=#ffff0>codexx</font>（代码实现：core/extensions/codexx.cpp），它通过对目标服务的proto文件进行解析，为每个目标服务生成对应的同步客户端(<font color=#00ffff>SyncClient</font>)、半同步客户端(<font color=#00ffff>SemiSyncClient</font>)及异步客户端(<font color=#00ffff>ASyncClient</font>)，简化发起brpc调用的流程。只需要在CMakeList.txt中对添加下面两行即可：
 ```cmake
 file(GLOB TEST_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/proto/test.proto")
 auto_gen_client_code(${CMAKE_CURRENT_SOURCE_DIR}/client ${CMAKE_CURRENT_SOURCE_DIR}/proto/ ${TEST_PROTO})
@@ -422,7 +422,131 @@ function (auto_gen_client_code out_path proto_path proto_file)
     endforeach()
 endfunction()
 ```
-服务编译后，会在client目录下生成对应的client源文件xxx.client.h和xxx.client.cpp(参考services/brpc_test/client/test.client.h), 之后引入对应client头文件便可以通过Client对象直接发起rpc调用，如下：  
+服务编译后，会在client目录下生成对应的client源文件xxx.client.h和xxx.client.cpp。下面给出部分services/brpc_test/proto/test.proto编译后自动生成的客户端代码:  
+test.client.h
+```c++
+// 同步客户端
+class SyncClient {
+private:
+    brpc::ChannelOptions _options;
+    std::string _service_name;
+    brpc::Controller _controller;
+    GroupStrategy _group_strategy;
+    std::string _lb;
+
+public:
+    SyncClient(const std::string& service_name);
+    ~SyncClient();
+
+    void SetGroupStrategy(GroupStrategy group_strategy);
+    void SetLbStrategy(const std::string& lb);
+    void SetRequestCode(uint64_t request_code);
+    void SetConnectTimeoutMs(uint64_t timeout_ms);
+    void SetTimeoutMs(uint64_t timeout_ms);
+    void SetMaxRetry(int max_retry);
+    void SetLogId(uint64_t log_id);
+    bool Failed() { return _controller.Failed(); }
+    std::string ErrorText() { return _controller.ErrorText(); }
+    int ErrorCode() { return _controller.ErrorCode(); }
+    butil::EndPoint RemoteSide() { return _controller.remote_side(); }
+    butil::EndPoint LocalSide() { return _controller.local_side(); }
+    int64_t LatencyUs() { return _controller.latency_us(); }
+
+    /*  Begin your rpc interfaces  */
+    void UpdateUserInfo(const UpdateUserInfoReq* req, UpdateUserInfoRes* res);
+    void Test(const TestReq* req, TestRes* res);
+};
+
+// 异步客户端
+class ASyncClient { /* ... */ };
+
+// 半同步客户端
+class SemiSyncClient { /* ... */ };
+```
+
+test.client.cpp
+```c++
+// 同步调用
+void SyncClient::Test(const TestReq* req, TestRes* res) { 
+    SharedPtrChannel channel_ptr = 
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);
+    brpc::Channel* channel = channel_ptr.get();
+    if (!channel)  {
+        _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");
+        return;
+    }
+    TestService_Stub stub(channel);
+    stub.Test(&_controller, req, res, nullptr);
+}
+
+// 异步调用
+void ASyncClient::Test(const TestReq* req, std::function<void(bool, TestRes*)> callback) {
+    auto done = new OnRPCDone<TestRes>(callback);
+    SharedPtrChannel channel_ptr = 
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);
+    brpc::Channel* channel = channel_ptr.get();
+    if (!channel)  {
+        brpc::ClosureGuard done_guard(done);
+        done->cntl.SetFailed(::brpc::EINTERNAL, "Failed to channel");
+        return;
+    }
+    if(HasRpcFlag(FLAGS_RPC_REQUEST_CODE)) {
+        done->cntl.set_request_code(_request_code);
+    }
+    if(HasRpcFlag(FLAGS_RPC_LOG_ID)) {
+        done->cntl.set_log_id(_log_id);
+    }
+    TestService_Stub stub(channel);
+    _call_id == done->cntl.call_id();
+    stub.Test(&done->cntl, req, &done->response, done);
+}
+
+// 半同步调用
+void SemiSyncClient::Test(const TestReq* req, TestRes* res) { 
+    SharedPtrChannel channel_ptr = 
+        SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);
+    brpc::Channel* channel = channel_ptr.get();
+    if (!channel)  {
+        _controller.SetFailed(::brpc::EINTERNAL, "Failed to channel");
+        return;
+    }
+    TestService_Stub stub(channel);
+    stub.Test(&_controller, req, res, brpc::DoNothing());
+}
+```
+其中`SingletonChannel::get()`用户获取一个全局单例的<font color=#00ffff>ChannelManager</font>对象，再通过它的`ChannelManager::GetChannel`方法按指定的大区机房策略以及负载均衡策略获取目标服务的`brpc::Channel`指针:
+```c++
+SharedPtrChannel ChannelManager::GetChannel(const std::string& service_name,
+                                            GroupStrategy group_strategy,
+                                            const std::string& lb,
+                                            brpc::ChannelOptions* options) {
+    /**
+     * service_name(for example: "mc://brpc_name_agent")
+     * real_service_name(for example: "mc://brpc_name_agent:0")
+     * service_name_with_lb(for example: "mc://brpc_name_agent:0:rr")
+    **/
+
+    std::string real_service_name    = service_name + ":" + std::to_string(group_strategy);
+    std::string service_name_with_lb = real_service_name + ":" + lb;
+
+    BAIDU_SCOPED_LOCK(_mutex);
+    auto it = _server_channels.find(service_name_with_lb);
+    if (it != _server_channels.end()) {
+        return it->second;
+    }
+
+    SharedPtrChannel channel(new brpc::Channel);
+    if (channel->Init(real_service_name.c_str(), lb.c_str(), options) != 0) {
+        LOG(ERROR) << "[!] Failed to new Channel, service_name_with_lb:" << service_name_with_lb;
+        return nullptr;
+    }
+
+    _server_channels[service_name_with_lb] = channel;
+    return channel;
+}
+```
+
+业务代码中引入对应client头文件便可以通过Client对象直接发起rpc调用，如下：  
 **同步调用:**
 ```c++
 test::SyncClient client("brpc_test");
@@ -461,39 +585,19 @@ req.set_msg("hello world");
 client.Test(&req, &res);
 client.Join();
 ```
-对比可发现，不同类型rpc调用客户端代码都简洁很多。示例里面只给出了最简单的用法，自动生成的Client类可以像brpc::Controller一样设置rpc连接超时时间、rpc超时时间、重试次数、LogId、获取rpc延迟时间等，以及设置rpc请求机房路由策略和负载均衡策略等。以下给出services/brpc_test/proto/test.proto生成的<font color=#00ffff>SyncClient</font>类的声明(其它请参考brpc_test/client/test.client.h和brpc_test/client/test.client.cpp)：
+对比可发现，不同类型rpc调用客户端代码相比原始brpc调用方式要简洁很多。示例里面只给出了最简单的用法，自动生成的Client类可以像brpc::Controller一样设置rpc连接超时时间、rpc超时时间、重试次数、LogId、获取rpc延迟时间等，以及设置rpc请求机房路由策略和负载均衡策略等, 如：
 ```c++
-class SyncClient {
-private:
-    brpc::ChannelOptions _options;
-    std::string _service_name;
-    brpc::Controller _controller;
-    GroupStrategy _group_strategy;
-    std::string _lb;
-
-public:
-    SyncClient(const std::string& service_name);
-    ~SyncClient();
-
-    void SetGroupStrategy(GroupStrategy group_strategy);
-    void SetLbStrategy(const std::string& lb);
-    void SetRequestCode(uint64_t request_code);
-    void SetConnectTimeoutMs(uint64_t timeout_ms);
-    void SetTimeoutMs(uint64_t timeout_ms);
-    void SetMaxRetry(int max_retry);
-    void SetLogId(uint64_t log_id);
-    bool Failed() { return _controller.Failed(); }
-    std::string ErrorText() { return _controller.ErrorText(); }
-    int ErrorCode() { return _controller.ErrorCode(); }
-    butil::EndPoint RemoteSide() { return _controller.remote_side(); }
-    butil::EndPoint LocalSide() { return _controller.local_side(); }
-    int64_t LatencyUs() { return _controller.latency_us(); }
-
-    /*  Begin your rpc interfaces  */
-    void UpdateUserInfo(const UpdateUserInfoReq* req, UpdateUserInfoRes* res);
-    void Test(const TestReq* req, TestRes* res);
-};
+// 按request_code对同大区brpc_test服务实例hash请求，连接超时时间1s，rpc超时时间3s，最大重试次数3
+test::SyncClient client("brpc_test");
+client.SetConnectTimeoutMs(1000);
+client.SetTimeoutMs(3000);
+client.SetMaxRetry(3);
+client.SetGroupStrategy(GroupStrategy::STRATEGY_GROUPS_ONE_REGION);
+client.SetLbStrategy("c_murmurhash");
+client.SetRequestCode(1234567890);
+client.Test(&req, &res);
 ```
+
 
 ## 4. 滚动异步日志
 &emsp;&emsp; brpc写日志是通过<font color=#ffff00>LOG</font>宏进行流式写入的(如：`LOG(INFO) << "abc" << 123;`)，<font color=#ffff00>LOG</font>宏定义涉及到的其它宏定义如下：
@@ -875,7 +979,7 @@ void DBPool::RecycleConnection() {
     }
 }
 ```
-一般情况下，用户不需要手动创建<font color=#00ffff>DBPool</font>以及<font color=#00ffff>MysqlConn</font>，而是应该通过<font color=#00ffff>DBManager</font>从<font color=#00ffff>DBPool</font>里面获取<font color=#00ffff>MysqlCon</font>连接并进行操作。通过mc-brpc构建brpc服务时，如果需要用到MySQL，只需要：
+一般情况下，用户不需要手动创建<font color=#00ffff>DBPool</font>以及<font color=#00ffff>MysqlConn</font>，而是应该通过<font color=#00ffff>DBManager</font>从<font color=#00ffff>DBPool</font>里面获取<font color=#00ffff>MysqlCon</font>连接并进行操作。<font color=#00ffff>DBManager</font>是个单实例类`using DBManager = server::utils::Singleton<server::db::DbManager>;`  通过mc-brpc构建brpc服务时，如果需要用到MySQL，只需要：
 1. 在CMakeLists.txt里面add_server_source添加<font color=#ffff00>USE_MYSQL</font>选项，这样会自动定义<font color=#ffff00>USE_MYSQL</font>宏并引入MySQL相关源文件和依赖库。
 2. 在server.conf中配置好DB的相关配置，<font color=#00ffff>MCServer</font>启动会自动解析配置并为配置的每个DB集群创建对应的连接池对象(`DBManager::get()->Init();`)并注册到一个全局map中。
 ```c++
@@ -979,7 +1083,7 @@ public:
     // ...
 };
 ```
-同样，mc-brpc提供了<font color=#00ffff>RedisManager</font>类来完成解析Redis配置、为每个redis实例(集群)创建<font color=#00ffff>RedisWrapper</font>实例并注册到全局配置map中。用户一般情况下也不需要自己手动创建<font color=#00ffff>RedisWrapper</font>，而是应该使用<font color=#00ffff>RedisManager</font>来获取对应Redis实例(集群)的操作对象。通过mc-brpc构建brpc服务时，如果需要用到Redis，只需要：
+同样，mc-brpc提供了单实例类<font color=#00ffff>RedisManager</font>(`using RedisManager = server::utils::Singleton<server::redis::redisManager>;`)类来完成解析Redis配置、为每个redis实例(集群)创建<font color=#00ffff>RedisWrapper</font>实例并注册到全局配置map中。用户一般情况下也不需要自己手动创建<font color=#00ffff>RedisWrapper</font>，而是应该使用<font color=#00ffff>RedisManager</font>来获取对应Redis实例(集群)的操作对象。通过mc-brpc构建brpc服务时，如果需要用到Redis，只需要：
 
 1. 在CMakeLists.txt里面add_server_source添加USE_Redis选项，这样会自动定义USE_Redis宏并引入redis++相关源文件和依赖库。
 2. 在server.conf中配置好Redis的相关配置，MCServer启动会自动解析配置并为配置的每个Redis实例(集群)创建对应的<font color=#00ffff>RedisWrapper</font>对象(`RedisManager::get()->Init();`)并注册到一个全局map中。
