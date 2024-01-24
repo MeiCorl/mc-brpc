@@ -1,5 +1,5 @@
 # 简介
-### &emsp;&emsp; [mc-brpc](https://github.com/MeiCorl/mc-brpc)是基于[百度brpc框架](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量。其次，mc-brpc在brpc的基础上扩展增加了以下功能以更好的支持rpc服务开发：
+### &emsp;&emsp; [mc-brpc](https://github.com/MeiCorl/mc-brpc)是基于[百度brpc框架](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量以及对原生brpc中一些功能进行增强优化。mc-brpc大部分功能通过在brpc基础上额外增加代码实现，少部分功能(日志、bvar拓展相关)涉及brpc源码修改。目前，mc-brpc在brpc的基础上(增加)扩展了以下功能以更好的支持rpc服务开发：
 * **服务注册**：brpc对于rpc服务中一些功能并未提供具体实现，而是需要用户自己去扩展实现。如服务注册，因为不同用户使用的服务注册中心不一样，有Zookeeper、Eureka、Nacos、Consul、Etcd、甚至自研的注册中心等，不同注册中心注册和发现流程可能不一样，不太好统一，因此只好交由用户根据去实现服务注册这部分；而对于服务发现这部分，brpc默认支持基于文件、dns、bns、http、consul、nacos等的服务发现，并支持用户扩展NamingService实现自定义的服务发现。mc-brpc在brpc的基础上实现了服务自动注册到etcd，并提供了NamingService的扩展(<font color=#00ffff>McNamingService</font>)用以支持自定义的服务发现(**mc:\/\/service_name**)
 
 * **名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息，并为mc-brpc提供服务发现，主要是为了支持在服务跨机房甚至跨大区部署时，brpc请求能支持按指定大区和机房进行路由，此外name_agent还将服务信息dump出来作为promethus监控的targets，以及后续拟支持户端主动容灾功(暂未实现)等
@@ -10,7 +10,7 @@
 
 * **自动生成rpc客户端代码**：当通过某个服务通过proto文件定义好接口后，其它服务若想调用该服务的接口，只需要在CMakeLists.txt(参考services/brpc_test/CmakeLists.txt)中调用<font color=#ffff00>auto_gen_client_code</font>即可为指定proto生成对应的同步客户端(<font color=#00ffff>SyncClient</font>)、半同步客户端(<font color=#00ffff>SemiSyncClient</font>)及异步客户端(<font color=#00ffff>ASyncClient</font>)，简化发起brpc调用的流程。其原理是通过一个mc-brpc提供的protobuf插件<font color=#00ff00>codexx</font>(core/plugins/codexx)解析对应proto文件然后生成相应客户端代码
 
-* **统一全局配置**：mc-brpc服务启动会自动解析gflags(如果有../conf/gflags.conf配置文件)；并自动解析服务配置(../conf/server.conf)，其中包含服务名、名字服务地址、大区id、机房id、DB配置、Redis配置、日志相关配置等，并自动根据服务配置对相关组件进行初始化操作(如：根据DB配置创建DB连接池，根据Redis配置初始化Redis客户端代理实例等)
+* **扩展bvar支持多维度统计，无缝接入prometheus**：原生brpc的bvar导出时不支持带label信息([here](https://github.com/apache/brpc/issues/765))，虽然提供了[mbvar](https://github.com/apache/brpc/blob/master/docs/cn/mbvar_c%2B%2B.md#bvarmvariables)来支持多维度统计，但其导出格式不支持Prometheus采集；因此mc-brpc实现了自己的多维指标统计方式，可支持自定义mtrices label并按Prometheus采集数据格式导出，更便于多维数据监控上报及统计。
 
 * **DB连接管理**：core/mysql下基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)封装实现了<font color=#00ffff>MysqlConn</font>并提供了对应连接池实现<font color=#00ffff>DBPool</font>，mc-brpc服务启动时会根据配置为每个DB实例初始化一个连接池对象并注册到一个全局map中，使用时通过<font color=#00ffff>DBManager</font>从对应实例的连接池获取一个连接进行DB操作。DBPool支持设置连接池最小空闲连接数、最大活跃连接数、获取链接超时时间、连接空闲超时时间（长期空闲超时的连接会被自动释放）等
 
@@ -313,14 +313,14 @@ scrape_configs:
     # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
     # metrics_path defaults to '/metrics'
     # scheme defaults to 'http'.
-  - job_name: "brpc_services"
+  - job_name: "default_metrics"
     metrics_path: "brpc_metrics"
     file_sd_configs:
     - refresh_interval: 10s
       files:
         - /etc/prometheus/instance.json
 ```
-*注意: metrics_path需要指定为brpc_metrics, brpc服务默认metrics到处路径为/brpc_metrics*, 以下是通过[grafana](https://grafana.com/)对prometheus采集的服务指标进行可视化的示例：
+这里我们配置了一个Prometheus指标抓取任务default_metrics，监控目标从/etc/prometheus/instance.json去发现，*注意: metrics_path需要指定为brpc_metrics, brpc服务默认metrics到处路径为/brpc_metrics(后面我们还会新增一个mc_server_metrics的任务，用于从/metrics抓取我们自定义的多维指标)*, 以下是通过[grafana](https://grafana.com/)对prometheus采集的服务指标进行可视化的示例：
 ![image.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d818623c7d1840c383e10949518920aa~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2560&h=1239&s=261197&e=png&b=181b1f)
 
 ### 服务发现
@@ -836,8 +836,119 @@ if(!cntl->from_svr_name().empty()) {
 // ProcessRpcRequest(baidu_rpc_protocol.cpp)
 cntl->set_from_svr_name(request_meta.from_svr_name())
 ```
+## 5. bvar扩展支持多维label及prometheus采集
+原生brpc的bvar导出时不支持带label信息([here](https://github.com/apache/brpc/issues/765))，虽然提供了[mbvar](https://github.com/apache/brpc/blob/master/docs/cn/mbvar_c%2B%2B.md#bvarmvariables)来支持多维度统计，但其导出格式不支持Prometheus采集；如当通过mbvar统计brpc_test服务每个接口(总共两个接口UpdateUserInfo、Test)请求次数时，原生brpc统计结果导出后如下：
+```yaml
+# HELP service_request_counter{method="Test"}
+# TYPE service_request_counter{method="Test"} gauge
+service_request_counter{method="Test"} 14920
+# HELP service_request_counter{method="UpdateUserInfo"}
+# TYPE service_request_counter{method="UpdateUserInfo"} gauge
+service_request_counter{method="UpdateUserInfo"} 14920
+```
+这个输出格式是不支持被prometheus采集的，期望的输出格式应该如下:
+```yaml
+# HELP service_request_counter service_request_counter
+# TYPE service_request_counter gauge
+service_request_counter{method="Test"} 270873
+service_request_counter{method="UpdateUserInfo"} 270843
+```
+因此mc-brpc实现了自己的多维指标统计方式，可支持自定义mtrices label并按上述Prometheus采集数据格式导出，更便于多维数据监控上报及统计。为此，mc-brpc提供了`bvar::MetricsCountRecorder`用于做多维的计数统计，一个`MetricsCountRecorder`对象可以看做是一堆bvar的集合，这些bvar具有相同的名字(metrics_name)，相同的标签(label)，但是label取值不同(具体实现请看源码brpc/bvar/metrics_count_recorder.h)。此外，mc-brpc在brpc基础上新增了一个内置服务<font color=#00ffff>MetricsService</font>，用于将自定义多维bvar在/metrics路径按prometheus采集数据格式导出。
+```c++
+// brpc/server.cpp
+int Server::AddBuiltinServices() {
+    // ...
+    if (AddBuiltinService(new (std::nothrow) PrometheusMetricsService)) {
+        LOG(ERROR) << "Fail to add PrometheusMetricsService";
+        return -1;
+    }
 
-## DB连接管理
+    // ****  here we add MetricsService  ****/
+    if (AddBuiltinService(new (std::nothrow) MetricsService)) {
+        LOG(ERROR) << "Fail to add MetricsService";
+        return -1;
+    }
+
+    // ...
+}
+```
+与<font color=#00ffff>PrometheusMetricsService</font>类不同，我们做了以下的优化：
+
+1. bvar::Dumper类新增dump_metrics接口，只会导出MetricsCountRecorder中的bavar。
+
+2. bvar::DumpOptions dump选项新增只导出带metrics name的bvar的开关。
+
+3. DisplayFilter原本只有3个选项将bvar分为plain txt类型，html类型与all类型（既是plain txt，也是html类型），在此基础上新增metrics类型选项DISPLAY_METRICS_DATA，这个过滤器的作用十分大，因为`bvar::MetricsCountRecorder`与`bvar::MetricsLatencyRecorder`(暂未添加)类里面包含很多已经被expose的bvar了，不做优化的话这些bvar会被输出到/vars页面或者是/brpc_metrics或者被dump出到文件的，为了防止这些bvar被输出，需要设置一个新的DisplayFilter选项，并且只有/metrics能导出这些类型的bvar。
+
+4. 导出到`MetricsService`的带Prometheus metrics信息的bvar会依照metrics name聚合，同一metrics name的bvar数据会按照Prometheus metrics的数据格式一并输出。
+
+为方便使用我们在core/common/metrcis_helper.h提供了写常用的宏定义：
+```c++
+#pragma once
+#include "bvar/metrics_count_recorder.h"
+
+///////// define
+#define DEFINE_METRICS_counter_u64(name, metrics_name, desc)                         \
+    namespace mc {                                                                   \
+    namespace mc_metrics {                                                           \
+    bvar::MetricsCountRecorder<uint64_t> METRICS_COUNTER_##name(metrics_name, desc); \
+    }                                                                                \
+    }                                                                                \
+    using mc::mc_metrics::METRICS_COUNTER_##name
+
+///////// declare
+#define DECLARE_METRICS_counter_u64(name)                               \
+    namespace mc {                                                      \
+    namespace mc_metrics {                                              \
+    extern bvar::MetricsCountRecorder<uint64_t> METRICS_COUNTER_##name; \
+    }                                                                   \
+    }                                                                   \
+    using mc::mc_metrics::METRICS_COUNTER_##name
+
+///////// set fixed labels
+#define ADD_STATIC_COUNTER_LABEL(name, label_key, label_val) \
+    mc::mc_metrics::METRICS_COUNTER_##name.set_metrics_label(label_key, label_val)
+
+//////// set unfixed labels
+#define ADD_COUNTER_LABEL(name, label_key) mc::mc_metrics::METRICS_COUNTER_##name.set_metrics_label(label_key)
+
+//////// set metrics
+#define ADD_METRICS_COUNTER(name, args...)          mc::mc_metrics::METRICS_COUNTER_##name.find({args}) << 1
+#define ADD_METRICS_COUNTER_VAL(name, val, args...) mc::mc_metrics::METRICS_COUNTER_##name.find({args}) << val
+```
+
+以统计brpc_test服务下每个接口qps为例，使用方式如下：
+```c++
+// 定义metrics(service_request_counter)
+DEFINE_METRICS_counter_u64(service_request_counter, "service_request_counter", "service_request_counter");
+
+// 为metrics添加一个label
+ADD_COUNTER_LABEL(service_request_counter, "method");
+
+void ServiceImpl::UpdateUserInfo(...) {
+    // ...
+
+    // 更新标签为UpdateUserInfo的bvar数据(+1)
+    ADD_METRICS_COUNTER(service_request_counter, "UpdateUserInfo"); // 等价于 ADD_METRICS_COUNTER_VAL(service_request_counter, 1, "UpdateUserInfo");
+}
+
+void ServiceImpl::Test(...) {
+    // ...
+
+    // 更新标签为Test的bvar数据(+1)
+    ADD_METRICS_COUNTER(service_request_counter, "Test"); // 等价于 ADD_METRICS_COUNTER_VAL(service_request_counter, 1, "Test");
+}
+```
+服务启动并有请求访问后，访问ip:port/metrics可以得到如下输出:
+```yaml
+# TYPE service_request_counter gauge
+service_request_counter{method="Test"} 2381312
+service_request_counter{method="UpdateUserInfo"} 2381038
+```
+配合Grafana可以更方便的看到整个服务下每个接口的qps(PromQL: `sum(rate(service_request_counter{service_name="$service_name"}[1m])) by (method)`)：
+![image.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4d1cb0659c234bcc9778a6ab1ece5f92~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1287&h=447&s=53760&e=png&b=171a1e)
+
+## 6. DB连接管理
 mc-brpc基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)提供了面向对象的MySQL的操作类<font color=#00ffff>MysqlConn</font>，并提供了对应的连接池实现<font color=#00ffff>DBPool</font>，通过<font color=#00ffff>DBPool</font>对MySQl连接进行管理(创建连接、释放连接、连接保活等)。
 ```c++
 class DBPool {
@@ -1019,7 +1130,7 @@ try {
 }
 ```
 
-## Redis连接管理
+## 7. Redis连接管理
 mc-brpc基于[redis++](https://github.com/sewenew/redis-plus-plus)提供了Redis的操作类<font color=#00ffff>RedisWrapper</font>，它支持STL风格操作。与MySQL客户端代码不同的是，这里不需要单独实现连接池，因为[redis++](https://github.com/sewenew/redis-plus-plus)已经提供了这个功能，它会自动为配置里指定的redis实例(集群)维护一个连接池，但redis++对集群模式Redis和其它模式redis(单实例Redis、哨兵模式主从Redis)的操作分别是通过`sw::redis::RedisCluster`和`sw::redis::Redis`来完成的，那么如果我们服务里面原来使用的是单实例Redis，代码里是通过`sw::redis::Redis`来进行操作的，后面如果想切换到Redis集群，那就需要修改相关Redis操作代码，因此我们提供<font color=#00ffff>RedisWrapper</font>来屏蔽这些差异，业务层统一使用<font color=#00ffff>RedisWrapper</font>来进行Redis操作就行，<font color=#00ffff>RedisWrapper</font>内自动判断当前是对单实例Redis进行操作还是对集群模式Redis进行操作，简化业务代码开发。实现原理也很简单，通过`std::variant`(需要c++ 17及以上，低版本可以使用union代替)来存放`sw::redis::RedisCluster`和`sw::redis::Redis`, 操作redis时先判断当前`std::variant`中存放的实际类型再调对应类型的API，部分实例如下：
 ```c++
 class RedisWrapper {
