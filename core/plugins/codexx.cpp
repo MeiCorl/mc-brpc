@@ -6,7 +6,7 @@
  * build cmd: g++ codexx.cpp -lprotoc -lprotobuf -o codexx
  * @date: 2023/08/22 16:00:30
  * @author: meicorl
-*/
+ */
 
 #include <google/protobuf/compiler/code_generator.h>
 #include <google/protobuf/descriptor.h>
@@ -21,32 +21,31 @@ using namespace google::protobuf::io;
 
 class CodeXXGenerator : public google::protobuf::compiler::CodeGenerator {
 public:
-    virtual bool Generate(const FileDescriptor* file,
-                          const string& parameter,
-                          GeneratorContext* generator_context,
-                          string* error) const {
+    virtual bool Generate(
+        const FileDescriptor* file,
+        const string& parameter,
+        GeneratorContext* generator_context,
+        string* error) const {
         GenerateHeaderFile(file, generator_context);
         GenerateSourceFile(file, generator_context);
         return true;
     }
 
 private:
-    void split(const std::string& str,
-               std::vector<std::string>& results,
-               const std::string& del = ".") const {
+    void split(const std::string& str, std::vector<std::string>& results, const std::string& del = ".") const {
         int start = str.find_first_not_of(del, 0);
-        int end   = str.find_first_of(del, start);
+        int end = str.find_first_of(del, start);
         while ((start != string::npos) || (end != string::npos)) {
             results.emplace_back(str.substr(start, end - start));
             start = str.find_first_not_of(del, end);
-            end   = str.find_first_of(del, start);
+            end = str.find_first_of(del, start);
         }
     }
 
     void GenerateHeaderFile(const FileDescriptor* file, GeneratorContext* generator_context) const {
-        std::string file_name        = file->name().substr(0, file->name().find('.'));
+        std::string file_name = file->name().substr(0, file->name().find('.'));
         std::string header_file_name = file_name + ".client.h";
-        auto* outstream              = generator_context->Open(header_file_name);
+        auto* outstream = generator_context->Open(header_file_name);
 
         Printer printer(outstream, '$');
         printer.PrintRaw(notic);
@@ -91,8 +90,7 @@ private:
 
             printer.PrintRaw("\n");
             printer.PrintRaw("public:\n");
-            printer.Print("    $client_type$(const std::string& service_name);\n", "client_type",
-                          client_type);
+            printer.Print("    $client_type$(const std::string& service_name);\n", "client_type", client_type);
             printer.Print("    ~$client_type$();\n\n", "client_type", client_type);
             printer.PrintRaw("    void SetGroupStrategy(GroupStrategy group_strategy);\n");
             printer.PrintRaw("    void SetLbStrategy(const std::string& lb);\n");
@@ -104,18 +102,14 @@ private:
 
             if (client_type != "ASyncClient") {
                 printer.PrintRaw("    bool Failed() { return _controller.Failed(); }\n");
-                printer.PrintRaw(
-                    "    std::string ErrorText() { return _controller.ErrorText(); }\n");
+                printer.PrintRaw("    std::string ErrorText() { return _controller.ErrorText(); }\n");
                 printer.PrintRaw("    int ErrorCode() { return _controller.ErrorCode(); }\n");
-                printer.PrintRaw(
-                    "    butil::EndPoint RemoteSide() { return _controller.remote_side(); }\n");
-                printer.PrintRaw(
-                    "    butil::EndPoint LocalSide() { return _controller.local_side(); }\n");
+                printer.PrintRaw("    butil::EndPoint RemoteSide() { return _controller.remote_side(); }\n");
+                printer.PrintRaw("    butil::EndPoint LocalSide() { return _controller.local_side(); }\n");
                 printer.PrintRaw("    int64_t LatencyUs() { return _controller.latency_us(); }\n");
             } else {
                 printer.PrintRaw("    void AddRpcFlag(uint32_t flag) { _rpc_flag |= flag; }\n");
-                printer.PrintRaw(
-                    "    bool HasRpcFlag(uint32_t flag) { return _rpc_flag & flag; }\n");
+                printer.PrintRaw("    bool HasRpcFlag(uint32_t flag) { return _rpc_flag & flag; }\n");
             }
 
             if (client_type == "SemiSyncClient") {
@@ -131,9 +125,9 @@ private:
                     auto service = file->service(i);
                     for (int j = 0; j < service->method_count(); j++) {
                         auto method = service->method(j);
-                        printer.PrintRaw("    void " + method->name() + "(" + "const " +
-                                         method->input_type()->name() + "* req, " +
-                                         method->output_type()->name() + "* res);\n");
+                        printer.PrintRaw(
+                            "    void " + method->name() + "(" + "const " + method->input_type()->name() + "* req, " +
+                            method->output_type()->name() + "* res);\n");
                     }
                 }
             } else {
@@ -141,10 +135,9 @@ private:
                     auto service = file->service(i);
                     for (int j = 0; j < service->method_count(); j++) {
                         auto method = service->method(j);
-                        printer.PrintRaw("    void " + method->name() + "(" + "const " +
-                                         method->input_type()->name() + "* req, " +
-                                         "std::function<void(bool, " +
-                                         method->output_type()->name() + "*)> callback);\n");
+                        printer.PrintRaw(
+                            "    void " + method->name() + "(" + "const " + method->input_type()->name() + "* req, " +
+                            "std::function<void(bool, " + method->output_type()->name() + "*)> callback);\n");
                     }
                 }
             }
@@ -160,9 +153,9 @@ private:
     }
 
     void GenerateSourceFile(const FileDescriptor* file, GeneratorContext* generator_context) const {
-        std::string file_name        = file->name().substr(0, file->name().find('.'));
+        std::string file_name = file->name().substr(0, file->name().find('.'));
         std::string source_file_name = file_name + ".client.cpp";
-        auto* outstream              = generator_context->Open(source_file_name);
+        auto* outstream = generator_context->Open(source_file_name);
 
         Printer printer(outstream, '$');
         printer.PrintRaw(notic);
@@ -186,64 +179,86 @@ private:
         std::vector<std::string> client_types = {"SyncClient", "ASyncClient", "SemiSyncClient"};
         for (const std::string& client_type : client_types) {
             if (client_type == "ASyncClient") {
-                printer.Print("$client_type$::$client_type$(const std::string& service_name)\n"
-                              "    : _service_name(MakeServiceName(service_name))\n"
-                              "    , _group_strategy(GroupStrategy::STRATEGY_NORMAL)\n"
-                              "    , _lb(\"rr\")\n"
-                              "    , _rpc_flag(0) { }\n\n",
-                              "client_type", client_type);
+                printer.Print(
+                    "$client_type$::$client_type$(const std::string& service_name)\n"
+                    "    : _service_name(MakeServiceName(service_name))\n"
+                    "    , _group_strategy(GroupStrategy::STRATEGY_NORMAL)\n"
+                    "    , _lb(\"rr\")\n"
+                    "    , _rpc_flag(0) { }\n\n",
+                    "client_type",
+                    client_type);
             } else {
-                printer.Print("$client_type$::$client_type$(const std::string& service_name)\n"
-                              "    : _service_name(MakeServiceName(service_name))\n"
-                              "    , _group_strategy(GroupStrategy::STRATEGY_NORMAL)\n"
-                              "    , _lb(\"rr\") { }\n\n",
-                              "client_type", client_type);
+                printer.Print(
+                    "$client_type$::$client_type$(const std::string& service_name)\n"
+                    "    : _service_name(MakeServiceName(service_name))\n"
+                    "    , _group_strategy(GroupStrategy::STRATEGY_NORMAL)\n"
+                    "    , _lb(\"rr\") { }\n\n",
+                    "client_type",
+                    client_type);
             }
             printer.Print("$client_type$::~$client_type$() {} \n\n", "client_type", client_type);
-            printer.Print("void $client_type$::SetGroupStrategy(GroupStrategy "
-                          "group_strategy) { \n"
-                          "    _group_strategy = group_strategy; \n"
-                          "}\n\n",
-                          "client_type", client_type);
-            printer.Print("void $client_type$::SetLbStrategy(const std::string& lb) { \n"
-                          "    _lb = lb; \n"
-                          "}\n\n",
-                          "client_type", client_type);
+            printer.Print(
+                "void $client_type$::SetGroupStrategy(GroupStrategy "
+                "group_strategy) { \n"
+                "    _group_strategy = group_strategy; \n"
+                "}\n\n",
+                "client_type",
+                client_type);
+            printer.Print(
+                "void $client_type$::SetLbStrategy(const std::string& lb) { \n"
+                "    _lb = lb; \n"
+                "}\n\n",
+                "client_type",
+                client_type);
             if (client_type == "ASyncClient") {
-                printer.Print("void $client_type$::SetRequestCode(uint64_t request_code) {\n"
-                              "    _request_code = request_code; \n"
-                              "    AddRpcFlag(FLAGS_RPC_REQUEST_CODE);\n"
-                              "}\n\n",
-                              "client_type", client_type);
+                printer.Print(
+                    "void $client_type$::SetRequestCode(uint64_t request_code) {\n"
+                    "    _request_code = request_code; \n"
+                    "    AddRpcFlag(FLAGS_RPC_REQUEST_CODE);\n"
+                    "}\n\n",
+                    "client_type",
+                    client_type);
             } else {
-                printer.Print("void $client_type$::SetRequestCode(uint64_t request_code) {\n"
-                              "    _controller.set_request_code(request_code); \n"
-                              "}\n\n",
-                              "client_type", client_type);
+                printer.Print(
+                    "void $client_type$::SetRequestCode(uint64_t request_code) {\n"
+                    "    _controller.set_request_code(request_code); \n"
+                    "}\n\n",
+                    "client_type",
+                    client_type);
             }
-            printer.Print("void $client_type$::SetConnectTimeoutMs(uint64_t timeout_ms) {\n"
-                          "    _options.connect_timeout_ms = timeout_ms; \n"
-                          "}\n\n",
-                          "client_type", client_type);
-            printer.Print("void $client_type$::SetTimeoutMs(uint64_t timeout_ms) {\n"
-                          "    _options.timeout_ms = timeout_ms; \n"
-                          "}\n\n",
-                          "client_type", client_type);
-            printer.Print("void $client_type$::SetMaxRetry(int max_retry) {\n"
-                          "    _options.max_retry = max_retry; \n"
-                          "}\n\n",
-                          "client_type", client_type);
+            printer.Print(
+                "void $client_type$::SetConnectTimeoutMs(uint64_t timeout_ms) {\n"
+                "    _options.connect_timeout_ms = timeout_ms; \n"
+                "}\n\n",
+                "client_type",
+                client_type);
+            printer.Print(
+                "void $client_type$::SetTimeoutMs(uint64_t timeout_ms) {\n"
+                "    _options.timeout_ms = timeout_ms; \n"
+                "}\n\n",
+                "client_type",
+                client_type);
+            printer.Print(
+                "void $client_type$::SetMaxRetry(int max_retry) {\n"
+                "    _options.max_retry = max_retry; \n"
+                "}\n\n",
+                "client_type",
+                client_type);
             if (client_type != "ASyncClient") {
-                printer.Print("void $client_type$::SetLogId(uint64_t log_id) {\n"
-                              "     _controller.set_log_id(log_id); \n"
-                              "}\n\n",
-                              "client_type", client_type);
+                printer.Print(
+                    "void $client_type$::SetLogId(uint64_t log_id) {\n"
+                    "     _controller.set_log_id(log_id); \n"
+                    "}\n\n",
+                    "client_type",
+                    client_type);
             } else {
-                printer.Print("void $client_type$::SetLogId(uint64_t log_id) {\n"
-                              "     _log_id = log_id; \n"
-                              "    AddRpcFlag(FLAGS_RPC_LOG_ID);\n"
-                              "}\n\n",
-                              "client_type", client_type);
+                printer.Print(
+                    "void $client_type$::SetLogId(uint64_t log_id) {\n"
+                    "     _log_id = log_id; \n"
+                    "    AddRpcFlag(FLAGS_RPC_LOG_ID);\n"
+                    "}\n\n",
+                    "client_type",
+                    client_type);
             }
 
             if (client_type == "SyncClient") {
@@ -251,9 +266,9 @@ private:
                     auto service = file->service(i);
                     for (int j = 0; j < service->method_count(); j++) {
                         auto method = service->method(j);
-                        printer.PrintRaw("void SyncClient::" + method->name() + "(" + "const " +
-                                         method->input_type()->name() + "* req, " +
-                                         method->output_type()->name() + "* res) { \n");
+                        printer.PrintRaw(
+                            "void SyncClient::" + method->name() + "(" + "const " + method->input_type()->name() +
+                            "* req, " + method->output_type()->name() + "* res) { \n");
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
                             "        SingletonChannel::get()->GetChannel(_service_name, "
@@ -266,8 +281,7 @@ private:
                         printer.PrintRaw("        return;\n    }\n");
 
                         printer.PrintRaw("    " + service->name() + "_Stub stub(channel);\n");
-                        printer.PrintRaw("    stub." + method->name() +
-                                         "(&_controller, req, res, nullptr);\n");
+                        printer.PrintRaw("    stub." + method->name() + "(&_controller, req, res, nullptr);\n");
 
                         printer.PrintRaw("}\n\n");
                     }
@@ -277,9 +291,9 @@ private:
                     auto service = file->service(i);
                     for (int j = 0; j < service->method_count(); j++) {
                         auto method = service->method(j);
-                        printer.PrintRaw("void SemiSyncClient::" + method->name() + "(" + "const " +
-                                         method->input_type()->name() + "* req, " +
-                                         method->output_type()->name() + "* res) { \n");
+                        printer.PrintRaw(
+                            "void SemiSyncClient::" + method->name() + "(" + "const " + method->input_type()->name() +
+                            "* req, " + method->output_type()->name() + "* res) { \n");
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
                             "        SingletonChannel::get()->GetChannel(_service_name, "
@@ -292,8 +306,8 @@ private:
                         printer.PrintRaw("        return;\n    }\n");
 
                         printer.PrintRaw("    " + service->name() + "_Stub stub(channel);\n");
-                        printer.PrintRaw("    stub." + method->name() +
-                                         "(&_controller, req, res, brpc::DoNothing());\n");
+                        printer.PrintRaw(
+                            "    stub." + method->name() + "(&_controller, req, res, brpc::DoNothing());\n");
 
                         printer.PrintRaw("}\n\n");
                     }
@@ -303,12 +317,12 @@ private:
                     auto service = file->service(i);
                     for (int j = 0; j < service->method_count(); j++) {
                         auto method = service->method(j);
-                        printer.PrintRaw("void ASyncClient::" + method->name() + "(" + "const " +
-                                         method->input_type()->name() + "* req, " +
-                                         "std::function<void(bool, " +
-                                         method->output_type()->name() + "*)> callback) {\n");
-                        printer.PrintRaw("    auto done = new OnRPCDone<" +
-                                         method->output_type()->name() + ">(callback);\n");
+                        printer.PrintRaw(
+                            "void ASyncClient::" + method->name() + "(" + "const " + method->input_type()->name() +
+                            "* req, " + "std::function<void(bool, " + method->output_type()->name() +
+                            "*)> callback) {\n");
+                        printer.PrintRaw(
+                            "    auto done = new OnRPCDone<" + method->output_type()->name() + ">(callback);\n");
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
                             "        SingletonChannel::get()->GetChannel(_service_name, "
@@ -328,8 +342,7 @@ private:
                         printer.PrintRaw("    }\n");
                         printer.PrintRaw("    " + service->name() + "_Stub stub(channel);\n");
                         printer.PrintRaw("    _call_id == done->cntl.call_id();\n");
-                        printer.PrintRaw("    stub." + method->name() +
-                                         "(&done->cntl, req, &done->response, done);\n");
+                        printer.PrintRaw("    stub." + method->name() + "(&done->cntl, req, &done->response, done);\n");
 
                         printer.PrintRaw("}\n\n");
                     }
