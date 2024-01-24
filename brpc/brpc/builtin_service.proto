@@ -118,6 +118,10 @@ service brpc_metrics {
     rpc default_method(MetricsRequest) returns (MetricsResponse);
 }
 
+service metrics {
+    rpc default_method(MetricsRequest) returns (MetricsResponse);
+}
+
 service badmethod {
     rpc no_method(BadMethodRequest) returns (BadMethodResponse);
 }

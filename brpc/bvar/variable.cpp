@@ -177,6 +177,62 @@ int Variable::expose_impl(const butil::StringPiece& prefix,
     return -1;
 }
 
+int Variable::set_metrics_name(const butil::StringPiece& name, metrics_data_t type) {
+    if (name.empty()) {
+        LOG(ERROR) << "Parameter[name] is empty!";
+        return -1;
+    }
+
+    if (_name.empty()) {
+        LOG(ERROR) << "bvar's name is empty! set " << name.as_string() << " failed";
+        return -1;
+    }
+    VarMapWithLock& m = get_var_map(_name);
+    {
+        BAIDU_SCOPED_LOCK(m.mutex);
+        VarEntry* entry = m.seek(_name);
+        if (entry == NULL) {
+            LOG(ERROR) << "this bvar is not exposed! set " << name.as_string() << " failed";
+            return -1;
+        }
+    }
+
+    _metrics_name.clear();
+    to_underscored_name(&_metrics_name, name);
+    _metrics_type = type;
+    return 0;
+}
+
+int Variable::set_metrics_desc(const std::string& desc) {
+    if (desc.empty()) {
+        LOG(ERROR) << "Parameter[desc] is empty!";
+        return -1;
+    }
+
+    if (_metrics_name.empty()) {
+        LOG(ERROR) << "bvar's metrics name is empty! set desc failed";
+        return -1;
+    }
+
+    _metrics_desc = desc;
+    return 0;
+}
+
+int Variable::set_metrics_label(const std::string& key, const std::string& value) {
+    if (key.empty() || value.empty()) {
+        LOG(ERROR) << "Parameter[key/value] is empty! key = " << key << " value = " << value;
+        return -1;
+    }
+
+    if (_metrics_name.empty()) {
+        LOG(ERROR) << "bvar's metrics name is empty! set label failed";
+        return -1;
+    }
+
+    _metrics_labels.push_back(std::make_pair(key, value));
+    return 0;
+}
+
 bool Variable::is_hidden() const {
     return _name.empty();
 }
@@ -198,7 +254,8 @@ bool Variable::hide() {
 }
 
 void Variable::list_exposed(std::vector<std::string>* names,
-                            DisplayFilter display_filter) {
+                            DisplayFilter display_filter,
+                            bool list_metrics) {
     if (names == NULL) {
         return;
     }
@@ -226,7 +283,11 @@ void Variable::list_exposed(std::vector<std::string>* names,
                     break;
                 }
             }
-            if (it->second.display_filter & display_filter) {
+            // if (it->second.display_filter & display_filter) {
+            //     names->push_back(it->first);
+            // }
+            if ((!list_metrics || (it->second.var)->is_metrics_var())
+                && (it->second.display_filter & display_filter)) {
                 names->push_back(it->first);
             }
         }
@@ -266,6 +327,28 @@ std::string Variable::describe_exposed(const std::string& name,
         return oss.str();
     }
     return std::string();
+}
+
+int Variable::metrics_var_describe_exposed(const std::string& name,
+                                           std::ostream& os,
+                                           Dumper::MetricsMsg& msg,
+                                           bool quote_string,
+                                           DisplayFilter display_filter) {
+    VarMapWithLock& m = get_var_map(name);
+    BAIDU_SCOPED_LOCK(m.mutex);
+    VarEntry* p = m.seek(name);
+    if (p == NULL) {
+        return -1;
+    }
+    if (!(display_filter & p->display_filter)) {
+        return -1;
+    }
+    msg.name = p->var->get_metrics_name();
+    msg.desc = p->var->get_metrics_desc();
+    msg.labels = p->var->get_metrics_labels();
+    msg.type = p->var->get_metrics_type();
+    p->var->describe(os, quote_string);
+    return 0;
 }
 
 std::string Variable::get_description() const {
@@ -456,6 +539,7 @@ DumpOptions::DumpOptions()
     : quote_string(true)
     , question_mark('?')
     , display_filter(DISPLAY_ON_PLAIN_TEXT)
+    , dump_metrics(false)
 {}
 
 int Variable::dump_exposed(Dumper* dumper, const DumpOptions* poptions) {
@@ -470,15 +554,44 @@ int Variable::dump_exposed(Dumper* dumper, const DumpOptions* poptions) {
     CharArrayStreamBuf streambuf;
     std::ostream os(&streambuf);
     int count = 0;
+    std::ostringstream dumpped_info;
+    const bool log_dummped = FLAGS_bvar_log_dumpped;
+
+    if (opt.dump_metrics) {
+        std::vector<std::string> varnames;
+        bvar::Variable::list_exposed(&varnames, opt.display_filter, true);
+        // Sort
+        std::sort(varnames.begin(), varnames.end());
+        for (std::vector<std::string>::const_iterator
+                    it = varnames.begin(); it != varnames.end(); ++it) {
+            const std::string& name = *it;
+            Dumper::MetricsMsg msg;
+            if (bvar::Variable::metrics_var_describe_exposed(name, os, msg,
+                                                                opt.quote_string,
+                                                                opt.display_filter) != 0) {
+                continue;
+            }
+            if (log_dummped) {
+                dumpped_info << '\n' << name << ": " << streambuf.data();
+            }
+            if (!dumper->dump_metrics(name, streambuf.data(), msg)) {
+                return -1;
+            }
+            streambuf.reset();
+            ++count;
+        }
+        if (log_dummped) {
+            LOG(INFO) << "Dumpped variables:" << dumpped_info.str();
+        }
+        return count;
+    }
+
     WildcardMatcher black_matcher(opt.black_wildcards,
                                   opt.question_mark,
                                   false);
     WildcardMatcher white_matcher(opt.white_wildcards,
                                   opt.question_mark,
                                   true);
-
-    std::ostringstream dumpped_info;
-    const bool log_dummped = FLAGS_bvar_log_dumpped;
 
     if (white_matcher.wildcards().empty() &&
         !white_matcher.exact_names().empty()) {

@@ -44,7 +44,36 @@ enum DisplayFilter {
     DISPLAY_ON_HTML = 1,
     DISPLAY_ON_PLAIN_TEXT = 2,
     DISPLAY_ON_ALL = 3,
+    DISPLAY_METRICS_DATA = 4,
+    DISPLAY_ON_ALL_INCLUDE_METRICS = 5
 };
+
+typedef enum {
+    GAUGE = 0,
+    SUMMARY,
+    COUNTER,
+    HISTOGRAM
+} metrics_data_t;
+
+inline std::string MetricsTypeToStr(metrics_data_t type) {
+    switch (type) {
+    case GAUGE: {
+        return "gauge";
+    }
+    case SUMMARY: {
+        return "summary";
+    }
+    case COUNTER: {
+        return "counter";
+    }
+    case HISTOGRAM: {
+        return "histogram";
+    }
+    default:
+        break;
+    }
+    return "Unknown type";
+}
 
 // Implement this class to write variables into different places.
 // If dump() returns false, Variable::dump_exposed() stops and returns -1.
@@ -55,6 +84,19 @@ public:
                       const butil::StringPiece& description) = 0;
     virtual bool dump_comment(const std::string&, const std::string& /*type*/) {
         return true;
+    }
+
+    struct MetricsMsg {
+        std::string name;
+        std::string desc;
+        std::vector<std::pair<std::string, std::string>> labels;
+        metrics_data_t type;
+    };
+
+    virtual bool dump_metrics(const std::string& name,
+                              const butil::StringPiece& description,
+                              const MetricsMsg& msg) {
+        return dump(name, description);
     }
 };
 
@@ -78,6 +120,9 @@ struct DumpOptions {
 
     // Name matched by these wildcards (or exact names) are skipped.
     std::string black_wildcards;
+
+    // If this is true, only dump vars have metrics name
+    bool dump_metrics;
 };
 
 struct SeriesOptions {
@@ -156,6 +201,15 @@ public:
         return expose_impl(prefix, name, display_filter);
     }
 
+    int set_metrics_name(const butil::StringPiece&, metrics_data_t);
+    int set_metrics_desc(const std::string&);
+    int set_metrics_label(const std::string& key, const std::string& value);
+
+    const std::string& get_metrics_name() const { return _metrics_name; }
+    const std::string& get_metrics_desc() const { return _metrics_desc; }
+    const std::vector<std::pair<std::string, std::string>>& get_metrics_labels() const { return _metrics_labels; }
+    const metrics_data_t& get_metrics_type() const { return _metrics_type; }
+
     // Hide this variable so that it's not counted in *_exposed functions.
     // Returns false if this variable is already hidden.
     // CAUTION!! Subclasses must call hide() manually to avoid displaying
@@ -168,6 +222,9 @@ public:
     // Get exposed name. If this variable is not exposed, the name is empty.
     const std::string& name() const { return _name; }
 
+    // check whether prometheus metrcis or not
+    bool is_metrics_var() { return !_metrics_name.empty(); }
+
     // ====================================================================
     
     // Put names of all exposed variables into `names'.
@@ -175,7 +232,8 @@ public:
     // and call `describe_exposed' on each name. This prevents an iteration
     // from taking the lock too long.
     static void list_exposed(std::vector<std::string>* names,
-                             DisplayFilter = DISPLAY_ON_ALL);
+                             DisplayFilter = DISPLAY_ON_ALL,
+                             bool list_metrics = false);
 
     // Get number of exposed variables.
     static size_t count_exposed();
@@ -191,6 +249,13 @@ public:
                                         bool quote_string = false,
                                         DisplayFilter = DISPLAY_ON_ALL);
 
+    // Find an exposed variable by `name' and put its description into `os' and put metrics info.
+    static int metrics_var_describe_exposed(const std::string& name,
+                                            std::ostream& os,
+                                            Dumper::MetricsMsg& msg,
+                                            bool quote_string = false,
+                                            DisplayFilter = DISPLAY_ON_ALL);
+
     // Describe saved series of variable `name' as a json-string into `os'.
     // The output will be ploted by flot.js
     // Returns 0 on success, 1 when the variable does not save series, -1
@@ -198,7 +263,6 @@ public:
     static int describe_series_exposed(const std::string& name,
                                        std::ostream&,
                                        const SeriesOptions&);
-
 #ifdef BAIDU_INTERNAL
     // Find an exposed variable by `name' and put its value into `value'.
     // Returns 0 on found, -1 otherwise.
@@ -218,6 +282,12 @@ protected:
 
 private:
     std::string _name;
+
+    // for prometheus metrics
+    std::string _metrics_name;
+    metrics_data_t _metrics_type;
+    std::string _metrics_desc;
+    std::vector<std::pair<std::string, std::string>> _metrics_labels;
 
     // bvar uses TLS, thus copying/assignment need to copy TLS stuff as well,
     // which is heavy. We disable copying/assignment now.

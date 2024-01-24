@@ -4,6 +4,9 @@
 #include "brpc/server.h"
 #include "core/mysql/db_manager.h"
 #include "core/redis/redis_manager.h"
+#include "core/common/metrcis_helper.h"
+
+DECLARE_METRICS_counter_u64(service_request_counter);
 
 using namespace server::utils;
 namespace test {
@@ -43,6 +46,8 @@ void ServiceImpl::UpdateUserInfo(
         response->set_res_code(ServerError);
         return;
     }
+
+    ADD_METRICS_COUNTER(service_request_counter, "UpdateUserInfo");
 }
 
 void ServiceImpl::Test(
@@ -69,7 +74,6 @@ void ServiceImpl::Test(
                 for (unsigned i = 0; i < conn->cols(); ++i) {
                     os << conn->value(i) << " ";
                 }
-                LOG(INFO) << os.str();
 
                 // TEST redis cluster
                 auto cluster = RedisManager::get()->GetRedisConnection("redis_cluster");
@@ -79,7 +83,8 @@ void ServiceImpl::Test(
                 cluster->set(conn->value(0), os.str(), std::chrono::milliseconds(3600000));
             }
         } else {
-            LOG(ERROR) << "[!] db query error, sql:" << sql;
+            LOG(ERROR) << "[!] db query error, sql:" << sql << ", err_no:" << conn->errNo()
+                       << ", err_msg:" << conn->errMsg();
         }
 
         // TEST single redis
@@ -89,11 +94,12 @@ void ServiceImpl::Test(
             return;
         }
         redis->lpush("list_1", ll.begin(), ll.end());
-        redis->lpush("list_1", {1, 2, 3, 4, 5});
         redis->expire("list_1", std::chrono::seconds(3600));
     } catch (std::exception& e) {
         LOG(ERROR) << e.what();
     }
+
+    ADD_METRICS_COUNTER(service_request_counter, "Test");
 
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);

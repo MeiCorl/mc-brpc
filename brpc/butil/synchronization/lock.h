@@ -31,6 +31,68 @@
 
 namespace butil {
 
+#if defined(OS_POSIX)
+class BUTIL_EXPORT RWLock {
+    DISALLOW_COPY_AND_ASSIGN(RWLock);
+ public:
+    RWLock() {
+        pthread_rwlock_init(&_rwlock, NULL);
+    }
+
+    ~RWLock() {
+        pthread_rwlock_destroy(&_rwlock);
+    }
+
+    void rdlock() {
+        pthread_rwlock_rdlock(&_rwlock);
+    }
+
+    void wrlock() {
+        pthread_rwlock_wrlock(&_rwlock);
+    }
+
+    void unlock() {
+        pthread_rwlock_unlock(&_rwlock);
+    }
+
+    pthread_rwlock_t* native_handle() {
+        return &_rwlock;
+    }
+
+ private:
+    pthread_rwlock_t _rwlock;
+};
+
+class BUTIL_EXPORT WriteLockGuard {
+    DISALLOW_COPY_AND_ASSIGN(WriteLockGuard);
+public:
+    explicit WriteLockGuard(RWLock& lock) : _lock(lock) {
+        _lock.wrlock();
+    }
+    ~WriteLockGuard() {
+        _lock.unlock();
+    }
+
+private:
+    RWLock& _lock;
+};
+
+class BUTIL_EXPORT ReadLockGuard {
+    DISALLOW_COPY_AND_ASSIGN(ReadLockGuard);
+public:
+    explicit ReadLockGuard(RWLock& lock) : _lock(lock) {
+        _lock.rdlock();
+    }
+    ~ReadLockGuard() {
+        _lock.unlock();
+    }
+
+private:
+    RWLock& _lock;
+};
+
+#endif
+
 // A convenient wrapper for an OS specific critical section.  
 class BUTIL_EXPORT Mutex {
     DISALLOW_COPY_AND_ASSIGN(Mutex);

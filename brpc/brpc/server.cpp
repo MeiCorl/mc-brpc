@@ -64,6 +64,7 @@
 #include "brpc/builtin/sockets_service.h"      // SocketsService
 #include "brpc/builtin/hotspots_service.h"     // HotspotsService
 #include "brpc/builtin/prometheus_metrics_service.h"
+#include "brpc/builtin/metrics_service.h"
 #include "brpc/details/method_status.h"
 #include "brpc/load_balancer.h"
 #include "brpc/naming_service.h"
@@ -522,6 +523,10 @@ int Server::AddBuiltinServices() {
         return -1;
     }
     if (AddBuiltinService(new (std::nothrow) PrometheusMetricsService)) {
+        LOG(ERROR) << "Fail to add PrometheusMetricsService";
+        return -1;
+    }
+    if (AddBuiltinService(new (std::nothrow) MetricsService)) {
         LOG(ERROR) << "Fail to add MetricsService";
         return -1;
     }
