@@ -837,6 +837,7 @@ if(!cntl->from_svr_name().empty()) {
 cntl->set_from_svr_name(request_meta.from_svr_name())
 ```
 ## 5. bvar扩展支持多维label及prometheus采集
+### MetricsService
 原生brpc的bvar导出时不支持带label信息([here](https://github.com/apache/brpc/issues/765))，虽然提供了[mbvar](https://github.com/apache/brpc/blob/master/docs/cn/mbvar_c%2B%2B.md#bvarmvariables)来支持多维度统计，但其导出格式不支持Prometheus采集；如当通过mbvar统计brpc_test服务每个接口(总共两个接口UpdateUserInfo、Test)请求次数时，原生brpc统计结果导出后如下：
 ```yaml
 # HELP service_request_counter{method="Test"}
@@ -853,7 +854,7 @@ service_request_counter{method="UpdateUserInfo"} 14920
 service_request_counter{method="Test"} 270873
 service_request_counter{method="UpdateUserInfo"} 270843
 ```
-因此mc-brpc实现了自己的多维指标统计方式，可支持自定义mtrices label并按上述Prometheus采集数据格式导出，更便于多维数据监控上报及统计。为此，mc-brpc提供了`bvar::MetricsCountRecorder`用于做多维的计数统计，一个`MetricsCountRecorder`对象可以看做是一堆bvar的集合，这些bvar具有相同的名字(metrics_name)，相同的标签(label)，但是label取值不同(具体实现请看源码brpc/bvar/metrics_count_recorder.h)。此外，mc-brpc在brpc基础上新增了一个内置服务<font color=#00ffff>MetricsService</font>，用于将自定义多维bvar在/metrics路径按prometheus采集数据格式导出。
+因此mc-brpc实现了自己的多维指标统计方式，可支持自定义mtrices label并按上述Prometheus采集数据格式导出，更便于多维数据监控上报及统计。为此，mc-brpc提供了`bvar::MetricsCountRecorder`和`bvar::MetricsLatencyRecorder`分别用于多维的计数统计和多维的延迟统计，一个`MetricsCountRecorder`(`MetricsLatencyRecorder`)对象可以看做是一堆bvar的集合，这些bvar具有相同的名字(metrics_name)，相同的标签(label)，但是label取值不同(具体实现请看源码bvar/metrics_count_recorder.h 和 brpc/bvar/metrics_latency_recorder.h)。此外，mc-brpc在brpc基础上新增了一个内置服务<font color=#00ffff>MetricsService</font>，用于将自定义多维bvar在/metrics路径按prometheus采集数据格式导出。
 ```c++
 // brpc/server.cpp
 int Server::AddBuiltinServices() {
@@ -872,17 +873,30 @@ int Server::AddBuiltinServices() {
     // ...
 }
 ```
-与<font color=#00ffff>PrometheusMetricsService</font>类不同，我们做了以下的优化：
+与brpc原有的<font color=#00ffff>PrometheusMetricsService</font>类不同，<font color=#00ffff>MetricsService</font>支持以下功能：
 
-1. bvar::Dumper类新增dump_metrics接口，只会导出MetricsCountRecorder中的bavar。
+1. bvar::Dumper类新增dump_metrics接口，只会导出`MetricsCountRecorder`和`MetricsLatencyRecorder`中的bvar。
+2. DisplayFilter原本只有3个选项将bvar分为plain txt类型，html类型与all类型（既是plain txt，也是html类型），在此基础上新增metrics类型选项DISPLAY_METRICS_DATA，这个过滤器的作用十分大，因为`bvar::MetricsCountRecorder`与`bvar::MetricsLatencyRecorder`类里面包含很多已经被expose的bvar了，不做处理的话这些bvar会被输出到/vars页面或者是/brpc_metrics或者被dump出到文件的，为了防止这些bvar被输出，需要设置一个新的DisplayFilter选项，并且只有/metrics能导出这些类型的bvar。
+3. 导出到`MetricsService`的带Prometheus metrics信息的bvar会依照metrics name聚合，相同metrics name的bvar数据会按照Prometheus metrics的数据格式输出。
 
-2. bvar::DumpOptions dump选项新增只导出带metrics name的bvar的开关。
-
-3. DisplayFilter原本只有3个选项将bvar分为plain txt类型，html类型与all类型（既是plain txt，也是html类型），在此基础上新增metrics类型选项DISPLAY_METRICS_DATA，这个过滤器的作用十分大，因为`bvar::MetricsCountRecorder`与`bvar::MetricsLatencyRecorder`(暂未添加)类里面包含很多已经被expose的bvar了，不做优化的话这些bvar会被输出到/vars页面或者是/brpc_metrics或者被dump出到文件的，为了防止这些bvar被输出，需要设置一个新的DisplayFilter选项，并且只有/metrics能导出这些类型的bvar。
-
-4. 导出到`MetricsService`的带Prometheus metrics信息的bvar会依照metrics name聚合，同一metrics name的bvar数据会按照Prometheus metrics的数据格式一并输出。
-
-为方便使用我们在core/common/metrcis_helper.h提供了写常用的宏定义：
+### MetricsCountRecorder
+`MetricsCountRecorder`用于多维计数统计(可用于统计QPS等数据), 支持添加固定label和自定义label。使用方法如下：
+```c++
+bvar::MetricsCountRecorder<uint64_t> counter("request_counter", "request for each method"); // 定义一个统计接口请求次数的计数器
+counter.set_metrics_label("service_name", "brpc_test");   // 设置一个固定标签service_name，其值固定为brpc_test
+counter.set_metrics_label("method");    // 设置一个(非固定标签)method
+counter.find({"Test1"}) << 5;   // Test1接口被请求了5次
+counter.find({"Test1"}) << 1;   // Test1接口又被请求了1次
+counter.find({"Test2"}) << 12;  // Test2接口被请求了12次
+```
+访问/metrics路径，将可以得到如下prometheus格式输出：
+```yaml
+# HELP request_counter request for each method
+# TYPE request_counter gauge
+request_counter{service_name="brpc_test", method="Test1"} 6
+request_counter{service_name="brpc_test", method="Test2"} 12
+```
+为方便使用我们在core/common/metrcis_helper.h提供了些常用的宏定义：
 ```c++
 #pragma once
 #include "bvar/metrics_count_recorder.h"
@@ -945,8 +959,56 @@ void ServiceImpl::Test(...) {
 service_request_counter{method="Test"} 2381312
 service_request_counter{method="UpdateUserInfo"} 2381038
 ```
+在prometheus配置如下抓取任务：
+```yaml
+scrape_configs:
+  - job_name: "mc_server_metrics"
+    metrics_path: "metrics"
+    file_sd_configs:
+    - refresh_interval: 10s
+      files:
+        - /etc/prometheus/instance.json
+```
 配合Grafana可以更方便的看到整个服务下每个接口的qps(PromQL: `sum(rate(service_request_counter{service_name="$service_name"}[1m])) by (method)`)：
 ![image.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4d1cb0659c234bcc9778a6ab1ece5f92~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1287&h=447&s=53760&e=png&b=171a1e)
+
+### MetricsLatencyRecorder
+`MetricsLatencyRecorder`是多维延迟统计类，可以统计不同分位值的延迟数据，实现方式和使用方式和`MetricsCountRecorder`类似。同样以统计brpc_test服务每个接口延迟为例:
+```c++
+// 定义metrics(request_latency_recorder)
+DEFINE_METRICS_latency(request_latency_recorder, "request_latency_recorder", "request_latency_recorder");
+
+void ServiceImpl::UpdateUserInfo(...) {
+    butil::Timer timer(butil::Timer::TimerType::STARTED);
+    // ...
+
+    // 模拟延迟
+    bthread_usleep(10000 + (rd() % 103907));
+    timer.stop();
+
+    // 设置metrics延迟数据
+    SET_METRICS_LATENCY(request_latency_recorder, timer.m_elapsed(), "UpdateUserInfo");
+
+    // ...
+}
+
+void ServiceImpl::Test(...) {
+    butil::Timer timer(butil::Timer::TimerType::STARTED);
+    // ...
+
+    // 模拟延迟
+    bthread_usleep(10000 + (rd() % 103907));
+    timer.stop();
+
+    // 设置metrics延迟数据
+    SET_METRICS_LATENCY(request_latency_recorder, timer.m_elapsed(), "Test");
+
+    // ...
+}
+
+```
+Grafana展示效果如下(PromQL: `avg(request_latency_recorder{service_name="$service_name", quantile="0.99"}) by (method)`)：
+![image.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/748dad88a8ae4015806a548e814c9240~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1264&h=386&s=54753&e=png&b=181b1f)
 
 ## 6. DB连接管理
 mc-brpc基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)提供了面向对象的MySQL的操作类<font color=#00ffff>MysqlConn</font>，并提供了对应的连接池实现<font color=#00ffff>DBPool</font>，通过<font color=#00ffff>DBPool</font>对MySQl连接进行管理(创建连接、释放连接、连接保活等)。
