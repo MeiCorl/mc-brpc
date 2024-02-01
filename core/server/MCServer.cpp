@@ -7,8 +7,10 @@
 #include "core/extensions/mc_naming_service.h"
 #include <etcd/Client.hpp>
 
-#ifdef USE_ASYNC_LOGSINK
+#if defined(USE_ASYNC_LOGSINK)
 #include "core/log/async_logsink.h"
+#elif defined(USE_FAST_LOGSINK)
+#include "core/log/fast_logsink.h"
 #endif
 
 #ifdef USE_MYSQL
@@ -58,7 +60,12 @@ MCServer::~MCServer() {
     _log_watcher.reset();
     _log_archive_worker.reset();
 
-#ifdef USE_ASYNC_LOGSINK
+#if defined(USE_ASYNC_LOGSINK)
+    logging::LogSink* old_sink = logging::SetLogSink(nullptr);
+    if (old_sink) {
+        delete old_sink;
+    }
+#elif defined(USE_FAST_LOGSINK)
     logging::LogSink* old_sink = logging::SetLogSink(nullptr);
     if (old_sink) {
         delete old_sink;
@@ -90,13 +97,20 @@ void MCServer::LoggingInit(char* argv[]) {
     butil::FilePath log_path = butil::FilePath(server::logger::get_log_path(argv[0]));
     butil::CreateDirectory(log_path);
 
-#ifdef USE_ASYNC_LOGSINK
+#if defined(USE_ASYNC_LOGSINK)
     logging::LogSink* log_sink = new server::logger::AsyncLogSink(log_settings);
     logging::LogSink* old_sink = logging::SetLogSink(log_sink);
     if (old_sink) {
         delete old_sink;
     }
     LOG(INFO) << "Using async_logsink...";
+#elif defined(USE_FAST_LOGSINK)
+    logging::LogSink* log_sink = new server::logger::FastLogSink(log_settings);
+    logging::LogSink* old_sink = logging::SetLogSink(log_sink);
+    if (old_sink) {
+        delete old_sink;
+    }
+    LOG(INFO) << "Using fast_logsink...";
 #else
     logging::InitLogging(log_settings);
     LOG(INFO) << "Using default_logsink...";

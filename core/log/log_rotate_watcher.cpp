@@ -1,7 +1,9 @@
 #include "log_rotate_watcher.h"
 
-#ifdef USE_ASYNC_LOGSINK
+#if defined(USE_ASYNC_LOGSINK)
 #include "async_logsink.h"
+#elif defined(USE_FAST_LOGSINK)
+#include "fast_logsink.h"
 #endif
 
 #include <bthread/unstable.h>
@@ -74,8 +76,10 @@ void LogRotateWatcher::Run() {
                     // 收到了需要处理的回调信号
                     if (event->mask & (IN_MOVE_SELF | IN_ATTRIB | IN_DELETE_SELF)) {
                         LOG(INFO) << "LogRotateWatcher watched log change, closing log file";
-#ifdef USE_ASYNC_LOGSINK
+#if defined(USE_ASYNC_LOGSINK)
                         AsyncLogSink::Close();
+#elif defined(USE_FAST_LOGSINK)
+                        FastLogSink::Close();
 #else
                         ::logging::CloseLogFile();
 #endif

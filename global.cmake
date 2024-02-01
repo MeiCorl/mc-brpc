@@ -23,12 +23,17 @@ function(add_server_source SRCS)
     message("[+] add server source:" ${ROOT_PATH}/common)
     message("[+] add server source:" ${ROOT_PATH}/extensions)
 
-    set(options ALL ASYNCLOG MYSQL REDIS KAFKA)
+    set(options ALL ASYNCLOG FASTLOG MYSQL REDIS KAFKA)
     cmake_parse_arguments(custom_src "${options}" "" "" "" ${ARGN})
 
     if (custom_src_ASYNCLOG OR custom_src_ALL)
         add_definitions(-DUSE_ASYNC_LOGSINK)
         message("[+] using async log...")
+    endif()
+
+    if (custom_src_FASTLOG OR custom_src_ALL)
+        add_definitions(-DUSE_FAST_LOGSINK)
+        message("[+] using fast log...")
     endif()
 
     if (custom_src_MYSQL OR custom_src_ALL)

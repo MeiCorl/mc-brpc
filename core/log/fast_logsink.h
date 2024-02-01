@@ -1,31 +1,31 @@
 #pragma once
 
+
 #include <brpc/butil/logging.h>
-#include <butil/threading/simple_thread.h>
-#include <bthread/bthread.h>
 
 namespace server {
 namespace logger {
 
 /**
- * 异步、批量写日志
- * @date: 2023-09-10 09:00:00
+ * mmap文件内存映射写日志
+ * @date: 2024-01-30 15:00:00
  * @author: meicorl
 */
-class AsyncLogSink : public logging::LogSink, public butil::SimpleThread {
+class FastLogSink : public logging::LogSink {
 private:
     logging::LoggingDestination logging_dest;
     std::string log_file;
-    static volatile int log_fd;
 
-    bool is_asked_to_quit;
-    std::ostringstream _stream;
+    static int log_fd;
+    static char* begin_addr;
+    static char* cur_addr;
+    static char* end_addr;
 
+    bool Init(bool auto_create = false);
+    void AdjustFileMap();
 public:
-    AsyncLogSink(const logging::LoggingSettings& settings);
-    virtual ~AsyncLogSink();
-
-    void Run();
+    FastLogSink(const logging::LoggingSettings& settings);
+    virtual ~FastLogSink();
 
     bool OnLogMessage(int severity,
                       const char* file,
@@ -37,7 +37,6 @@ public:
                       const char* func,
                       const butil::StringPiece& log_content) override;
 
-    bool Init(bool auto_create = false);
     static void Close();
 };
 
