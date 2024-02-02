@@ -4,7 +4,7 @@
 
 * **名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息，并为mc-brpc提供服务发现，主要是为了支持在服务跨机房甚至跨大区部署时，brpc请求能支持按指定大区和机房进行路由，此外name_agent还将服务信息dump出来作为promethus监控的targets，以及后续拟支持户端主动容灾功(暂未实现)等
 
-* **日志异步刷盘**：brpc提供了日志刷盘抽象工具类LogSink，并提供了一个默认的实现DefaultLogSink，但是DefaultLogSink写日志是同步写，且每写一条日志都会写磁盘，性能较差，在日志量大以及对性能要求较高的场景下很难使用，而百度内部使用的ComlogSink实现似乎未开源(看代码没找到)，因此mc-brpc自己实现了个<font color=#00ffff>AsyncLogSink</font>先将日志写缓冲区再批量刷盘(也得感谢brpc插件式的设计，极大的方便了用户自己做功能扩展)，AsyncLogSink写日志先写缓冲区，再由后台线程每秒批量刷盘，性能相比DefaultLogSink由10倍以上提升，但是在服务崩溃的情况下可能会丢失最近1s内的日志
+* **高性能异步日志**：brpc提供了日志刷盘抽象工具类LogSink，并提供了一个默认的实现DefaultLogSink，但是DefaultLogSink写日志是同步写，且每写一条日志都会写磁盘，性能较差，在日志量大以及对性能要求较高的场景下很难使用，而百度内部使用的ComlogSink实现似乎未开源(看代码没找到)，因此mc-brpc提供了<font color=#00ffff>AsyncLogSink</font>和<font color=#00ffff>FastLogSink</font>用于好性能写日志；`AsyncLogSink`才有异步批量刷盘的方式，先将日志写到缓冲区，再由后台线程每秒批量刷盘(服务崩溃的情况下可能会丢失最近1s内的日志)；`FastLogSink`则基于mmap文件内存映射将写文件操作转为内存操作，减少系统调用次数以实现高性能写入；经测试验证，二者性能相比`DefaultLogSink`都有10倍以上提升
 
 * **日志自动滚动归档**：<font color=#00ffff>LogRotateWatcher</font>及<font color=#00ffff>LogArchiveWorker</font>每小时对日志进行滚动压缩归档，方便日志查询，并删除一段时间(默认1个月，可以公共通过log配置的remain_days属性指定)以前的日志，避免磁盘写满
 
@@ -599,7 +599,7 @@ client.Test(&req, &res);
 ```
 
 
-## 4. 滚动异步日志
+## 4. 高性能滚动异步日志
 &emsp;&emsp; brpc写日志是通过<font color=#ffff00>LOG</font>宏进行流式写入的(如：`LOG(INFO) << "abc" << 123;`)，<font color=#ffff00>LOG</font>宏定义涉及到的其它宏定义如下：
 ```c++
 // A few definitions of macros that don't generate much code. These are used
@@ -681,7 +681,79 @@ void AsyncLogSink::Run() {
     }
 }
 ```
-其核心思想也比较简单，即在<font color=#00ffff>LogMessage</font>临时对象析构时，先将<font color=#00ffff>LogStream</font>缓冲区的数据加锁写入到一个全局的buffer中，再由后台线程每秒批量刷盘。经测试验证，通过这种方式写入日志性能相比<font color=#00ffff>DefaultLogSink</font>有10倍以上的提升，但是在程序崩溃的情况下，这种方式可能会导致最近1秒内日志丢失(可以通过先写到操作系统文件缓冲区但不刷新到磁盘进行优化改进)。想要使用<font color=#00ffff>ASyncLogSink</font>，只需要在CMakeLists.txt的add_server_source中增加<font color=#ffff00>ASYNCLOG</font>选项即可。
+其核心思想也比较简单，即在<font color=#00ffff>LogMessage</font>临时对象析构时，先将<font color=#00ffff>LogStream</font>缓冲区的数据加锁写入到一个全局的buffer中，再由后台线程每秒批量刷盘。经测试验证，通过这种方式写入日志性能相比<font color=#00ffff>DefaultLogSink</font>有10倍以上的提升，但是在程序崩溃的情况下，这种方式可能会导致最近1秒内日志丢失(可以通过coredump文件查找丢失的日志)。想要使用<font color=#00ffff>ASyncLogSink</font>，只需要在CMakeLists.txt的add_server_source中增加<font color=#ffff00>ASYNCLOG</font>选项即可。
+
+### FastLogSink
+<font color=#00ffff>ASyncLogSink</font>性能虽好，但在程序崩溃的时候，如果前一秒的日志数据还未来得及刷盘，则会丢失，因此可能会导致程序崩溃原因的关键日志丢失(虽然可以通过coredump文件产看丢失的日志，但终归增加了问题排查成本)，因此mc-brpc提供了<font color=#00ffff>FastLogSink</font>，基于`mmap`文件内存映射来实现高性能日志写入，其性能除在多线程高并发写入时略低于<font color=#00ffff>ASyncLogSink</font>，其它大部分情况下二者性能接近。核心实现如下：
+```c++
+bool FastLogSink::OnLogMessage(
+    int severity,
+    const char* file,
+    int line,
+    const char* func,
+    const butil::StringPiece& log_content) {
+    if ((logging_dest & logging::LoggingDestination::LOG_TO_SYSTEM_DEBUG_LOG) != 0) {
+        fwrite(log_content.data(), log_content.length(), 1, stderr);
+        fflush(stderr);
+    }
+
+    if ((logging_dest & logging::LoggingDestination::LOG_TO_FILE) != 0) {
+        LoggingLock logging_lock;
+        if (Init()) {
+            while (cur_addr + log_content.length() >= end_addr) {
+                AdjustFileMap();
+            }
+            memcpy(cur_addr, log_content.data(), log_content.length());
+            cur_addr += log_content.length();
+        }
+    }
+
+    return true;
+}
+
+void FastLogSink::AdjustFileMap() {
+    size_t offset = 0;
+    size_t file_size = 0;
+    struct stat fileStat;
+    fstat(log_fd, &fileStat);
+    file_size = fileStat.st_size;
+    size_t cur_pos = 0;  // 当前写入位置相对于文件头的offset
+    if (begin_addr != nullptr && end_addr != nullptr) {
+        cur_pos = file_size - (end_addr - cur_addr);
+        munmap(begin_addr, MAP_TRUNK_SIZE);
+    } else {
+        cur_pos = file_size;
+    }
+
+    // 下次映射从当前写入地址(cur_pos)的上一文件页末尾开始(会产生长度为cur_pos-offset的区域被重复映射)
+    offset = RoundDownToPageSize(cur_pos);
+    size_t new_file_size = file_size + (MAP_TRUNK_SIZE - (cur_pos - offset));
+    ftruncate(log_fd, new_file_size);
+
+    begin_addr = (char*)mmap(NULL, MAP_TRUNK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, log_fd, offset);
+    if (begin_addr == MAP_FAILED) {
+        std::ostringstream os;
+        os << "mmap failed, errno:" << errno << ", log_fd:" << log_fd << std::endl;
+        std::string&& err = os.str();
+        fwrite(err.c_str(), err.size(), 1, stderr);
+        exit(1);
+    }
+    cur_addr = begin_addr + (cur_pos - offset);  // 当前写入位置应为起始地址加上重复映射区域长度
+    end_addr = begin_addr + MAP_TRUNK_SIZE;
+}
+```
+OnLogMessage写日志时，直接将日志内容拷贝至文件映射的共享内存中，避免io操作；期间如果共享内存剩余空间不足，则需要重新映射文件，增加映射内存区域大小，默认情况每次增加200MB内存，每次调整内存大小后，需要调整当前写入地址的offset以确保从上次写入的位置时候开始写入，避免将旧数据覆盖。同理，想要使用<font color=#00ffff>ASyncLogSink</font>，只需要在CMakeLists.txt的add_server_source中增加<font color=#ffff00>FASTLOG</font>选项即可
+
+### LogSink性能对比
+这里我在我本地机器(4核, Intel(R) Core(TM) i5-9500 CPU @ 3.00GHz  3.00 GHz，普通机械硬盘)Ubuntu docker容器上对<font color=#00ffff>ASyncLogSink</font>、<font color=#00ffff>FastLogLogSink</font>以及默认的<font color=#00ffff>DefaultLogSink</font>做了个简单的性能测试，测试内容为用三种<font color=#00ffff>LogSink</font>插件分别写入1kw条日志(每条日志100B)耗时, 分单线程写入1kw条数据以及10线程并发写入(每个线程写入1百万条)，测试结果(耗时为5次取平均值)如下：<center>
+|                       |   __单线程耗时(ms)__    |   __多线程耗时(ms)__  |
+|       :----:          |           :----:       |          :----:      |
+| __DefaultLogSink__    |           33420        |        149019        |
+| __ASyncLogSink__      |           10334        |         6976         |
+| __FastLogLogSink__    |           10895        |        14600         |
+</center>
+
+可以看出，在单线程情况下<font color=#00ffff>ASyncLogSink</font>和<font color=#00ffff>FastLogLogSink</font>性能接近，是<font color=#00ffff>DefaultLogSink</font>的3倍；多线程并发写入情况下，<font color=#00ffff>ASyncLogSink</font>表现最优，<font color=#00ffff>FastLogLogSink</font>略差，但也是<font color=#00ffff>DefaultLogSink</font>的10倍性能。<font color=#00ffff>ASyncLogSink</font>和<font color=#00ffff>FastLogLogSink</font>均能实现每秒百万级日志写入，但<font color=#00ffff>ASyncLogSink</font>是写入到应用层缓冲区，进程崩溃会导致未刷盘的数据丢失，<font color=#00ffff>FastLogLogSink</font>是写入文件内存映射中，即便进程异常崩溃，会由操作系统将内存数据写入磁盘。
 
 ### 日志滚动压缩归档
 
