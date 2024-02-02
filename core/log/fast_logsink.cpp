@@ -6,13 +6,28 @@
 
 using namespace server::logger;
 
-const int PAGE_SIZE = 4 * 1024;             // 4KB
-const int MAP_TRUNK_SIZE = 100 * 1024 * 1024;  // 4MB
+const int MAP_TRUNK_SIZE = 200 * 1024 * 1024;  // 4MB
 
-int FastLogSink::log_fd = -1;
+volatile int FastLogSink::log_fd = -1;
 char* FastLogSink::begin_addr = nullptr;
 char* FastLogSink::cur_addr = nullptr;
 char* FastLogSink::end_addr = nullptr;
+
+/**
+ * 获取系统页面大小
+ **/
+size_t GetPageSize() {
+    return sysconf(_SC_PAGESIZE);
+}
+
+/**
+ * 将 size 向下舍入到页面大小的整数倍
+ **/
+size_t RoundDownToPageSize(size_t size) {
+    // 获取系统页面大小
+    size_t page_size = GetPageSize();
+    return size & ~(page_size - 1);
+}
 
 FastLogSink::FastLogSink(const logging::LoggingSettings& settings) :
         logging_dest(settings.logging_dest), log_file(settings.log_file) {
@@ -44,12 +59,13 @@ bool FastLogSink::OnLogMessage(
 
     if ((logging_dest & logging::LoggingDestination::LOG_TO_FILE) != 0) {
         LoggingLock logging_lock;
-        Init();
-        while (cur_addr + log_content.length() >= end_addr) {
-            AdjustFileMap();
+        if (Init()) {
+            while (cur_addr + log_content.length() >= end_addr) {
+                AdjustFileMap();
+            }
+            memcpy(cur_addr, log_content.data(), log_content.length());
+            cur_addr += log_content.length();
         }
-        memcpy(cur_addr, log_content.data(), log_content.length());
-        cur_addr += log_content.length();
     }
 
     return true;
@@ -61,18 +77,7 @@ bool FastLogSink::Init(bool auto_create) {
     }
 
     // 打开文件
-    if (auto_create) {
-        log_fd = open(log_file.c_str(), O_RDWR | O_CREAT | O_EXCL, 0666);
-        if (log_fd == -1) {
-            if (EEXIST == errno) {
-                // file already exist, just open
-                log_fd = open(log_file.c_str(), O_RDWR);
-            }
-        }
-    } else {
-        log_fd = open(log_file.c_str(), O_RDWR);
-    }
-
+    log_fd = open(log_file.c_str(), O_RDWR | O_CREAT, 0666);
     if (log_fd == -1) {
         std::ostringstream os;
         os << "Fail to init log, file:" << log_file << std::endl;
@@ -88,27 +93,32 @@ bool FastLogSink::Init(bool auto_create) {
 void FastLogSink::AdjustFileMap() {
     size_t offset = 0;
     size_t file_size = 0;
+    struct stat fileStat;
+    fstat(log_fd, &fileStat);
+    file_size = fileStat.st_size;
+    size_t cur_pos = 0;  // 当前写入位置相对于文件头的offset
     if (begin_addr != nullptr && end_addr != nullptr) {
-        file_size = end_addr - begin_addr;
-        offset = cur_addr - begin_addr;
-        munmap(begin_addr, file_size);
+        cur_pos = file_size - (end_addr - cur_addr);
+        munmap(begin_addr, MAP_TRUNK_SIZE);
     } else {
-        struct stat fileStat;
-        fstat(log_fd, &fileStat);
-        file_size = fileStat.st_size;
-        offset = file_size;
+        cur_pos = file_size;
     }
 
-    size_t new_file_size = file_size + MAP_TRUNK_SIZE;
+    // 下次映射从当前写入地址(cur_pos)的上一文件页末尾开始(会产生长度为cur_pos-offset的区域被重复映射)
+    offset = RoundDownToPageSize(cur_pos);
+    size_t new_file_size = file_size + (MAP_TRUNK_SIZE - (cur_pos - offset));
     ftruncate(log_fd, new_file_size);
-    begin_addr = (char*)mmap(NULL, new_file_size, PROT_READ | PROT_WRITE, MAP_SHARED, log_fd, 0);
+
+    begin_addr = (char*)mmap(NULL, MAP_TRUNK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, log_fd, offset);
     if (begin_addr == MAP_FAILED) {
-        std::string err = "mmap failed, errno:" + std::to_string(errno);
+        std::ostringstream os;
+        os << "mmap failed, errno:" << errno << ", log_fd:" << log_fd << std::endl;
+        std::string&& err = os.str();
         fwrite(err.c_str(), err.size(), 1, stderr);
         exit(1);
     }
-    cur_addr = begin_addr + offset;
-    end_addr = begin_addr + new_file_size;
+    cur_addr = begin_addr + (cur_pos - offset);  // 当前写入位置应为起始地址加上重复映射区域长度
+    end_addr = begin_addr + MAP_TRUNK_SIZE;
 }
 
 void FastLogSink::Close() {

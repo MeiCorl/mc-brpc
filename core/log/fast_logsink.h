@@ -16,7 +16,7 @@ private:
     logging::LoggingDestination logging_dest;
     std::string log_file;
 
-    static int log_fd;
+    static volatile int log_fd;
     static char* begin_addr;
     static char* cur_addr;
     static char* end_addr;
