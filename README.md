@@ -1082,6 +1082,9 @@ void ServiceImpl::Test(...) {
 Grafana展示效果如下(PromQL: `avg(request_latency_recorder{service_name="$service_name", quantile="0.99"}) by (method)`)：
 ![image.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/748dad88a8ae4015806a548e814c9240~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1264&h=386&s=54753&e=png&b=181b1f)
 
+整体监控示例效果图如下：
+![image.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/282cf1137d704f9c9dec96b158a9b342~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2560&h=1239&s=288582&e=png&b=181b1f)
+
 ## 6. DB连接管理
 mc-brpc基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)提供了面向对象的MySQL的操作类<font color=#00ffff>MysqlConn</font>，并提供了对应的连接池实现<font color=#00ffff>DBPool</font>，通过<font color=#00ffff>DBPool</font>对MySQl连接进行管理(创建连接、释放连接、连接保活等)。
 ```c++
