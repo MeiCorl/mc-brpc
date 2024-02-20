@@ -1,6 +1,6 @@
 # 简介
 ### &emsp;&emsp; [mc-brpc](https://github.com/MeiCorl/mc-brpc)是基于[百度brpc框架](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量以及对原生brpc中一些功能进行增强优化。mc-brpc大部分功能通过在brpc基础上额外增加代码实现，少部分功能(日志、bvar拓展相关)涉及brpc源码修改。目前，mc-brpc在brpc的基础上(增加)扩展了以下功能以更好的支持rpc服务开发：
-* **服务注册**：brpc对于rpc服务中一些功能并未提供具体实现，而是需要用户自己去扩展实现。如服务注册，因为不同用户使用的服务注册中心不一样，有Zookeeper、Eureka、Nacos、Consul、Etcd、甚至自研的注册中心等，不同注册中心注册和发现流程可能不一样，不太好统一，因此只好交由用户根据去实现服务注册这部分；而对于服务发现这部分，brpc默认支持基于文件、dns、bns、http、consul、nacos等的服务发现，并支持用户扩展NamingService实现自定义的服务发现。mc-brpc在brpc的基础上实现了服务自动注册到etcd，并提供了NamingService的扩展(<font color=#00ffff>McNamingService</font>)用以支持自定义的服务发现(**mc:\/\/service_name**)
+* **服务注册**：brpc对于rpc服务中一些功能并未提供具体实现，而是需要用户自己去扩展实现。如服务注册，因为不同用户使用的服务注册中心不一样，有Zookeeper、Eureka、Nacos、Consul、Etcd、甚至自研的注册中心等，不同注册中心注册和发现流程可能不一样，不太好统一，因此只好交由用户根据去实现服务注册这部分；而对于服务发现这部分，brpc默认支持基于文件、dns、bns、http、consul、nacos等的服务发现，并支持用户扩展NamingService实现自定义的服务发现。mc-brpc在brpc的基础上增加了服务注册器<font color=#00ffff>ServiceRegister</font>抽象类，并提供了默认的<font color=#00ffff>EtcdServiceRegister</font>实现将服务自动注册到etcd(如果使用其它服务中心，可继承实现<font color=#00ffff>ServiceRegister</font>，并在server启动之前通过`MCServer::SetServiceRegister`方法替换服务注册器即可)；此外，mc-brpc提供了NamingService的扩展(<font color=#00ffff>McNamingService</font>)用以支持自定义的服务发现(**mc:\/\/service_name**)
 
 * **名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息，并为mc-brpc提供服务发现，主要是为了支持在服务跨机房甚至跨大区部署时，brpc请求能支持按指定大区和机房进行路由，此外name_agent还将服务信息dump出来作为promethus监控的targets，以及后续拟支持户端主动容灾功(暂未实现)等
 
@@ -112,6 +112,9 @@ MCServer::MCServer(int argc, char* argv[]) {
     // 注册名字服务(McNamingService)
     RegisterNamingService();
 
+    // 初始化服务注册器(默认使用EtcdServiceRegister)
+    _service_register.reset(new brpc::policy::EtcdServiceRegister);
+
 #ifdef USE_MYSQL
     // init db if necessary
     DBManager::get()->Init();
@@ -149,9 +152,10 @@ ServerConfig::ServerConfig(/* args */) {
     input = nullptr;
 }
 ```
-4. 根据3中服务日志配置，初始化日志输出文件路径并创建日志文件监听线程和日志归档线程(二者配合实现日志分时归档压缩)，以及判断是否需要使用异步日志写入AsyncLogSink(CMakeLists.txt中add_server_source添加<font color=#ffff00>ASYNCLOG</font>选项, 如`add_server_source(SERVER_SRCS ASYNCLOG)`, 这样会触发<font color=#ffff00>USE_ASYNC_LOGSINK</font>宏定义)。
-5. 根据3中服务配置，初始化DB连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_MYSQL</font>选项，触发定义<font color=#ffff00>USE_MYSQL</font>宏定义以及MySQL相关源文件及依赖库引入)及Redis连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_REDIS</font>选项，触发<font color=#ffff00>USE_REDIS</font>宏定义及相关源文件和依赖库引入)。
-6. 注册自定义的名字服务<font color=#00ffff>McNamingService</font>用以支持**mc:\/\/** 前缀的服务发现
+4. 根据3中服务日志配置，初始化日志输出文件路径并创建日志文件监听线程和日志归档线程(二者配合实现日志分时归档压缩)，以及判断是否需要使用异步日志AsyncLogSink或者FastLogSink(CMakeLists.txt中add_server_source添加<font color=#ffff00>ASYNCLOG</font>选项或者<font color=#ffff00>FASTLOG</font>, 如`add_server_source(SERVER_SRCS ASYNCLOG)`, 这样会触发<font color=#ffff00>USE_ASYNC_LOGSINK</font>宏定义)。
+5. 初始化服务注册器，默认使用<font color=#00ffff>EtcdServiceRegister</font>将服务信息注册到etcd，如果使用其它类型的注册中心，需要继承<font color=#00ffff>ServiceRegister</font>实现自己的服务注册器，并在MCServer启动前通过`MCServer::SetServiceRegister`替换当前服务注册器。
+6. 根据3中服务配置，初始化DB连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_MYSQL</font>选项，触发定义<font color=#ffff00>USE_MYSQL</font>宏定义以及MySQL相关源文件及依赖库引入)及Redis连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_REDIS</font>选项，触发<font color=#ffff00>USE_REDIS</font>宏定义及相关源文件和依赖库引入)。
+7. 注册自定义的名字服务<font color=#00ffff>McNamingService</font>用以支持**mc:\/\/** 前缀的服务发现
 
 ### 启动过程
 1. 首先指定服务监听地址。可以通过gflags<*listen_addr*>指定ip:port或者unix_socket地址, 否则使用当前ip地址+随机端口。调brpc::Start启动server
@@ -163,23 +167,24 @@ ServerConfig::ServerConfig(/* args */) {
 
 ## 2. 服务注册及发现
 ### 服务注册
-MCSever启动会时，会从服务配置里获取注册中心地址、当前服务名、大区id、及机房id等，并自动向etcd注册服务信息，这里使用的了[etcd-cpp-apiv3](https://github.com/etcd-cpp-apiv3/etcd-cpp-apiv3)。注册key为"*服务名:实例id*"(这里实例id设计比较简单，直接用实例信息序列化后的字符串计算hash code，暂时没有实际用处), value为实例信息(server::config::InstanceInfo, 参考core/config/server_config.proto)序列化后字符串。
+MCSever启动会时，会从服务配置里获取注册中心地址、当前服务名、大区id、及机房id等，并通过<font color=#00ffff>ServiceRegister</font>的实现类<font color=#00ffff>EtcdServiceRegister</font>向etcd注册服务信息，这里使用到了[etcd-cpp-apiv3](https://github.com/etcd-cpp-apiv3/etcd-cpp-apiv3)。注册key为"*服务名:实例id*"(这里实例id设计比较简单，直接用实例信息序列化后的字符串计算hash code，暂时没有实际用处), value为实例信息(server::config::InstanceInfo, 参考core/config/server_config.proto)序列化后字符串。
 ```c++
-bool MCServer::RegisterService() {
-    ServerConfig* config = utils::Singleton<ServerConfig>::get();
+bool EtcdServiceRegister::RegisterService() {
+    ServerConfig* config = Singleton<ServerConfig>::get();
     etcd::Client etcd(config->GetNsUrl());
     server::config::InstanceInfo instance;
     instance.set_region_id(config->GetSelfRegionId());
     instance.set_group_id(config->GetSelfGroupId());
-    instance.set_endpoint(butil::endpoint2str(_server.listen_address()).c_str());
+    instance.set_endpoint(butil::endpoint2str(brpc::Server::_current_server->listen_address()).c_str());
     etcd::Response resp = etcd.leasegrant(REGISTER_TTL).get();
     if (resp.error_code() != 0) {
         LOG(ERROR) << "[!] etcd failed, err_code: " << resp.error_code() << ", err_msg:" << resp.error_message();
         return false;
     }
     _etcd_lease_id = resp.value().lease();
-    etcd::Response response =
-        etcd.set(BuildServiceName(config->GetSelfName(), instance), instance.SerializeAsString(), _etcd_lease_id).get();
+
+    _register_key = BuildServiceName(config->GetSelfName(), instance);
+    etcd::Response response = etcd.set(_register_key, instance.SerializeAsString(), _etcd_lease_id).get();
     if (response.error_code() != 0) {
         LOG(ERROR) << "[!] Fail to register service, err_code: " << response.error_code()
                    << ", err_msg:" << response.error_message();
@@ -200,7 +205,7 @@ bool MCServer::RegisterService() {
         // KeepAlive续约有时因为一些原因lease已经过期则会失败，或者etcd重启也会失败，需要发起重新注册
         // 注意需要新起一个线程发起重新注册，否则会出现死锁（不新起线程的话，那重新注册的逻辑是运行在当前
         // handler所在线程的，而旧的KeepAlive对象析构又需要等待当前handler所在线程结束，具体请看KeepAlive源码）
-        auto fn = std::bind(&MCServer::TryRegisterAgain, this);
+        auto fn = std::bind(&EtcdServiceRegister::TryRegisterAgain, this);
         std::thread(fn).detach();
     };
 
@@ -214,7 +219,7 @@ bool MCServer::RegisterService() {
 /**
  * 用于在一些异常情况下(如etcd重启或者旧的lease过期导致keepalive对象失败退出)重新发起注册
  **/
-void MCServer::TryRegisterAgain() {
+void EtcdServiceRegister::TryRegisterAgain() {
     do {
         LOG(INFO) << "Try register again.";
         bool is_succ = RegisterService();
@@ -225,11 +230,14 @@ void MCServer::TryRegisterAgain() {
     } while (true);
 }
 
-std::string MCServer::BuildServiceName(
-    const std::string& original_service_name,
-    const server::config::InstanceInfo& instance) {
-    std::hash<std::string> hasher;
-    return original_service_name + ":" + std::to_string(hasher(instance.SerializeAsString()));
+void EtcdServiceRegister::UnRegisterService() {
+    if (_keep_live_ptr) {
+        _keep_live_ptr->Cancel();
+    }
+
+    ServerConfig* config = Singleton<ServerConfig>::get();
+    etcd::Client etcd(config->GetNsUrl());
+    etcd.rm(_register_key);
 }
 ```
 
@@ -1408,3 +1416,6 @@ if (!redis) {
 redis->lpush("list_1", ll.begin(), ll.end());
 redis->expire("list_1", std::chrono::seconds(3600));
 ```
+
+## 8. 更多功能
+更新中。。。
