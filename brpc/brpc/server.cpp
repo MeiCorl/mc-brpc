@@ -88,6 +88,11 @@ extern "C" {
 void* bthread_get_assigned_data();
 }
 
+namespace bvar {
+
+DECLARE_bool(enable_rpc_metrics);
+
+};
 namespace brpc {
 
 BAIDU_CASSERT(sizeof(int32_t) == sizeof(butil::subtle::Atomic32),
@@ -397,7 +402,7 @@ const std::string& Server::ServiceProperty::service_name() const {
 
 const Server* Server::_current_server = nullptr;
 
-Server::Server(ProfilerLinker)
+Server::Server(const std::string& server_name, ProfilerLinker)
     : _session_local_data_pool(NULL)
     , _status(UNINITIALIZED)
     , _builtin_service_count(0)
@@ -414,9 +419,32 @@ Server::Server(ProfilerLinker)
     , _eps_bvar(&_nerror_bvar)
     , _concurrency(0)
     , _concurrency_bvar(cast_no_barrier_int, &_concurrency)
-    , _has_progressive_read_method(false) {
+    , _has_progressive_read_method(false)
+    , _enable_rpc_metrics(false)
+    , _server_request_total_counter(nullptr)
+    , _server_request_error_counter(nullptr)
+    , _server_name(server_name) {
     BAIDU_CASSERT(offsetof(Server, _concurrency) % 64 == 0,
                   Server_concurrency_must_be_aligned_by_cacheline);
+
+    _enable_rpc_metrics = bvar::FLAGS_enable_rpc_metrics;
+    if(_enable_rpc_metrics) {
+        // 初始化server侧请求总数counter & 错误请求counter
+        _server_request_total_counter = new bvar::MetricsCountRecorder<uint64_t>("server_request_total_counter", "count total request num at server-side");
+        _server_request_total_counter->set_metrics_label("server_name", server_name);
+        _server_request_total_counter->set_metrics_label("service");
+        _server_request_total_counter->set_metrics_label("method");
+        _server_request_total_counter->set_metrics_label("protocol");
+        _server_request_total_counter->set_metrics_label("fsvr_name");
+
+        _server_request_error_counter = new bvar::MetricsCountRecorder<uint64_t>("server_request_error_counter", "count error request num at server-side");
+        _server_request_error_counter->set_metrics_label("server_name", server_name);
+        _server_request_error_counter->set_metrics_label("service");
+        _server_request_error_counter->set_metrics_label("method");
+        _server_request_error_counter->set_metrics_label("protocol");
+        _server_request_error_counter->set_metrics_label("fsvr_name");
+        _server_request_error_counter->set_metrics_label("error_info");
+    }
 
     _current_server = this;
 }
@@ -468,6 +496,16 @@ Server::~Server() {
     _options.redis_service = NULL;
 
     _current_server = nullptr;
+
+    if(_server_request_total_counter) {
+        delete _server_request_total_counter;
+        _server_request_total_counter = nullptr;
+    }
+
+    if(_server_request_error_counter) {
+        delete _server_request_error_counter;
+        _server_request_error_counter = nullptr;
+    }
 }
 
 int Server::AddBuiltinServices() {

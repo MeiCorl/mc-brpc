@@ -25,6 +25,10 @@
 #include "brpc/builtin/bad_method_service.h"
 #include "brpc/restful.h"
 
+namespace bvar {
+extern bool g_metrics_cleaning_mode;
+}
+
 namespace brpc {
 
 // A wrapper to access some private methods/fields of `Server'
@@ -38,6 +42,54 @@ public:
 
     void AddError() {
         _server->_nerror_bvar << 1;
+    }
+
+    void AddTotalCounter(std::string service_name, 
+                        std::string method_name, std::string protocol, 
+                        std::string from_svr_name, 
+                        uint64_t incr = 1) {
+        std::vector<std::string> keys {
+            std::move(service_name), 
+            std::move(method_name), 
+            std::move(protocol), 
+            std::move(from_svr_name)
+        };
+        if(_server->_enable_rpc_metrics && _server->_server_request_total_counter) {
+            if (bvar::g_metrics_cleaning_mode) {
+                *(_server->_server_request_total_counter->find2(keys)) << incr;
+            } else {
+                _server->_server_request_total_counter->find(keys) << incr;
+            }
+        }
+    }
+
+    void AddErrorCounter(std::string service_name, 
+                        std::string method_name, std::string protocol,
+                        std::string from_svr_name, 
+                        std::string error_info, 
+                        uint64_t incr = 1) {
+        std::vector<std::string> keys {
+            std::move(service_name), 
+            std::move(method_name), 
+            std::move(protocol), 
+            std::move(from_svr_name)
+        };
+        if(_server->_enable_rpc_metrics && _server->_server_request_total_counter) {
+            if (bvar::g_metrics_cleaning_mode) {
+                *(_server->_server_request_total_counter->find2(keys)) << incr;
+            } else {
+                _server->_server_request_total_counter->find(keys) << incr;
+            }
+        }
+
+        keys.emplace_back(std::move(error_info));
+        if(_server->_enable_rpc_metrics && _server->_server_request_error_counter) {
+            if (bvar::g_metrics_cleaning_mode) {
+                *(_server->_server_request_error_counter->find2(keys)) << incr;
+            } else {
+                _server->_server_request_error_counter->find(keys) << incr;
+            }
+        }
     }
 
     // Returns true if the `max_concurrency' limit is not reached.

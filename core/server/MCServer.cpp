@@ -38,6 +38,9 @@ MCServer::MCServer(int argc, char* argv[]) {
         fclose(file);
     }
 
+    // 创建brpc server
+    _server = new brpc::Server(utils::Singleton<ServerConfig>::get()->GetSelfName());
+
     // 初始化日志（会额外触发server.conf全局配置解析)
     LoggingInit(argv);
 
@@ -76,6 +79,11 @@ MCServer::~MCServer() {
 
     if (_service_register != nullptr) {
         _service_register->UnRegisterService();
+    }
+
+    if (_server) {
+        delete _server;
+        _server = nullptr;
     }
 }
 
@@ -136,7 +144,7 @@ void MCServer::SetServiceRegister(brpc::policy::ServiceRegister* service_registe
 }
 
 void MCServer::AddService(google::protobuf::Service* service) {
-    if (_server.AddService(service, brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
+    if (_server->AddService(service, brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
         LOG(ERROR) << "[!] Fail to add service";
         exit(1);
     }
@@ -158,7 +166,7 @@ void MCServer::Start(bool register_service) {
 
     brpc::ServerOptions options;
     options.server_info_name = utils::Singleton<ServerConfig>::get()->GetSelfName();
-    if (_server.Start(point, &options) != 0) {
+    if (_server->Start(point, &options) != 0) {
         LOG(ERROR) << "[!] Fail to start Server";
         exit(1);
     }
@@ -174,5 +182,5 @@ void MCServer::Start(bool register_service) {
         }
     }
 
-    _server.RunUntilAskedToQuit();
+    _server->RunUntilAskedToQuit();
 }

@@ -703,16 +703,17 @@ class HttpResponseSender {
 friend class HttpResponseSenderAsDone;
 public:
     HttpResponseSender()
-        : _method_status(NULL), _received_us(0), _h2_stream_id(-1) {}
+        : _method_status(NULL), _received_us(0), _h2_stream_id(-1), _is_builtin_service(true) {}
     HttpResponseSender(Controller* cntl/*own*/)
-        : _cntl(cntl), _method_status(NULL), _received_us(0), _h2_stream_id(-1) {}
+        : _cntl(cntl), _method_status(NULL), _received_us(0), _h2_stream_id(-1), _is_builtin_service(true) {}
     HttpResponseSender(HttpResponseSender&& s)
         : _cntl(std::move(s._cntl))
         , _req(std::move(s._req))
         , _res(std::move(s._res))
         , _method_status(std::move(s._method_status))
         , _received_us(s._received_us)
-        , _h2_stream_id(s._h2_stream_id) {
+        , _h2_stream_id(s._h2_stream_id)
+        , _is_builtin_service(s._is_builtin_service) {
     }
     ~HttpResponseSender();
 
@@ -721,7 +722,7 @@ public:
     void set_method_status(MethodStatus* ms) { _method_status = ms; }
     void set_received_us(int64_t t) { _received_us = t; }
     void set_h2_stream_id(int id) { _h2_stream_id = id; }
-
+    void set_is_builtin_service(bool flag) { _is_builtin_service = flag; }
 private:
     std::unique_ptr<Controller, LogErrorTextAndDelete> _cntl;
     std::unique_ptr<google::protobuf::Message> _req;
@@ -729,6 +730,7 @@ private:
     MethodStatus* _method_status;
     int64_t _received_us;
     int _h2_stream_id;
+    bool _is_builtin_service;
 };
 
 class HttpResponseSenderAsDone : public google::protobuf::Closure {
@@ -744,6 +746,16 @@ HttpResponseSender::~HttpResponseSender() {
     if (cntl == NULL) {
         return;
     }
+    
+    if(!_is_builtin_service && cntl->server()) {
+        ServerPrivateAccessor(cntl->server())
+            .AddTotalCounter(
+                cntl->server()->GetSelfName(),
+                cntl->http_request().uri().path(),
+                ProtocolTypeToString(cntl->request_protocol()),
+                cntl->from_svr_name().empty() ? "null-fsvrname" : cntl->from_svr_name());
+    }
+
     ControllerPrivateAccessor accessor(cntl);
     Span* span = accessor.span();
     if (span) {
@@ -755,6 +767,15 @@ HttpResponseSender::~HttpResponseSender() {
     
     if (cntl->IsCloseConnection()) {
         socket->SetFailed();
+        if(!_is_builtin_service && cntl->server()) {
+            ServerPrivateAccessor(cntl->server())
+                .AddErrorCounter(
+                    cntl->server()->GetSelfName(),
+                    cntl->http_request().uri().path(),
+                    ProtocolTypeToString(cntl->request_protocol()),
+                    cntl->from_svr_name().empty() ? "null-fsvrname" : cntl->from_svr_name(),
+                    "client connection closed.");
+        }
         return;
     }
 
@@ -1266,10 +1287,18 @@ void ProcessHttpRequest(InputMessageBase *msg) {
     Socket* socket = socket_guard.get();
     const Server* server = static_cast<const Server*>(msg->arg());
     ScopedNonServiceError non_service_error(server);
+    ServerPrivateAccessor server_accessor(server);
 
+    const std::string* from_svr_name = imsg_guard->header().GetHeader(FLAGS_from_svr_name);
     Controller* cntl = new (std::nothrow) Controller;
     if (NULL == cntl) {
         LOG(FATAL) << "Fail to new Controller";
+        server_accessor.AddErrorCounter(
+            server->GetSelfName(),
+            imsg_guard->header().uri().path(),
+            ProtocolTypeToString(PROTOCOL_HTTP),
+            (from_svr_name == nullptr) ? "null-fsvrname" : *from_svr_name,
+            "Out of memory.");
         return;
     }
     HttpResponseSender resp_sender(cntl);
@@ -1289,7 +1318,7 @@ void ProcessHttpRequest(InputMessageBase *msg) {
     if (!GetUserAddressFromHeader(req_header, &user_addr)) {
         user_addr = socket->remote_side();
     }
-    ServerPrivateAccessor server_accessor(server);
+    
     const bool security_mode = server->options().security_mode() &&
                                socket->user() == server_accessor.acceptor();
     accessor.set_server(server)
@@ -1322,7 +1351,6 @@ void ProcessHttpRequest(InputMessageBase *msg) {
         cntl->set_request_id(*request_id);
     }
 
-    const std::string* from_svr_name = req_header.GetHeader(FLAGS_from_svr_name);
     if(from_svr_name) {
         cntl->set_from_svr_name(*from_svr_name);
     }
@@ -1365,6 +1393,7 @@ void ProcessHttpRequest(InputMessageBase *msg) {
     
     if (!server->IsRunning()) {
         cntl->SetFailed(ELOGOFF, "Server is stopping");
+        resp_sender.set_is_builtin_service(false);
         return;
     }
 
@@ -1375,6 +1404,7 @@ void ProcessHttpRequest(InputMessageBase *msg) {
             svc->GetDescriptor()->FindMethodByName(common->DEFAULT_METHOD);
         if (md == NULL) {
             cntl->SetFailed(ENOMETHOD, "No default_method in http_master_service");
+            resp_sender.set_is_builtin_service(false);
             return;
         }
         accessor.set_method(md);
@@ -1412,6 +1442,8 @@ void ProcessHttpRequest(InputMessageBase *msg) {
     non_service_error.release();
     MethodStatus* method_status = sp->status;
     resp_sender.set_method_status(method_status);
+    resp_sender.set_is_builtin_service(sp->is_builtin_service);
+
     if (method_status) {
         int rejected_cc = 0;
         if (!method_status->OnRequested(&rejected_cc)) {

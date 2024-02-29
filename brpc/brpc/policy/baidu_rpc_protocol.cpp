@@ -156,9 +156,23 @@ void SendRpcResponse(int64_t correlation_id,
     
     StreamId response_stream_id = accessor.response_stream();
 
+    if (cntl->server()) {
+        ServerPrivateAccessor(cntl->server()).AddTotalCounter(
+            cntl->method()->service()->name(),
+            cntl->method()->name(),
+            ProtocolTypeToString(cntl->request_protocol()),
+            cntl->from_svr_name().empty() ? "null-fsvrname" : cntl->from_svr_name());
+    }
+
     if (cntl->IsCloseConnection()) {
         StreamClose(response_stream_id);
         sock->SetFailed();
+        ServerPrivateAccessor(cntl->server()).AddErrorCounter(
+            cntl->method()->service()->name(),
+            cntl->method()->name(),
+            ProtocolTypeToString(cntl->request_protocol()),
+            cntl->from_svr_name().empty() ? "null-fsvrname" : cntl->from_svr_name(),
+            "client connection closed.");
         return;
     }
     bool append_body = false;
@@ -318,12 +332,16 @@ void ProcessRpcRequest(InputMessageBase* msg_base) {
     Socket* socket = socket_guard.get();
     const Server* server = static_cast<const Server*>(msg_base->arg());
     ScopedNonServiceError non_service_error(server);
+    ServerPrivateAccessor server_accessor(server);
 
     RpcMeta meta;
     if (!ParsePbFromIOBuf(&meta, msg->meta)) {
         LOG(WARNING) << "Fail to parse RpcMeta from " << *socket;
         socket->SetFailed(EREQUEST, "Fail to parse RpcMeta from %s",
                           socket->description().c_str());
+        server_accessor.AddErrorCounter(
+            "null", "null", ProtocolTypeToString(PROTOCOL_BAIDU_STD), "null-fsvrname",
+             "req parse error, fip:" + std::string(butil::ip2str(socket->remote_side().ip).c_str()));
         return;
     }
     const RpcRequestMeta &request_meta = meta.request();
@@ -342,14 +360,20 @@ void ProcessRpcRequest(InputMessageBase* msg_base) {
 
     std::unique_ptr<Controller> cntl(new (std::nothrow) Controller);
     if (NULL == cntl.get()) {
-        LOG(WARNING) << "Fail to new Controller";
+        LOG(ERROR) << "Fail to new Controller";
+
+        server_accessor.AddErrorCounter(
+            request_meta.service_name(),
+             request_meta.method_name(),
+             ProtocolTypeToString(PROTOCOL_BAIDU_STD),
+             request_meta.from_svr_name().empty() ? "null-fsvrname" : request_meta.from_svr_name(),
+             "Out of memory.");
         return;
     }
     std::unique_ptr<google::protobuf::Message> req;
     std::unique_ptr<google::protobuf::Message> res;
 
-    ServerPrivateAccessor server_accessor(server);
-    ControllerPrivateAccessor accessor(cntl.get());
+    
     const bool security_mode = server->options().security_mode() &&
                                socket->user() == server_accessor.acceptor();
     if (request_meta.has_log_id()) {
@@ -364,6 +388,7 @@ void ProcessRpcRequest(InputMessageBase* msg_base) {
     cntl->set_from_svr_name(request_meta.from_svr_name());
     cntl->set_request_compress_type((CompressType)meta.compress_type());
 
+    ControllerPrivateAccessor accessor(cntl.get());
     accessor.set_server(server)
         .set_security_mode(security_mode)
         .set_peer_id(socket->id())

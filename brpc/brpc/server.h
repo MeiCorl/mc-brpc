@@ -42,7 +42,7 @@
 #include "brpc/http2.h"
 #include "brpc/redis.h"
 #include "brpc/interceptor.h"
-
+#include "bvar/metrics_count_recorder.h"
 namespace brpc {
 
 class Acceptor;
@@ -402,15 +402,9 @@ public:
     };
 
     const static Server* _current_server;
-    static const std::string& GetSelfName() {
-        if(_current_server) {
-            return _current_server->options().server_info_name;
-        }
-        return "";
-    }
 
 public:
-    Server(ProfilerLinker = ProfilerLinker());
+    Server(const std::string& server_name = "", ProfilerLinker = ProfilerLinker());
     ~Server();
 
     // A set of functions to start this server.
@@ -584,6 +578,10 @@ public:
         return this->_has_progressive_read_method;
     }
 
+    const std::string& GetSelfName() const {
+        return _server_name;
+    }
+
 private:
 friend class StatusService;
 friend class ProtobufsService;
@@ -742,6 +740,12 @@ friend class Controller;
     bvar::PassiveStatus<int32_t> _concurrency_bvar;
 
     bool _has_progressive_read_method;
+
+    bool _enable_rpc_metrics;
+    mutable bvar::MetricsCountRecorder<uint64_t> *_server_request_total_counter;  // 统计server侧接口请求总数/qps
+    mutable bvar::MetricsCountRecorder<uint64_t> *_server_request_error_counter;  // 统计server侧接口报错信息
+
+    std::string _server_name;
 };
 
 // Get the data attached to current searching thread. The data is created by

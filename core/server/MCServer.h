@@ -20,7 +20,7 @@ public:
     void Start(bool register_service = true);
 
 private:
-    brpc::Server _server;
+    brpc::Server* _server;
 
     std::shared_ptr<LogRotateWatcher> _log_watcher;
     std::shared_ptr<LogArchiveWorker> _log_archive_worker;
