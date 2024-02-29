@@ -5,7 +5,6 @@
 #include <etcd/Client.hpp>
 
 using namespace brpc::policy;
-using namespace server::utils;
 
 std::string EtcdServiceRegister::BuildServiceName(
     const std::string& original_service_name,
@@ -15,7 +14,7 @@ std::string EtcdServiceRegister::BuildServiceName(
 }
 
 bool EtcdServiceRegister::RegisterService() {
-    ServerConfig* config = Singleton<ServerConfig>::get();
+    ServerConfig* config = server::utils::Singleton<ServerConfig>::get();
     etcd::Client etcd(config->GetNsUrl());
     server::config::InstanceInfo instance;
     instance.set_region_id(config->GetSelfRegionId());
@@ -80,7 +79,7 @@ void EtcdServiceRegister::UnRegisterService() {
         _keep_live_ptr->Cancel();
     }
 
-    ServerConfig* config = Singleton<ServerConfig>::get();
+    ServerConfig* config = server::utils::Singleton<ServerConfig>::get();
     etcd::Client etcd(config->GetNsUrl());
     etcd.rm(_register_key);
 }
