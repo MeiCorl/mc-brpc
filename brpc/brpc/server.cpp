@@ -431,14 +431,14 @@ Server::Server(const std::string& server_name, ProfilerLinker)
     if(_enable_rpc_metrics) {
         // 初始化server侧请求总数counter & 错误请求counter
         _server_request_total_counter = new bvar::MetricsCountRecorder<uint64_t>("server_request_total_counter", "count total request num at server-side");
-        _server_request_total_counter->set_metrics_label("server_name", server_name);
+        // _server_request_total_counter->set_metrics_label("server_name", server_name);
         _server_request_total_counter->set_metrics_label("service");
         _server_request_total_counter->set_metrics_label("method");
         _server_request_total_counter->set_metrics_label("protocol");
         _server_request_total_counter->set_metrics_label("fsvr_name");
 
         _server_request_error_counter = new bvar::MetricsCountRecorder<uint64_t>("server_request_error_counter", "count error request num at server-side");
-        _server_request_error_counter->set_metrics_label("server_name", server_name);
+        // _server_request_error_counter->set_metrics_label("server_name", server_name);
         _server_request_error_counter->set_metrics_label("service");
         _server_request_error_counter->set_metrics_label("method");
         _server_request_error_counter->set_metrics_label("protocol");

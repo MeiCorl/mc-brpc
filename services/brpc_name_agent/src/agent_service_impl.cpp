@@ -389,7 +389,7 @@ void AgentServiceImpl::DumpServiceInfo() {
 
                 writer.Key("labels");
                 writer.StartObject();
-                writer.Key("service_name");
+                writer.Key("server_name");
                 writer.String(service_name.c_str());
                 writer.Key("region_id");
                 writer.String(std::to_string(region_id).c_str());
