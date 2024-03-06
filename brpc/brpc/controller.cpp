@@ -54,6 +54,10 @@ namespace bthread {
 extern BAIDU_THREAD_LOCAL TaskGroup* tls_task_group;
 }
 
+namespace bvar {
+extern bool g_metrics_cleaning_mode;
+}
+
 // This is the only place that both client/server must link, so we put
 // registrations of errno here.
 BAIDU_REGISTER_ERRNO(brpc::ENOSERVICE, "No such service");
@@ -228,6 +232,9 @@ void Controller::ResetNonPods() {
     }
     delete _remote_stream_settings;
     _thrift_method_name.clear();
+
+    _client_request_total_counter.reset();
+    _client_request_error_counter.reset();
 
     CHECK(_unfinished_call == NULL);
 }
@@ -600,6 +607,31 @@ void Controller::OnVersionedRPCReturned(const CompletionInfo& info,
         response_attachment().clear();
         CHECK_EQ(0, bthread_id_unlock(info.id));
         return;
+    }
+
+    // metrics report
+    if (_error_code) {
+        do {
+            // http protocol res code in the range of 100 ~ 399 don't do error report
+            if (_request_protocol == PROTOCOL_HTTP || _request_protocol == PROTOCOL_H2) {
+                if (http_response().status_code() < 400) {
+                    break;
+                }
+            }
+
+            std::string err_info = std::to_string(_error_code) + ":" + berror(_error_code);
+            if (_client_request_error_counter) {
+                if (bvar::g_metrics_cleaning_mode) {
+                    *(_client_request_error_counter->find2(
+                        {_method->name(), butil::endpoint2str(_remote_side).c_str(), err_info}))
+                        << 1;
+                } else {
+                    (_client_request_error_counter->find(
+                        {_method->name(), butil::endpoint2str(_remote_side).c_str(), err_info}))
+                        << 1;
+                }
+            }
+        } while (false);
     }
 
     if ((!_error_code && _retry_policy == NULL) ||
@@ -998,11 +1030,22 @@ void Controller::SubmitSpan() {
     _span = NULL;
 }
 
-void Controller::HandleSendFailed() {
+void Controller::HandleSendFailed(bool need_counter_incr) {
     if (!FailedInline()) {
         SetFailed("Must be SetFailed() before calling HandleSendFailed()");
         LOG(FATAL) << ErrorText();
     }
+
+    if (need_counter_incr) {
+        if (_client_request_total_counter) {
+            if (bvar::g_metrics_cleaning_mode) {
+                *(_client_request_total_counter->find2({_method->name()})) << 1;
+            }else {
+                (_client_request_total_counter->find({_method->name()})) << 1;
+            }
+        }
+    }
+
     const CompletionInfo info = { current_id(), false };
     // NOTE: Launch new thread to run the callback in an asynchronous call
     // (and done is not allowed to run in-place)
@@ -1040,7 +1083,7 @@ void Controller::IssueRPC(int64_t start_realtime_us) {
     // by SelectiveChannel.
     if (_sender) {
         if (_sender->IssueRPC(start_realtime_us) != 0) {
-            return HandleSendFailed();
+            return HandleSendFailed(true);
         }
         CHECK_EQ(0, bthread_id_unlock(cid));
         return;
@@ -1058,7 +1101,7 @@ void Controller::IssueRPC(int64_t start_realtime_us) {
             SetFailed(EHOSTDOWN, "Not connected to %s yet, server_id=%" PRIu64,
                       endpoint2str(_remote_side).c_str(), _single_server_id);
             tmp_sock.reset();  // Release ref ASAP
-            return HandleSendFailed();
+            return HandleSendFailed(true);
         }
         _current_call.peer_id = _single_server_id;
     } else {
@@ -1073,7 +1116,7 @@ void Controller::IssueRPC(int64_t start_realtime_us) {
             opt.verbose = false;
             _lb->Describe(os, opt);
             SetFailed(rc, "Fail to select server from %s", os.str().c_str());
-            return HandleSendFailed();
+            return HandleSendFailed(true);
         }
         _current_call.need_feedback = sel_out.need_feedback;
         _current_call.peer_id = tmp_sock->id();
@@ -1083,6 +1126,15 @@ void Controller::IssueRPC(int64_t start_realtime_us) {
         // here.
         _remote_side = tmp_sock->remote_side();
     }
+
+    if (_client_request_total_counter) {
+        if (bvar::g_metrics_cleaning_mode) {
+            *(_client_request_total_counter->find2({_method->name()})) << 1;
+        }else {
+            (_client_request_total_counter->find({_method->name()})) << 1;
+        }
+    }
+
     if (_stream_creator) {
         _current_call.stream_user_data =
             _stream_creator->OnCreatingStream(&tmp_sock, this);

@@ -45,6 +45,7 @@
 #include "brpc/progressive_reader.h"           // ProgressiveReader
 #include "brpc/grpc.h"
 #include "brpc/kvmap.h"
+#include "bvar/metrics_count_recorder.h"
 
 // EAUTH is defined in MAC
 #ifndef EAUTH
@@ -614,7 +615,7 @@ private:
 
     static int HandleSocketFailed(bthread_id_t, void* data, int error_code,
                                   const std::string& error_text);
-    void HandleSendFailed();
+    void HandleSendFailed(bool need_counter_incr = false);
 
     static int RunOnCancel(bthread_id_t, void* data, int error_code);
     
@@ -840,6 +841,10 @@ private:
     std::string _thrift_method_name;
 
     uint32_t _auth_flags;
+
+    /* 这三个counter指向channel中对应的counter */
+    std::shared_ptr<bvar::MetricsCountRecorder<uint64_t>> _client_request_total_counter;   // 统计作为客户端请求总数&qps
+    std::shared_ptr<bvar::MetricsCountRecorder<uint64_t>> _client_request_error_counter;   // 统计作为客户端请求错误数
 };
 
 // Advises the RPC system that the caller desires that the RPC call be

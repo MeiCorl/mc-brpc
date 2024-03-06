@@ -35,6 +35,10 @@
 #include "brpc/rdma/rdma_helper.h"
 #include "brpc/policy/esp_authenticator.h"
 
+namespace bvar {
+DECLARE_bool(enable_rpc_metrics);
+extern bool g_metrics_cleaning_mode;
+};
 namespace brpc {
 
 DECLARE_bool(enable_rpcz);
@@ -135,7 +139,8 @@ Channel::Channel(ProfilerLinker)
     , _serialize_request(NULL)
     , _pack_request(NULL)
     , _get_method_name(NULL)
-    , _preferred_index(-1) {
+    , _preferred_index(-1)
+    , _metrics_recorder_inited(false) {
 }
 
 Channel::~Channel() {
@@ -348,6 +353,7 @@ int Channel::InitSingle(const butil::EndPoint& server_addr_and_port,
         LOG(ERROR) << "Fail to insert into SocketMap";
         return -1;
     }
+    InitCounters(butil::endpoint2str(server_addr_and_port).c_str(), ProtocolTypeToString(_options.protocol));
     return 0;
 }
 
@@ -391,6 +397,7 @@ int Channel::Init(const char* ns_url,
         return -1;
     }
     _lb.reset(lb);
+    InitCounters(_service_name.substr(0, _service_name.find_first_of(':')), ProtocolTypeToString(_options.protocol));
     return 0;
 }
 
@@ -460,6 +467,30 @@ void Channel::CallMethod(const google::protobuf::MethodDescriptor* method,
         if (done) {
             done->Run();
         }
+
+        if (bvar::FLAGS_enable_rpc_metrics && _client_request_total_counter) {
+            if (bvar::g_metrics_cleaning_mode) {
+                *(_client_request_total_counter->find2({method->name()})) << 1;
+            } else {
+                (_client_request_total_counter->find({method->name()})) << 1;
+            }
+        }
+        if (bvar::FLAGS_enable_rpc_metrics && _client_request_error_counter) {
+            std::string err_info = std::to_string(rc) + ":" + berror(rc);
+            if (bvar::g_metrics_cleaning_mode) {
+                *(_client_request_error_counter->find2(
+                    {method->name(),
+                     (_server_address == butil::EndPoint() ? "0" : butil::endpoint2str(_server_address).c_str()),
+                     err_info}))
+                    << 1;
+            } else {
+                (_client_request_error_counter->find(
+                    {method->name(),
+                     (_server_address == butil::EndPoint() ? "0" : butil::endpoint2str(_server_address).c_str()),
+                     err_info}))
+                    << 1;
+            }
+        }
         return;
     }
     cntl->set_used_by_rpc();
@@ -520,6 +551,13 @@ void Channel::CallMethod(const google::protobuf::MethodDescriptor* method,
         // should be excluded from the retry_policy.
         return cntl->HandleSendFailed();
     }
+
+    if (bvar::FLAGS_enable_rpc_metrics) {
+        // cntl get counters from channel
+        cntl->_client_request_total_counter = _client_request_total_counter;
+        cntl->_client_request_error_counter = _client_request_error_counter;
+    }
+
     if (FLAGS_usercode_in_pthread &&
         done != NULL &&
         TooManyUserCode()) {
@@ -613,6 +651,27 @@ int Channel::CheckHealth() {
         LoadBalancer::SelectOut sel_out(&tmp_sock);
         return _lb->SelectServer(sel_in, &sel_out);
     }
+}
+
+void Channel::InitCounters(const std::string& tsvr_name, const std::string& protocol) {
+    if (!bvar::FLAGS_enable_rpc_metrics || _metrics_recorder_inited) {
+        return;
+    }
+
+    _metrics_recorder_inited = true;
+    _client_request_total_counter = std::make_shared<bvar::MetricsCountRecorder<uint64_t>>(
+        "client_request_total_counter", "count total request num at client-side");
+    _client_request_total_counter->set_metrics_label("tsvr_name", tsvr_name);
+    _client_request_total_counter->set_metrics_label("protocol", protocol);
+    _client_request_total_counter->set_metrics_label("method");
+
+    _client_request_error_counter = std::make_shared<bvar::MetricsCountRecorder<uint64_t>>(
+        "client_request_error_counter", "count error request num at client-side");
+    _client_request_error_counter->set_metrics_label("tsvr_name", tsvr_name);
+    _client_request_error_counter->set_metrics_label("protocol", protocol);
+    _client_request_error_counter->set_metrics_label("method");
+    _client_request_error_counter->set_metrics_label("tinstance");
+    _client_request_error_counter->set_metrics_label("error_info");
 }
 
 } // namespace brpc

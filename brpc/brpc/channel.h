@@ -35,7 +35,7 @@
 #include "brpc/details/profiler_linker.h"
 #include "brpc/retry_policy.h"
 #include "brpc/naming_service_filter.h"
-
+#include "bvar/metrics_count_recorder.h"
 namespace brpc {
 
 struct ChannelOptions {
@@ -236,6 +236,13 @@ protected:
     butil::intrusive_ptr<SharedLoadBalancer> _lb;
     ChannelOptions _options;
     int _preferred_index;
+
+    bool _metrics_recorder_inited;
+    std::shared_ptr<bvar::MetricsCountRecorder<uint64_t>> _client_request_total_counter;   // 统计作为客户端请求总数&qps
+    std::shared_ptr<bvar::MetricsCountRecorder<uint64_t>> _client_request_error_counter;   // 统计作为客户端请求错误数
+
+private:
+    void InitCounters(const std::string& tsvr_name, const std::string& protocol);
 };
 
 enum ChannelOwnership {
