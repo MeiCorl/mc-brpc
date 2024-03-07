@@ -1,8 +1,11 @@
 #pragma once
 #include "test.pb.h"
+#include <random>
 
 namespace test {
 class ServiceImpl : public TestService {
+private:
+    std::random_device rd;
 public:
     ServiceImpl(/* args */);
     ~ServiceImpl();

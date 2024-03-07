@@ -6,8 +6,6 @@
 #include "core/redis/redis_manager.h"
 #include "core/common/metrcis_helper.h"
 
-DECLARE_METRICS_counter_u64(service_request_counter);
-
 using namespace server::utils;
 namespace test {
 ServiceImpl::ServiceImpl(/* args */) {}
@@ -23,8 +21,8 @@ void ServiceImpl::UpdateUserInfo(
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);
     response->set_res_msg("OK");
-    brpc::Controller* cntl = static_cast<brpc::Controller*>(cntl_base);
 
+    brpc::Controller* cntl = static_cast<brpc::Controller*>(cntl_base);
     LOG(INFO) << "Req:{" << request->ShortDebugString() << "}, from:" << cntl->from_svr_name();
     auto&& [is_valid, err_msg] = ValidatorUtil::Validate(*request);
     if (!is_valid) {
@@ -36,6 +34,7 @@ void ServiceImpl::UpdateUserInfo(
     test::SyncClient client("brpc_test");
     client.SetConnectTimeoutMs(500);
     client.SetTimeoutMs(1000);
+    client.SetMaxRetry(0);
     test::TestReq req;
     test::TestRes res;
     req.set_seq_id(request->seq_id());
@@ -47,7 +46,6 @@ void ServiceImpl::UpdateUserInfo(
         return;
     }
 
-    ADD_METRICS_COUNTER(service_request_counter, "UpdateUserInfo");
 }
 
 void ServiceImpl::Test(
@@ -98,8 +96,6 @@ void ServiceImpl::Test(
     } catch (std::exception& e) {
         LOG(ERROR) << e.what();
     }
-
-    ADD_METRICS_COUNTER(service_request_counter, "Test");
 
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);
