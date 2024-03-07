@@ -22,6 +22,9 @@
 #include "brpc/details/server_private_accessor.h"
 #include "brpc/details/method_status.h"
 
+namespace bvar {
+    DECLARE_bool(enable_rpc_metrics);
+}
 namespace brpc {
 
 static int cast_int(void* arg) {
@@ -36,17 +39,20 @@ static int cast_cl(void* arg) {
     return 0;
 }
 
-MethodStatus::MethodStatus()
-    : _nconcurrency(0)
-    , _nconcurrency_bvar(cast_int, &_nconcurrency)
-    , _eps_bvar(&_nerror_bvar)
-    , _max_concurrency_bvar(cast_cl, &_cl)
-{
-}
+MethodStatus::MethodStatus() :
+        _nconcurrency(0),
+        _nconcurrency_bvar(cast_int, &_nconcurrency),
+        _eps_bvar(&_nerror_bvar),
+        _max_concurrency_bvar(cast_cl, &_cl),
+        _is_builtin_service(false),
+        _enable_rpc_metrics(false) {}
 
 MethodStatus::~MethodStatus() {
 }
 
+/**
+ * 初始化bvars, 这个函数会在Server::StartInternal-->Server::UpdateDerivedVars中调用
+*/
 int MethodStatus::Expose(const butil::StringPiece& prefix) {
     if (_nconcurrency_bvar.expose_as(prefix, "concurrency") != 0) {
         return -1;
@@ -65,6 +71,18 @@ int MethodStatus::Expose(const butil::StringPiece& prefix) {
             return -1;
         }
     }
+
+    _enable_rpc_metrics = bvar::FLAGS_enable_rpc_metrics;
+    if (_enable_rpc_metrics) {
+        _server_response_latency_recorder = std::make_shared<bvar::MetricsLatencyRecorder>(
+            "server_response_latency_recorder",
+            "statistic response latency at server-side");                      
+        _server_response_latency_recorder->set_metrics_label("fsvrname");
+        _server_response_latency_recorder->set_metrics_label("service");
+        _server_response_latency_recorder->set_metrics_label("method");                     
+        _server_response_latency_recorder->set_metrics_label("proto");
+    }
+
     return 0;
 }
 
@@ -151,7 +169,16 @@ void MethodStatus::SetConcurrencyLimiter(ConcurrencyLimiter* cl) {
 
 ConcurrencyRemover::~ConcurrencyRemover() {
     if (_status) {
-        _status->OnResponded(_c->ErrorCode(), butil::cpuwide_time_us() - _received_us);
+        auto latency = butil::cpuwide_time_us() - _received_us;
+        if(!_status->IsBuiltinService()) {
+            std::vector<std::string> label_values;
+            label_values.push_back((_c->from_svr_name()).empty() ? "null-fsvrname" : _c->from_svr_name());
+            label_values.push_back(_c->method()->service()->name());
+            label_values.push_back(_c->method()->name());
+            label_values.push_back(ProtocolTypeToString(_c->request_protocol()));
+            _status->LatencyRec(label_values, latency);
+        }
+        _status->OnResponded(_c->ErrorCode(), latency);
         _status = NULL;
     }
     ServerPrivateAccessor(_c->server()).RemoveConcurrency(_c);

@@ -21,9 +21,13 @@
 
 #include "butil/macros.h"                  // DISALLOW_COPY_AND_ASSIGN
 #include "bvar/bvar.h"                    // vars
+#include "bvar/metrics_latency_recorder.h"
 #include "brpc/describable.h"
 #include "brpc/concurrency_limiter.h"
 
+namespace bvar {
+extern bool g_metrics_cleaning_mode;
+}
 
 namespace brpc {
 
@@ -48,6 +52,8 @@ public:
     // did the time keeping and the cost is better saved. 
     void OnResponded(int error_code, int64_t latency_us);
 
+    void LatencyRec(const std::vector<std::string>& keys, int64_t latency_us);
+
     // Expose internal vars.
     // Return 0 on success, -1 otherwise.
     int Expose(const butil::StringPiece& prefix);
@@ -58,6 +64,8 @@ public:
     // Current max_concurrency of the method.
     int MaxConcurrency() const { return _cl ? _cl->MaxConcurrency() : 0; }
 
+    void SetIsBuiltinService(bool is_builtin_service) { _is_builtin_service = is_builtin_service; }
+    bool IsBuiltinService() const { return _is_builtin_service; }
 private:
 friend class Server;
     DISALLOW_COPY_AND_ASSIGN(MethodStatus);
@@ -73,6 +81,10 @@ friend class Server;
     bvar::PassiveStatus<int>  _nconcurrency_bvar;
     bvar::PerSecond<bvar::Adder<int64_t>> _eps_bvar;
     bvar::PassiveStatus<int32_t> _max_concurrency_bvar;
+
+    bool _is_builtin_service;
+    bool                          _enable_rpc_metrics;
+    std::shared_ptr<bvar::MetricsLatencyRecorder> _server_response_latency_recorder;  // 统计服务端各接口响应延迟(us)
 };
 
 class ConcurrencyRemover {
@@ -109,6 +121,16 @@ inline void MethodStatus::OnResponded(int error_code, int64_t latency) {
     }
     if (NULL != _cl) {
         _cl->OnResponded(error_code, latency);
+    }
+}
+
+inline void MethodStatus::LatencyRec(const std::vector<std::string>& keys, int64_t latency_us) {
+    if (_enable_rpc_metrics && _server_response_latency_recorder) {
+        if (bvar::g_metrics_cleaning_mode) {
+            *(_server_response_latency_recorder->find2(keys)) << latency_us;
+        }else {
+            _server_response_latency_recorder->find(keys) << latency_us;
+        }
     }
 }
 
