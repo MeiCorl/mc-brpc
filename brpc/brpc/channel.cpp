@@ -556,6 +556,7 @@ void Channel::CallMethod(const google::protobuf::MethodDescriptor* method,
         // cntl get counters from channel
         cntl->_client_request_total_counter = _client_request_total_counter;
         cntl->_client_request_error_counter = _client_request_error_counter;
+        cntl->_client_request_latency_recorder = _client_request_latency_recorder;
     }
 
     if (FLAGS_usercode_in_pthread &&
@@ -672,6 +673,13 @@ void Channel::InitCounters(const std::string& tsvr_name, const std::string& prot
     _client_request_error_counter->set_metrics_label("method");
     _client_request_error_counter->set_metrics_label("tinstance");
     _client_request_error_counter->set_metrics_label("error_info");
+
+    _client_request_latency_recorder = std::make_shared<bvar::MetricsLatencyRecorder>(
+        "client_request_latency_recorder", "statistic request latency at client-side");
+    _client_request_latency_recorder->set_metrics_label("tsvr_name", tsvr_name);
+    _client_request_latency_recorder->set_metrics_label("protocol", protocol);
+    _client_request_latency_recorder->set_metrics_label("method");
+    _client_request_latency_recorder->set_metrics_label("tinstance");
 }
 
 } // namespace brpc

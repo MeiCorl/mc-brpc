@@ -45,7 +45,7 @@
 #include "brpc/progressive_reader.h"           // ProgressiveReader
 #include "brpc/grpc.h"
 #include "brpc/kvmap.h"
-#include "bvar/metrics_count_recorder.h"
+#include "bvar/metrics_latency_recorder.h"
 
 // EAUTH is defined in MAC
 #ifndef EAUTH
@@ -845,6 +845,7 @@ private:
     /* 这三个counter指向channel中对应的counter */
     std::shared_ptr<bvar::MetricsCountRecorder<uint64_t>> _client_request_total_counter;   // 统计作为客户端请求总数&qps
     std::shared_ptr<bvar::MetricsCountRecorder<uint64_t>> _client_request_error_counter;   // 统计作为客户端请求错误数
+    std::shared_ptr<bvar::MetricsLatencyRecorder> _client_request_latency_recorder;      // 统计客户端请求延迟
 };
 
 // Advises the RPC system that the caller desires that the RPC call be

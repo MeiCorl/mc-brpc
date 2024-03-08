@@ -235,6 +235,7 @@ void Controller::ResetNonPods() {
 
     _client_request_total_counter.reset();
     _client_request_error_counter.reset();
+    _client_request_latency_recorder.reset();
 
     CHECK(_unfinished_call == NULL);
 }
@@ -720,6 +721,20 @@ void Controller::OnVersionedRPCReturned(const CompletionInfo& info,
     }
 
 END_OF_RPC:
+    // do latency report
+    if (_client_request_latency_recorder) {
+        uint64_t latency = butil::gettimeofday_us() - _begin_time_us;
+        std::vector<std::string> label_values;
+        label_values.push_back(_method->name());
+        label_values.push_back(butil::endpoint2str(_remote_side).c_str());
+        
+        if (bvar::g_metrics_cleaning_mode) {
+            *(_client_request_latency_recorder->find2(label_values)) << latency;
+        } else {
+            _client_request_latency_recorder->find(label_values) << latency;
+        }    
+    }
+
     if (new_bthread) {
         // [ Essential for -usercode_in_pthread=true ]
         // When -usercode_in_pthread is on, the reserved threads (set by
