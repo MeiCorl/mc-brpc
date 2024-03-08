@@ -10,7 +10,7 @@
 
 * **自动生成rpc客户端代码**：当通过某个服务通过proto文件定义好接口后，其它服务若想调用该服务的接口，只需要在CMakeLists.txt(参考services/brpc_test/CmakeLists.txt)中调用<font color=#ffff00>auto_gen_client_code</font>即可为指定proto生成对应的同步客户端(<font color=#00ffff>SyncClient</font>)、半同步客户端(<font color=#00ffff>SemiSyncClient</font>)及异步客户端(<font color=#00ffff>ASyncClient</font>)，简化发起brpc调用的流程。其原理是通过一个mc-brpc提供的protobuf插件<font color=#00ff00>codexx</font>(core/plugins/codexx)解析对应proto文件然后生成相应客户端代码
 
-* **扩展bvar支持多维度统计，无缝接入prometheus**：原生brpc的bvar导出时不支持带label信息([here](https://github.com/apache/brpc/issues/765))，虽然提供了[mbvar](https://github.com/apache/brpc/blob/master/docs/cn/mbvar_c%2B%2B.md#bvarmvariables)来支持多维度统计，但其导出格式不支持Prometheus采集；因此mc-brpc实现了自己的多维指标统计方式，可支持自定义mtrices label并按Prometheus采集数据格式导出，更便于多维数据监控上报及统计。
+* **扩展bvar支持多维度统计，无缝接入prometheus，自动统计作为服务端响应及作为客户端请求的QPS及延迟**：原生brpc的bvar导出时不支持带label信息([here](https://github.com/apache/brpc/issues/765))，虽然提供了[mbvar](https://github.com/apache/brpc/blob/master/docs/cn/mbvar_c%2B%2B.md#bvarmvariables)来支持多维度统计，但其导出格式不支持Prometheus采集；因此mc-brpc实现了<font color=#00ffff>MetricsCountRecorder</font>和<font color=#00ffff>MetricsLatencyRecorder</font>来分别实现多维计数统计及多维延迟统计，支持自定义mtrices label并按Prometheus采集数据格式导出，更便于多维数据监控上报及统计；mc-brpc基于<font color=#00ffff>MetricsCountRecorder</font>和<font color=#00ffff>MetricsLatencyRecorder</font>实现了自动统计当前服务作为服务端响应及作为客户端请求的QPS和延迟。
 
 * **DB连接管理**：core/mysql下基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)封装实现了<font color=#00ffff>MysqlConn</font>并提供了对应连接池实现<font color=#00ffff>DBPool</font>，mc-brpc服务启动时会根据配置为每个DB实例初始化一个连接池对象并注册到一个全局map中，使用时通过<font color=#00ffff>DBManager</font>从对应实例的连接池获取一个连接进行DB操作。DBPool支持设置连接池最小空闲连接数、最大活跃连接数、获取链接超时时间、连接空闲超时时间（长期空闲超时的连接会被自动释放）等
 
@@ -369,7 +369,7 @@ brpc访问下游是通过channel发起请求，channel可以看做是带有lb策
         SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);`获取某个下游服务的channel并发起访问，其中`using SingletonChannel = server::utils::Singleton<ChannelManager>;`  但更多情况下我们不想使用这种方式，因为这样发起brpc请求的业务代码比较繁琐，首先要获取对应服务的channel，然后要用该channel初始化一个stub对象，同时还行要声明一个<font color=#00ffff>brpc::Controller</font>对象用于存储rpc请求元数据，最后在通过该stub对象发起rpc调用。这个过程对于每个brpc请求都是一样的，我们可以提供一个统一的实现，不用在业务层去写过多代码，也就是我们后续要提到的自动生成客户端代码部分，为需要调用的服务生成一个<font color=#00ffff>Client</font>对象，直接通过<font color=#00ffff>Client</font>对象就可以发起rpc调用。  
 
 ## 3. 自动生成rpc客户端代码
-&emsp;&emsp; 原生brpc发起客户端调用示例如下：
+原生brpc发起客户端调用示例如下：
 ```c++
     // 1. Initialize the channel
     brpc::Channel channel;
@@ -1090,10 +1090,115 @@ void ServiceImpl::Test(...) {
 Grafana展示效果如下(PromQL: `avg(request_latency_recorder{service_name="$service_name", quantile="0.99"}) by (method)`)：
 ![image.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/748dad88a8ae4015806a548e814c9240~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1264&h=386&s=54753&e=png&b=181b1f)
 
-整体监控示例效果图如下：
-![image.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/282cf1137d704f9c9dec96b158a9b342~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2560&h=1239&s=288582&e=png&b=181b1f)
+### Server侧请求数统计：
+通过在brpc::Server类中添加两个`MetricsCountRecorder<uint64_t>`的实例_server_request_total_counter和_server_request_error_counter，分别用于服务端收到请求总数及响应出错数，两个counter带有标签分别如下:
+```c++
+// brpc::Server::Server(...)
+_server_request_total_counter = new bvar::MetricsCountRecorder<uint64_t>(
+    "server_request_total_counter", "count total request num at server-side");
+_server_request_total_counter->set_metrics_label("service");       // 当前请求访问服务service名（类名）
+_server_request_total_counter->set_metrics_label("method");        // 当前请求访问方法名
+_server_request_total_counter->set_metrics_label("protocol");      // 当前请求协议(http、baidu_std等)
+_server_request_total_counter->set_metrics_label("fsvr_name");     // 上游服务名(即客户端注册到服务中心的名字)
+
+_server_request_error_counter = new bvar::MetricsCountRecorder<uint64_t>(
+    "server_request_error_counter", "count error request num at server-side");
+_server_request_error_counter->set_metrics_label("service");
+_server_request_error_counter->set_metrics_label("method");
+_server_request_error_counter->set_metrics_label("protocol");
+_server_request_error_counter->set_metrics_label("fsvr_name");
+_server_request_error_counter->set_metrics_label("error_info");   // 错误码及对应错误描述 
+```
+
+在每个协议的ProcessXXXRequest函数中调用`ServerPrivateAccessor`的`AddTotalCounter`函数及`AddErrorCounter`函数来更新上述两个counter的计数。有了这个计数器，可以通过PromeQL方便的统计统计某个服务内各个接口的响应QPS，如统计brpc_test服务中各个接口过去1小时内针对不同上游服务的响应QPS:
+```c++
+sum(rate(server_request_total_counter{server_name="brpc_test"}[1h])) by (fsvr_name, method)
+```
+
+### Client请求数统计
+客户端请求总数是在brpc::Channel类中新增了两个`MetricsCountRecorder<uint64_t>`的实例_client_request_total_counter和_client_request_error_counter，分别用于统计当前服务作为客户端请求的总数和请求出错数，两个counter带有标签分别如下:
+```c++
+_client_request_total_counter = std::make_shared<bvar::MetricsCountRecorder<uint64_t>>(
+        "client_request_total_counter", "count total request num at client-side");
+_client_request_total_counter->set_metrics_label("tsvr_name", tsvr_name);   // 下游服务名(即访问模板服务名）
+_client_request_total_counter->set_metrics_label("protocol", protocol);     // 请求协议(http、baidu_std等)
+_client_request_total_counter->set_metrics_label("method");                 // 请求接口(方法)名
+
+_client_request_error_counter = std::make_shared<bvar::MetricsCountRecorder<uint64_t>>(
+    "client_request_error_counter", "count error request num at client-side");
+_client_request_error_counter->set_metrics_label("tsvr_name", tsvr_name);
+_client_request_error_counter->set_metrics_label("protocol", protocol);
+_client_request_error_counter->set_metrics_label("method");
+_client_request_error_counter->set_metrics_label("tinstance");              // 下游实例地址(及当前lb选出的目标server实例ip:port)
+_client_request_error_counter->set_metrics_label("error_info");             // 错误码及对应错误描述
+```
+由于brpc中客户端发起请求的过程是在`Controller::IssueRPC`方法中完成，并且请求返回后是也是在`Controller::OnVersionedRPCReturned`方法中处理，所以对client侧计数器的更新应该放到Controller中完成，因此我们在brpc::Controller中也添加了两个对应的`MetricsCountRecorder<uint64_t>`指针`Controller::_client_request_total_counter`和`Controller::_client_request_error_counter`，在实际发起请求前我们将Channel中已经初始化的counter指针赋值给Controller中对应的指针，在Controller中去更新计数器:
+```c++
+// Channel::CallMethod(...)
+if (bvar::FLAGS_enable_rpc_metrics) {
+    // cntl get counters from channel
+    cntl->_client_request_total_counter = _client_request_total_counter;
+    cntl->_client_request_error_counter = _client_request_error_counter;
+    cntl->_client_request_latency_recorder = _client_request_latency_recorder;
+}
+```
+同样，有了这两个计数器我们可以通过PromeQL方便的统计当前服务作为客户端访问下游服务各接口的QPS:
+```c++
+sum(rate(client_request_total_counter{server_name="brpc_test"}[1h])) by (tsvr_name, method)
+```
+
+### Server侧响应延迟统计
+服务端响应延迟通过在brpc::MethodStatus类中新增一个`bvar::MetricsLatencyRecorder`实例指针_server_response_latency_recorder，初始化如下:
+```c++
+// MethodStatus::Expose(...)
+_server_response_latency_recorder = std::make_shared<bvar::MetricsLatencyRecorder>(
+            "server_response_latency_recorder",
+            "statistic response latency at server-side");                      
+_server_response_latency_recorder->set_metrics_label("fsvrname");   // 上游服务名
+_server_response_latency_recorder->set_metrics_label("service");    // 当前请求访问service名(类名)
+_server_response_latency_recorder->set_metrics_label("method");     // 当前请求访问接口名
+_server_response_latency_recorder->set_metrics_label("proto");      // 请求协议
+```
+注意上述recorder的初始化是放在`brpc::MethodStatus::Expose`方法中完成的，初始化时机及流程是brpc::Server启动时调用`Server::StartInternal`函数，进而调用`Server::UpdateDerivedVars`，然后在调用`brpc::MethodStatus::Expose`：
+```c++
+// Server::UpdateDerivedVars(...)
+for (MethodMap::iterator it = server->_method_map.begin();
+        it != server->_method_map.end(); ++it) {
+    // Not expose counters on builtin services.
+    if (!it->second.is_builtin_service) {
+        mprefix.resize(prefix.size());
+        mprefix.push_back('_');
+        bvar::to_underscored_name(&mprefix, it->second.method->full_name());
+        it->second.status->Expose(mprefix);  // here `_server_response_latency_recorder` inited.
+    }
+}
+```
+计数器更新则是在各个协议的SendXXXResponse函数中通过RAII机制在ConcurrencyRemover对象的析构函数中触发`MethodStatus::LatencyRec`进行。
+通过server_response_latency_recorder统计当前服务各个接口响应延迟的PromeQL如下：
+```c++
+avg(server_response_latency_recorder{server_name="brpc_test", quantile="0.99"} / 1000) by (service, method)
+```
+
+### Client请求延迟统计
+client侧请求延迟统计和client侧请求总数统计实现方法完全一致，分别在Channel及Controller中添加`bvar::MetricsLatencyRecorder`对象指针_client_request_latency_recorder，在`Controller::OnVersionedRPCReturned`中rpc结束时更新计数器。
+```c++
+_client_request_latency_recorder = std::make_shared<bvar::MetricsLatencyRecorder>(
+        "client_request_latency_recorder", "statistic request latency at client-side");
+_client_request_latency_recorder->set_metrics_label("tsvr_name", tsvr_name);  // 请求服务名
+_client_request_latency_recorder->set_metrics_label("protocol", protocol);    // 请求协议
+_client_request_latency_recorder->set_metrics_label("method");                // 请求接口名
+_client_request_latency_recorder->set_metrics_label("tinstance");             // 下游响应实例地址(ip:port)
+```
+统计最为客户端请求延迟的PromeQL如下:
+```c++
+avg(client_request_latency_recorder{server_name="brpc_test", quantile="0.99"} / 1000) by (service, method)
+```
+
+### 整体监控示例效果图
+![image.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/51e2dba6305a45ee885c3a5bd0c96c5b~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2560&h=1288&s=353396&e=png&b=191c20)
 
 ## 6. DB连接管理
+### DBPool
 mc-brpc基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)提供了面向对象的MySQL的操作类<font color=#00ffff>MysqlConn</font>，并提供了对应的连接池实现<font color=#00ffff>DBPool</font>，通过<font color=#00ffff>DBPool</font>对MySQl连接进行管理(创建连接、释放连接、连接保活等)。
 ```c++
 class DBPool {
@@ -1235,6 +1340,8 @@ void DBPool::RecycleConnection() {
     }
 }
 ```
+
+### DBManager
 一般情况下，用户不需要手动创建<font color=#00ffff>DBPool</font>以及<font color=#00ffff>MysqlConn</font>，而是应该通过<font color=#00ffff>DBManager</font>从<font color=#00ffff>DBPool</font>里面获取<font color=#00ffff>MysqlCon</font>连接并进行操作。<font color=#00ffff>DBManager</font>是个单实例类`using DBManager = server::utils::Singleton<server::db::DbManager>;`  通过mc-brpc构建brpc服务时，如果需要用到MySQL，只需要：
 1. 在CMakeLists.txt里面add_server_source添加<font color=#ffff00>USE_MYSQL</font>选项，这样会自动定义<font color=#ffff00>USE_MYSQL</font>宏并引入MySQL相关源文件和依赖库。
 2. 在server.conf中配置好DB的相关配置，<font color=#00ffff>MCServer</font>启动会自动解析配置并为配置的每个DB集群创建对应的连接池对象(`DBManager::get()->Init();`)并注册到一个全局map中。
@@ -1276,6 +1383,7 @@ try {
 ```
 
 ## 7. Redis连接管理
+### RedisWrapper
 mc-brpc基于[redis++](https://github.com/sewenew/redis-plus-plus)提供了Redis的操作类<font color=#00ffff>RedisWrapper</font>，它支持STL风格操作。与MySQL客户端代码不同的是，这里不需要单独实现连接池，因为[redis++](https://github.com/sewenew/redis-plus-plus)已经提供了这个功能，它会自动为配置里指定的redis实例(集群)维护一个连接池，但redis++对集群模式Redis和其它模式redis(单实例Redis、哨兵模式主从Redis)的操作分别是通过`sw::redis::RedisCluster`和`sw::redis::Redis`来完成的，那么如果我们服务里面原来使用的是单实例Redis，代码里是通过`sw::redis::Redis`来进行操作的，后面如果想切换到Redis集群，那就需要修改相关Redis操作代码，因此我们提供<font color=#00ffff>RedisWrapper</font>来屏蔽这些差异，业务层统一使用<font color=#00ffff>RedisWrapper</font>来进行Redis操作就行，<font color=#00ffff>RedisWrapper</font>内自动判断当前是对单实例Redis进行操作还是对集群模式Redis进行操作，简化业务代码开发。实现原理也很简单，通过`std::variant`(需要c++ 17及以上，低版本可以使用union代替)来存放`sw::redis::RedisCluster`和`sw::redis::Redis`, 操作redis时先判断当前`std::variant`中存放的实际类型再调对应类型的API，部分实例如下：
 ```c++
 class RedisWrapper {
@@ -1339,6 +1447,8 @@ public:
     // ...
 };
 ```
+
+### RedisManager
 同样，mc-brpc提供了单实例类<font color=#00ffff>RedisManager</font>(`using RedisManager = server::utils::Singleton<server::redis::redisManager>;`)类来完成解析Redis配置、为每个redis实例(集群)创建<font color=#00ffff>RedisWrapper</font>实例并注册到全局配置map中。用户一般情况下也不需要自己手动创建<font color=#00ffff>RedisWrapper</font>，而是应该使用<font color=#00ffff>RedisManager</font>来获取对应Redis实例(集群)的操作对象。通过mc-brpc构建brpc服务时，如果需要用到Redis，只需要：
 
 1. 在CMakeLists.txt里面add_server_source添加USE_Redis选项，这样会自动定义USE_Redis宏并引入redis++相关源文件和依赖库。
