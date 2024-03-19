@@ -35,7 +35,26 @@ message GetServersRes {
     repeated string endpoints = 3;
 }
 
+message LbStatInfo {
+	string endpoint   = 1;    // ip:port
+	string service_name = 2;
+	uint32 succ_cnt      = 3;	
+	uint32 fail_cnt      = 4;
+	uint32 fail_net_cnt  = 5;
+	uint32 fail_logic_cnt= 6;
+	uint32 used_ms       = 7;
+}
+
+message LbStatReportReq {
+	repeated LbStatInfo infos  = 1;
+}
+
+message LbStatReportRes {
+    ResCode res_code = 1;
+}
+
 service AgentService {
     rpc Test (TestReq) returns (TestRes);
     rpc GetServers(GetServersReq) returns (GetServersRes);
+    rpc LbStatReport(LbStatReportReq) returns (LbStatReportRes);
 }

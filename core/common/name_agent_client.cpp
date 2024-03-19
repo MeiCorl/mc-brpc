@@ -1,4 +1,5 @@
 #include "name_agent_client.h"
+#include "common_callback.h"
 
 using namespace server::common;
 
@@ -45,4 +46,14 @@ int NameAgentClient::GetServers(const char* service_name, std::vector<brpc::Serv
         LOG(ERROR) << "[!] NameAgentClient GetServers Error: " << cntl.ErrorText();
         return -1;
     }
+}
+
+void NameAgentClient::LbStatReport(const name_agent::LbStatReportReq& req) {
+    // report async
+    auto done = new OnRPCDone<name_agent::LbStatReportRes>([req](bool is_failed, name_agent::LbStatReportRes* res) {
+        if (is_failed || res->res_code() != name_agent::ResCode::Success) {
+            LOG(ERROR) << "LbStatReport Failed, Req:" << req.ShortDebugString();
+        }
+    });
+    _name_agent_stub->LbStatReport(&done->cntl, &req, &done->response, done);
 }

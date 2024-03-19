@@ -219,6 +219,7 @@ public:
 
     void set_from_svr_name();
     void set_from_svr_name(const std::string& from_svr_name);
+    void set_to_svr_name(const std::string& to_svr_name);
 
     void set_log_id(uint64_t log_id);
 
@@ -740,6 +741,8 @@ private:
     // NOTE: align and group fields to make Controller as compact as possible.
 
     std::string _from_svr_name;
+    std::string _to_svr_name;
+
     Span* _span;
     uint32_t _flags; // all boolean fields inside Controller
     int32_t _error_code;

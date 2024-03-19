@@ -49,6 +49,7 @@
 #include "brpc/parallel_channel.h"
 #include "brpc/selective_channel.h"
 #include "bthread/task_group.h"
+#include "brpc/policy/base_lb_stat.h"
 
 namespace bthread {
 extern BAIDU_THREAD_LOCAL TaskGroup* tls_task_group;
@@ -361,7 +362,11 @@ const std::string& Controller::from_svr_name() { return _from_svr_name; }
 void Controller::set_from_svr_name() { _from_svr_name.assign(brpc::Server::_current_server->GetSelfName()); }
 
 void Controller::set_from_svr_name(const std::string& from_svr_name) {
-    _from_svr_name = from_svr_name;
+    _from_svr_name.assign(from_svr_name);
+}
+
+void Controller::set_to_svr_name(const std::string& to_svr_name) {
+    _to_svr_name.assign(to_svr_name);
 }
 
 void Controller::set_log_id(uint64_t log_id) {
@@ -610,6 +615,14 @@ void Controller::OnVersionedRPCReturned(const CompletionInfo& info,
         return;
     }
 
+    uint64_t latency = butil::gettimeofday_us() - _begin_time_us;
+
+    // lb report 
+    brpc::policy::BaseLbStat *lb_stat = brpc::policy::BaseLbStatExtension()->Find(LB_STAT_CLIENT);
+    if (lb_stat) {
+        lb_stat->LbStatReport(_to_svr_name, _remote_side, _error_code, info.responded, latency / 1000);
+    }
+
     // metrics report
     if (_error_code) {
         do {
@@ -723,7 +736,6 @@ void Controller::OnVersionedRPCReturned(const CompletionInfo& info,
 END_OF_RPC:
     // do latency report
     if (_client_request_latency_recorder) {
-        uint64_t latency = butil::gettimeofday_us() - _begin_time_us;
         std::vector<std::string> label_values;
         label_values.push_back(_method->name());
         label_values.push_back(butil::endpoint2str(_remote_side).c_str());

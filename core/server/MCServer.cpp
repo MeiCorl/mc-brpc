@@ -5,6 +5,7 @@
 #include "butil/file_util.h"
 #include "bthread/unstable.h"
 #include "core/extensions/mc_naming_service.h"
+#include "core/extensions/lb_stat.h"
 
 #if defined(USE_ASYNC_LOGSINK)
 #include "core/log/async_logsink.h"
@@ -151,6 +152,7 @@ void MCServer::AddService(google::protobuf::Service* service) {
 }
 
 void MCServer::Start(bool register_service) {
+    // start brpc server
     butil::EndPoint point;
     if (!FLAGS_listen_addr.empty()) {
         butil::str2endpoint(FLAGS_listen_addr.c_str(), &point);
@@ -163,7 +165,6 @@ void MCServer::Start(bool register_service) {
         butil::str2endpoint(ip, 0, &point);
 #endif
     }
-
     brpc::ServerOptions options;
     options.server_info_name = utils::Singleton<ServerConfig>::get()->GetSelfName();
     if (_server->Start(point, &options) != 0) {
@@ -171,6 +172,7 @@ void MCServer::Start(bool register_service) {
         exit(1);
     }
 
+    // register service if necessary
     if (register_service) {
         if (!_service_register) {
             LOG(ERROR) << "[!] service register not found!";
@@ -182,5 +184,9 @@ void MCServer::Start(bool register_service) {
         }
     }
 
+    // init lb stat
+    brpc::policy::LbStat::GetInstance()->Init();
+
+    // loop
     _server->RunUntilAskedToQuit();
 }

@@ -49,7 +49,7 @@ void AgentServiceImpl::InitializeWatcher(
 }
 
 void AgentServiceImpl::InitServers() {
-    etcd::Client etcd(Singleton<ServerConfig>::get()->GetNsUrl());
+    etcd::Client etcd(server::utils::Singleton<ServerConfig>::get()->GetNsUrl());
     etcd::Response response = etcd.ls("").get();
 
     for (uint32_t i = 0; i < response.keys().size(); i++) {
@@ -173,7 +173,7 @@ AgentServiceImpl::AgentServiceImpl(/* args */) {
 
     std::function<void(etcd::Response)> callback =
         bind(&AgentServiceImpl::WatcherCallback, this, std::placeholders::_1);
-    InitializeWatcher(Singleton<ServerConfig>::get()->GetNsUrl(), "", callback, m_pEtcdWatcher);
+    InitializeWatcher(server::utils::Singleton<ServerConfig>::get()->GetNsUrl(), "", callback, m_pEtcdWatcher);
 
     m_dump_task.Init(this, FLAGS_prometheus_targets_dump_interval);
     m_dump_task.Start();
@@ -208,11 +208,9 @@ void AgentServiceImpl::GetServers(
     brpc::ClosureGuard done_guard(done);
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);
-    brpc::Controller* cntl = static_cast<brpc::Controller*>(controller);
-    LOG(INFO) << "Get req from:" << cntl->from_svr_name() << " Req:{" << request->ShortDebugString() << "}";
 
     const string& service_name = request->service_name();
-    server::config::ServerConfig* cfg = Singleton<ServerConfig>::get();
+    server::config::ServerConfig* cfg = server::utils::Singleton<ServerConfig>::get();
     uint32_t region_id = cfg->GetSelfRegionId();
     uint32_t group_id = cfg->GetSelfGroupId();
 
@@ -314,6 +312,19 @@ void AgentServiceImpl::GetServers(
     }
 }
 
+void AgentServiceImpl::LbStatReport(
+    google::protobuf::RpcController* controller,
+    const name_agent::LbStatReportReq* request,
+    name_agent::LbStatReportRes* response,
+    google::protobuf::Closure* done) {
+    brpc::ClosureGuard done_guard(done);
+    response->set_res_code(Success);
+
+    brpc::Controller* cntl = static_cast<brpc::Controller*>(controller);
+    LOG(INFO) << "from_svr:" << cntl->from_svr_name() << " Req:" << request->ShortDebugString();
+    // todo: fix me
+}
+
 void AgentServiceImpl::WatcherCallback(etcd::Response response) {
     for (const etcd::Event& ev : response.events()) {
         string key = ev.kv().key();
@@ -348,7 +359,7 @@ void AgentServiceImpl::WatcherCallback(etcd::Response response) {
 void AgentServiceImpl::DumpServiceInfo() {
     // 选主执行，当有多个brpc_name_agnet实例时，只需要有一个实例执行dump任务就行
     // 支持某个nage_agent进程挂掉后，下次会由另一个name_agent进程执行dump任务
-    ServerConfig* config = Singleton<ServerConfig>::get();
+    ServerConfig* config = server::utils::Singleton<ServerConfig>::get();
     etcd::Client etcd(config->GetNsUrl());
     etcd::Response resp1 = etcd.leasegrant(FLAGS_prometheus_targets_dump_interval - 1).get();
     if (resp1.error_code() != 0) {

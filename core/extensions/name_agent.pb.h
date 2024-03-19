@@ -49,7 +49,7 @@ struct TableStruct_name_5fagent_2eproto {
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxillaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[4]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[7]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -63,6 +63,15 @@ extern GetServersReqDefaultTypeInternal _GetServersReq_default_instance_;
 class GetServersRes;
 class GetServersResDefaultTypeInternal;
 extern GetServersResDefaultTypeInternal _GetServersRes_default_instance_;
+class LbStatInfo;
+class LbStatInfoDefaultTypeInternal;
+extern LbStatInfoDefaultTypeInternal _LbStatInfo_default_instance_;
+class LbStatReportReq;
+class LbStatReportReqDefaultTypeInternal;
+extern LbStatReportReqDefaultTypeInternal _LbStatReportReq_default_instance_;
+class LbStatReportRes;
+class LbStatReportResDefaultTypeInternal;
+extern LbStatReportResDefaultTypeInternal _LbStatReportRes_default_instance_;
 class TestReq;
 class TestReqDefaultTypeInternal;
 extern TestReqDefaultTypeInternal _TestReq_default_instance_;
@@ -73,6 +82,9 @@ extern TestResDefaultTypeInternal _TestRes_default_instance_;
 PROTOBUF_NAMESPACE_OPEN
 template<> ::name_agent::GetServersReq* Arena::CreateMaybeMessage<::name_agent::GetServersReq>(Arena*);
 template<> ::name_agent::GetServersRes* Arena::CreateMaybeMessage<::name_agent::GetServersRes>(Arena*);
+template<> ::name_agent::LbStatInfo* Arena::CreateMaybeMessage<::name_agent::LbStatInfo>(Arena*);
+template<> ::name_agent::LbStatReportReq* Arena::CreateMaybeMessage<::name_agent::LbStatReportReq>(Arena*);
+template<> ::name_agent::LbStatReportRes* Arena::CreateMaybeMessage<::name_agent::LbStatReportRes>(Arena*);
 template<> ::name_agent::TestReq* Arena::CreateMaybeMessage<::name_agent::TestReq>(Arena*);
 template<> ::name_agent::TestRes* Arena::CreateMaybeMessage<::name_agent::TestRes>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
@@ -805,6 +817,524 @@ class GetServersRes PROTOBUF_FINAL :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_name_5fagent_2eproto;
 };
+// -------------------------------------------------------------------
+
+class LbStatInfo PROTOBUF_FINAL :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:name_agent.LbStatInfo) */ {
+ public:
+  inline LbStatInfo() : LbStatInfo(nullptr) {};
+  virtual ~LbStatInfo();
+
+  LbStatInfo(const LbStatInfo& from);
+  LbStatInfo(LbStatInfo&& from) noexcept
+    : LbStatInfo() {
+    *this = ::std::move(from);
+  }
+
+  inline LbStatInfo& operator=(const LbStatInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LbStatInfo& operator=(LbStatInfo&& from) noexcept {
+    if (GetArena() == from.GetArena()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const LbStatInfo& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const LbStatInfo* internal_default_instance() {
+    return reinterpret_cast<const LbStatInfo*>(
+               &_LbStatInfo_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    4;
+
+  friend void swap(LbStatInfo& a, LbStatInfo& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(LbStatInfo* other) {
+    if (other == this) return;
+    if (GetArena() == other->GetArena()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LbStatInfo* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline LbStatInfo* New() const final {
+    return CreateMaybeMessage<LbStatInfo>(nullptr);
+  }
+
+  LbStatInfo* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<LbStatInfo>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const LbStatInfo& from);
+  void MergeFrom(const LbStatInfo& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* _InternalSerialize(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(LbStatInfo* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "name_agent.LbStatInfo";
+  }
+  protected:
+  explicit LbStatInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_name_5fagent_2eproto);
+    return ::descriptor_table_name_5fagent_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kEndpointFieldNumber = 1,
+    kServiceNameFieldNumber = 2,
+    kSuccCntFieldNumber = 3,
+    kFailCntFieldNumber = 4,
+    kFailNetCntFieldNumber = 5,
+    kFailLogicCntFieldNumber = 6,
+    kUsedMsFieldNumber = 7,
+  };
+  // string endpoint = 1;
+  void clear_endpoint();
+  const std::string& endpoint() const;
+  void set_endpoint(const std::string& value);
+  void set_endpoint(std::string&& value);
+  void set_endpoint(const char* value);
+  void set_endpoint(const char* value, size_t size);
+  std::string* mutable_endpoint();
+  std::string* release_endpoint();
+  void set_allocated_endpoint(std::string* endpoint);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_endpoint();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_endpoint(
+      std::string* endpoint);
+  private:
+  const std::string& _internal_endpoint() const;
+  void _internal_set_endpoint(const std::string& value);
+  std::string* _internal_mutable_endpoint();
+  public:
+
+  // string service_name = 2;
+  void clear_service_name();
+  const std::string& service_name() const;
+  void set_service_name(const std::string& value);
+  void set_service_name(std::string&& value);
+  void set_service_name(const char* value);
+  void set_service_name(const char* value, size_t size);
+  std::string* mutable_service_name();
+  std::string* release_service_name();
+  void set_allocated_service_name(std::string* service_name);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_service_name();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_service_name(
+      std::string* service_name);
+  private:
+  const std::string& _internal_service_name() const;
+  void _internal_set_service_name(const std::string& value);
+  std::string* _internal_mutable_service_name();
+  public:
+
+  // uint32 succ_cnt = 3;
+  void clear_succ_cnt();
+  ::PROTOBUF_NAMESPACE_ID::uint32 succ_cnt() const;
+  void set_succ_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_succ_cnt() const;
+  void _internal_set_succ_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 fail_cnt = 4;
+  void clear_fail_cnt();
+  ::PROTOBUF_NAMESPACE_ID::uint32 fail_cnt() const;
+  void set_fail_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_fail_cnt() const;
+  void _internal_set_fail_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 fail_net_cnt = 5;
+  void clear_fail_net_cnt();
+  ::PROTOBUF_NAMESPACE_ID::uint32 fail_net_cnt() const;
+  void set_fail_net_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_fail_net_cnt() const;
+  void _internal_set_fail_net_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 fail_logic_cnt = 6;
+  void clear_fail_logic_cnt();
+  ::PROTOBUF_NAMESPACE_ID::uint32 fail_logic_cnt() const;
+  void set_fail_logic_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_fail_logic_cnt() const;
+  void _internal_set_fail_logic_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 used_ms = 7;
+  void clear_used_ms();
+  ::PROTOBUF_NAMESPACE_ID::uint32 used_ms() const;
+  void set_used_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_used_ms() const;
+  void _internal_set_used_ms(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:name_agent.LbStatInfo)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr endpoint_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr service_name_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 succ_cnt_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 fail_cnt_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 fail_net_cnt_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 fail_logic_cnt_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 used_ms_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_name_5fagent_2eproto;
+};
+// -------------------------------------------------------------------
+
+class LbStatReportReq PROTOBUF_FINAL :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:name_agent.LbStatReportReq) */ {
+ public:
+  inline LbStatReportReq() : LbStatReportReq(nullptr) {};
+  virtual ~LbStatReportReq();
+
+  LbStatReportReq(const LbStatReportReq& from);
+  LbStatReportReq(LbStatReportReq&& from) noexcept
+    : LbStatReportReq() {
+    *this = ::std::move(from);
+  }
+
+  inline LbStatReportReq& operator=(const LbStatReportReq& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LbStatReportReq& operator=(LbStatReportReq&& from) noexcept {
+    if (GetArena() == from.GetArena()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const LbStatReportReq& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const LbStatReportReq* internal_default_instance() {
+    return reinterpret_cast<const LbStatReportReq*>(
+               &_LbStatReportReq_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    5;
+
+  friend void swap(LbStatReportReq& a, LbStatReportReq& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(LbStatReportReq* other) {
+    if (other == this) return;
+    if (GetArena() == other->GetArena()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LbStatReportReq* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline LbStatReportReq* New() const final {
+    return CreateMaybeMessage<LbStatReportReq>(nullptr);
+  }
+
+  LbStatReportReq* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<LbStatReportReq>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const LbStatReportReq& from);
+  void MergeFrom(const LbStatReportReq& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* _InternalSerialize(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(LbStatReportReq* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "name_agent.LbStatReportReq";
+  }
+  protected:
+  explicit LbStatReportReq(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_name_5fagent_2eproto);
+    return ::descriptor_table_name_5fagent_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kInfosFieldNumber = 1,
+  };
+  // repeated .name_agent.LbStatInfo infos = 1;
+  int infos_size() const;
+  private:
+  int _internal_infos_size() const;
+  public:
+  void clear_infos();
+  ::name_agent::LbStatInfo* mutable_infos(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::name_agent::LbStatInfo >*
+      mutable_infos();
+  private:
+  const ::name_agent::LbStatInfo& _internal_infos(int index) const;
+  ::name_agent::LbStatInfo* _internal_add_infos();
+  public:
+  const ::name_agent::LbStatInfo& infos(int index) const;
+  ::name_agent::LbStatInfo* add_infos();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::name_agent::LbStatInfo >&
+      infos() const;
+
+  // @@protoc_insertion_point(class_scope:name_agent.LbStatReportReq)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::name_agent::LbStatInfo > infos_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_name_5fagent_2eproto;
+};
+// -------------------------------------------------------------------
+
+class LbStatReportRes PROTOBUF_FINAL :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:name_agent.LbStatReportRes) */ {
+ public:
+  inline LbStatReportRes() : LbStatReportRes(nullptr) {};
+  virtual ~LbStatReportRes();
+
+  LbStatReportRes(const LbStatReportRes& from);
+  LbStatReportRes(LbStatReportRes&& from) noexcept
+    : LbStatReportRes() {
+    *this = ::std::move(from);
+  }
+
+  inline LbStatReportRes& operator=(const LbStatReportRes& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LbStatReportRes& operator=(LbStatReportRes&& from) noexcept {
+    if (GetArena() == from.GetArena()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const LbStatReportRes& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const LbStatReportRes* internal_default_instance() {
+    return reinterpret_cast<const LbStatReportRes*>(
+               &_LbStatReportRes_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    6;
+
+  friend void swap(LbStatReportRes& a, LbStatReportRes& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(LbStatReportRes* other) {
+    if (other == this) return;
+    if (GetArena() == other->GetArena()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LbStatReportRes* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline LbStatReportRes* New() const final {
+    return CreateMaybeMessage<LbStatReportRes>(nullptr);
+  }
+
+  LbStatReportRes* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<LbStatReportRes>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const LbStatReportRes& from);
+  void MergeFrom(const LbStatReportRes& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* _InternalSerialize(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(LbStatReportRes* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "name_agent.LbStatReportRes";
+  }
+  protected:
+  explicit LbStatReportRes(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_name_5fagent_2eproto);
+    return ::descriptor_table_name_5fagent_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kResCodeFieldNumber = 1,
+  };
+  // .name_agent.ResCode res_code = 1;
+  void clear_res_code();
+  ::name_agent::ResCode res_code() const;
+  void set_res_code(::name_agent::ResCode value);
+  private:
+  ::name_agent::ResCode _internal_res_code() const;
+  void _internal_set_res_code(::name_agent::ResCode value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:name_agent.LbStatReportRes)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  int res_code_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_name_5fagent_2eproto;
+};
 // ===================================================================
 
 class AgentService_Stub;
@@ -827,6 +1357,10 @@ class AgentService : public ::PROTOBUF_NAMESPACE_ID::Service {
   virtual void GetServers(::PROTOBUF_NAMESPACE_ID::RpcController* controller,
                        const ::name_agent::GetServersReq* request,
                        ::name_agent::GetServersRes* response,
+                       ::google::protobuf::Closure* done);
+  virtual void LbStatReport(::PROTOBUF_NAMESPACE_ID::RpcController* controller,
+                       const ::name_agent::LbStatReportReq* request,
+                       ::name_agent::LbStatReportRes* response,
                        ::google::protobuf::Closure* done);
 
   // implements Service ----------------------------------------------
@@ -864,6 +1398,10 @@ class AgentService_Stub : public AgentService {
   void GetServers(::PROTOBUF_NAMESPACE_ID::RpcController* controller,
                        const ::name_agent::GetServersReq* request,
                        ::name_agent::GetServersRes* response,
+                       ::google::protobuf::Closure* done);
+  void LbStatReport(::PROTOBUF_NAMESPACE_ID::RpcController* controller,
+                       const ::name_agent::LbStatReportReq* request,
+                       ::name_agent::LbStatReportRes* response,
                        ::google::protobuf::Closure* done);
  private:
   ::PROTOBUF_NAMESPACE_ID::RpcChannel* channel_;
@@ -1372,9 +1910,348 @@ GetServersRes::mutable_endpoints() {
   return &endpoints_;
 }
 
+// -------------------------------------------------------------------
+
+// LbStatInfo
+
+// string endpoint = 1;
+inline void LbStatInfo::clear_endpoint() {
+  endpoint_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& LbStatInfo::endpoint() const {
+  // @@protoc_insertion_point(field_get:name_agent.LbStatInfo.endpoint)
+  return _internal_endpoint();
+}
+inline void LbStatInfo::set_endpoint(const std::string& value) {
+  _internal_set_endpoint(value);
+  // @@protoc_insertion_point(field_set:name_agent.LbStatInfo.endpoint)
+}
+inline std::string* LbStatInfo::mutable_endpoint() {
+  // @@protoc_insertion_point(field_mutable:name_agent.LbStatInfo.endpoint)
+  return _internal_mutable_endpoint();
+}
+inline const std::string& LbStatInfo::_internal_endpoint() const {
+  return endpoint_.Get();
+}
+inline void LbStatInfo::_internal_set_endpoint(const std::string& value) {
+  
+  endpoint_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void LbStatInfo::set_endpoint(std::string&& value) {
+  
+  endpoint_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:name_agent.LbStatInfo.endpoint)
+}
+inline void LbStatInfo::set_endpoint(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  endpoint_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:name_agent.LbStatInfo.endpoint)
+}
+inline void LbStatInfo::set_endpoint(const char* value,
+    size_t size) {
+  
+  endpoint_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:name_agent.LbStatInfo.endpoint)
+}
+inline std::string* LbStatInfo::_internal_mutable_endpoint() {
+  
+  return endpoint_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* LbStatInfo::release_endpoint() {
+  // @@protoc_insertion_point(field_release:name_agent.LbStatInfo.endpoint)
+  return endpoint_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void LbStatInfo::set_allocated_endpoint(std::string* endpoint) {
+  if (endpoint != nullptr) {
+    
+  } else {
+    
+  }
+  endpoint_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), endpoint,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:name_agent.LbStatInfo.endpoint)
+}
+inline std::string* LbStatInfo::unsafe_arena_release_endpoint() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:name_agent.LbStatInfo.endpoint)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return endpoint_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void LbStatInfo::unsafe_arena_set_allocated_endpoint(
+    std::string* endpoint) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (endpoint != nullptr) {
+    
+  } else {
+    
+  }
+  endpoint_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      endpoint, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:name_agent.LbStatInfo.endpoint)
+}
+
+// string service_name = 2;
+inline void LbStatInfo::clear_service_name() {
+  service_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& LbStatInfo::service_name() const {
+  // @@protoc_insertion_point(field_get:name_agent.LbStatInfo.service_name)
+  return _internal_service_name();
+}
+inline void LbStatInfo::set_service_name(const std::string& value) {
+  _internal_set_service_name(value);
+  // @@protoc_insertion_point(field_set:name_agent.LbStatInfo.service_name)
+}
+inline std::string* LbStatInfo::mutable_service_name() {
+  // @@protoc_insertion_point(field_mutable:name_agent.LbStatInfo.service_name)
+  return _internal_mutable_service_name();
+}
+inline const std::string& LbStatInfo::_internal_service_name() const {
+  return service_name_.Get();
+}
+inline void LbStatInfo::_internal_set_service_name(const std::string& value) {
+  
+  service_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void LbStatInfo::set_service_name(std::string&& value) {
+  
+  service_name_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:name_agent.LbStatInfo.service_name)
+}
+inline void LbStatInfo::set_service_name(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  service_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:name_agent.LbStatInfo.service_name)
+}
+inline void LbStatInfo::set_service_name(const char* value,
+    size_t size) {
+  
+  service_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:name_agent.LbStatInfo.service_name)
+}
+inline std::string* LbStatInfo::_internal_mutable_service_name() {
+  
+  return service_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* LbStatInfo::release_service_name() {
+  // @@protoc_insertion_point(field_release:name_agent.LbStatInfo.service_name)
+  return service_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void LbStatInfo::set_allocated_service_name(std::string* service_name) {
+  if (service_name != nullptr) {
+    
+  } else {
+    
+  }
+  service_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), service_name,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:name_agent.LbStatInfo.service_name)
+}
+inline std::string* LbStatInfo::unsafe_arena_release_service_name() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:name_agent.LbStatInfo.service_name)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return service_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void LbStatInfo::unsafe_arena_set_allocated_service_name(
+    std::string* service_name) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (service_name != nullptr) {
+    
+  } else {
+    
+  }
+  service_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      service_name, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:name_agent.LbStatInfo.service_name)
+}
+
+// uint32 succ_cnt = 3;
+inline void LbStatInfo::clear_succ_cnt() {
+  succ_cnt_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::_internal_succ_cnt() const {
+  return succ_cnt_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::succ_cnt() const {
+  // @@protoc_insertion_point(field_get:name_agent.LbStatInfo.succ_cnt)
+  return _internal_succ_cnt();
+}
+inline void LbStatInfo::_internal_set_succ_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  succ_cnt_ = value;
+}
+inline void LbStatInfo::set_succ_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_succ_cnt(value);
+  // @@protoc_insertion_point(field_set:name_agent.LbStatInfo.succ_cnt)
+}
+
+// uint32 fail_cnt = 4;
+inline void LbStatInfo::clear_fail_cnt() {
+  fail_cnt_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::_internal_fail_cnt() const {
+  return fail_cnt_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::fail_cnt() const {
+  // @@protoc_insertion_point(field_get:name_agent.LbStatInfo.fail_cnt)
+  return _internal_fail_cnt();
+}
+inline void LbStatInfo::_internal_set_fail_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  fail_cnt_ = value;
+}
+inline void LbStatInfo::set_fail_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_fail_cnt(value);
+  // @@protoc_insertion_point(field_set:name_agent.LbStatInfo.fail_cnt)
+}
+
+// uint32 fail_net_cnt = 5;
+inline void LbStatInfo::clear_fail_net_cnt() {
+  fail_net_cnt_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::_internal_fail_net_cnt() const {
+  return fail_net_cnt_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::fail_net_cnt() const {
+  // @@protoc_insertion_point(field_get:name_agent.LbStatInfo.fail_net_cnt)
+  return _internal_fail_net_cnt();
+}
+inline void LbStatInfo::_internal_set_fail_net_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  fail_net_cnt_ = value;
+}
+inline void LbStatInfo::set_fail_net_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_fail_net_cnt(value);
+  // @@protoc_insertion_point(field_set:name_agent.LbStatInfo.fail_net_cnt)
+}
+
+// uint32 fail_logic_cnt = 6;
+inline void LbStatInfo::clear_fail_logic_cnt() {
+  fail_logic_cnt_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::_internal_fail_logic_cnt() const {
+  return fail_logic_cnt_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::fail_logic_cnt() const {
+  // @@protoc_insertion_point(field_get:name_agent.LbStatInfo.fail_logic_cnt)
+  return _internal_fail_logic_cnt();
+}
+inline void LbStatInfo::_internal_set_fail_logic_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  fail_logic_cnt_ = value;
+}
+inline void LbStatInfo::set_fail_logic_cnt(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_fail_logic_cnt(value);
+  // @@protoc_insertion_point(field_set:name_agent.LbStatInfo.fail_logic_cnt)
+}
+
+// uint32 used_ms = 7;
+inline void LbStatInfo::clear_used_ms() {
+  used_ms_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::_internal_used_ms() const {
+  return used_ms_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 LbStatInfo::used_ms() const {
+  // @@protoc_insertion_point(field_get:name_agent.LbStatInfo.used_ms)
+  return _internal_used_ms();
+}
+inline void LbStatInfo::_internal_set_used_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  used_ms_ = value;
+}
+inline void LbStatInfo::set_used_ms(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_used_ms(value);
+  // @@protoc_insertion_point(field_set:name_agent.LbStatInfo.used_ms)
+}
+
+// -------------------------------------------------------------------
+
+// LbStatReportReq
+
+// repeated .name_agent.LbStatInfo infos = 1;
+inline int LbStatReportReq::_internal_infos_size() const {
+  return infos_.size();
+}
+inline int LbStatReportReq::infos_size() const {
+  return _internal_infos_size();
+}
+inline void LbStatReportReq::clear_infos() {
+  infos_.Clear();
+}
+inline ::name_agent::LbStatInfo* LbStatReportReq::mutable_infos(int index) {
+  // @@protoc_insertion_point(field_mutable:name_agent.LbStatReportReq.infos)
+  return infos_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::name_agent::LbStatInfo >*
+LbStatReportReq::mutable_infos() {
+  // @@protoc_insertion_point(field_mutable_list:name_agent.LbStatReportReq.infos)
+  return &infos_;
+}
+inline const ::name_agent::LbStatInfo& LbStatReportReq::_internal_infos(int index) const {
+  return infos_.Get(index);
+}
+inline const ::name_agent::LbStatInfo& LbStatReportReq::infos(int index) const {
+  // @@protoc_insertion_point(field_get:name_agent.LbStatReportReq.infos)
+  return _internal_infos(index);
+}
+inline ::name_agent::LbStatInfo* LbStatReportReq::_internal_add_infos() {
+  return infos_.Add();
+}
+inline ::name_agent::LbStatInfo* LbStatReportReq::add_infos() {
+  // @@protoc_insertion_point(field_add:name_agent.LbStatReportReq.infos)
+  return _internal_add_infos();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::name_agent::LbStatInfo >&
+LbStatReportReq::infos() const {
+  // @@protoc_insertion_point(field_list:name_agent.LbStatReportReq.infos)
+  return infos_;
+}
+
+// -------------------------------------------------------------------
+
+// LbStatReportRes
+
+// .name_agent.ResCode res_code = 1;
+inline void LbStatReportRes::clear_res_code() {
+  res_code_ = 0;
+}
+inline ::name_agent::ResCode LbStatReportRes::_internal_res_code() const {
+  return static_cast< ::name_agent::ResCode >(res_code_);
+}
+inline ::name_agent::ResCode LbStatReportRes::res_code() const {
+  // @@protoc_insertion_point(field_get:name_agent.LbStatReportRes.res_code)
+  return _internal_res_code();
+}
+inline void LbStatReportRes::_internal_set_res_code(::name_agent::ResCode value) {
+  
+  res_code_ = value;
+}
+inline void LbStatReportRes::set_res_code(::name_agent::ResCode value) {
+  _internal_set_res_code(value);
+  // @@protoc_insertion_point(field_set:name_agent.LbStatReportRes.res_code)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

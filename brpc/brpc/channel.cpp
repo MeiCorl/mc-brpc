@@ -332,6 +332,8 @@ int Channel::InitSingle(const butil::EndPoint& server_addr_and_port,
     if (raw_port != -1) {
         _service_name.append(":").append(std::to_string(raw_port));
     }
+    _raw_service_name.assign(butil::endpoint2str(server_addr_and_port).c_str());
+
     if (_options.protocol == brpc::PROTOCOL_HTTP && _scheme == "https") {
         if (_options.mutable_ssl_options()->sni_name.empty()) {
             _options.mutable_ssl_options()->sni_name = _service_name;
@@ -353,7 +355,7 @@ int Channel::InitSingle(const butil::EndPoint& server_addr_and_port,
         LOG(ERROR) << "Fail to insert into SocketMap";
         return -1;
     }
-    InitCounters(butil::endpoint2str(server_addr_and_port).c_str(), ProtocolTypeToString(_options.protocol));
+    InitCounters(_raw_service_name, ProtocolTypeToString(_options.protocol));
     return 0;
 }
 
@@ -373,6 +375,8 @@ int Channel::Init(const char* ns_url,
     if (raw_port != -1) {
         _service_name.append(":").append(std::to_string(raw_port));
     }
+    _raw_service_name.assign(_service_name.substr(0, _service_name.find_first_of(':')));
+
     if (_options.protocol == brpc::PROTOCOL_HTTP && _scheme == "https") {
         if (_options.mutable_ssl_options()->sni_name.empty()) {
             _options.mutable_ssl_options()->sni_name = _service_name;
@@ -397,7 +401,7 @@ int Channel::Init(const char* ns_url,
         return -1;
     }
     _lb.reset(lb);
-    InitCounters(_service_name.substr(0, _service_name.find_first_of(':')), ProtocolTypeToString(_options.protocol));
+    InitCounters(_raw_service_name, ProtocolTypeToString(_options.protocol));
     return 0;
 }
 
@@ -419,6 +423,7 @@ void Channel::CallMethod(const google::protobuf::MethodDescriptor* method,
     const int64_t start_send_real_us = butil::gettimeofday_us();
     Controller* cntl = static_cast<Controller*>(controller_base);
     cntl->OnRPCBegin(start_send_real_us);
+    cntl->set_to_svr_name(_raw_service_name);
     // Override max_retry first to reset the range of correlation_id
     if (cntl->max_retry() == UNSET_MAGIC_NUM) {
         cntl->set_max_retry(_options.max_retry);

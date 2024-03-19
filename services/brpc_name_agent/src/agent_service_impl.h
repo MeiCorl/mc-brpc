@@ -64,6 +64,11 @@ public:
         const name_agent::GetServersReq* request,
         name_agent::GetServersRes* response,
         google::protobuf::Closure* done);
+    virtual void LbStatReport(
+        google::protobuf::RpcController* controller,
+        const name_agent::LbStatReportReq* request,
+        name_agent::LbStatReportRes* response,
+        google::protobuf::Closure* done);
 
     void WatcherCallback(etcd::Response response);
 

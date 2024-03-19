@@ -13,7 +13,7 @@ public:
     NameAgentClient();
 
     int GetServers(const char* service_name, std::vector<brpc::ServerNode>* servers);
-
+    void LbStatReport(const name_agent::LbStatReportReq& req);
 private:
     brpc::Channel _name_agent_channel;
     std::shared_ptr<name_agent::AgentService_Stub> _name_agent_stub;
