@@ -1,23 +1,64 @@
-# 简介
-### &emsp;&emsp; [mc-brpc](https://github.com/MeiCorl/mc-brpc)是基于[百度brpc框架](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量以及对原生brpc中一些功能进行增强优化。mc-brpc大部分功能通过在brpc基础上额外增加代码实现，少部分功能(日志、bvar拓展相关)涉及brpc源码修改。目前，mc-brpc在brpc的基础上(增加)扩展了以下功能以更好的支持rpc服务开发：
-* **服务注册**：brpc对于rpc服务中一些功能并未提供具体实现，而是需要用户自己去扩展实现。如服务注册，因为不同用户使用的服务注册中心不一样，有Zookeeper、Eureka、Nacos、Consul、Etcd、甚至自研的注册中心等，不同注册中心注册和发现流程可能不一样，不太好统一，因此只好交由用户根据去实现服务注册这部分；而对于服务发现这部分，brpc默认支持基于文件、dns、bns、http、consul、nacos等的服务发现，并支持用户扩展NamingService实现自定义的服务发现。mc-brpc在brpc的基础上增加了服务注册器<font color=#00ffff>ServiceRegister</font>抽象类，并提供了默认的<font color=#00ffff>EtcdServiceRegister</font>实现将服务自动注册到etcd(如果使用其它服务中心，可继承实现<font color=#00ffff>ServiceRegister</font>，并在server启动之前通过`MCServer::SetServiceRegister`方法替换服务注册器即可)；此外，mc-brpc提供了NamingService的扩展(<font color=#00ffff>McNamingService</font>)用以支持自定义的服务发现(**mc:\/\/service_name**)
+- [概述](#概述)
+- [项目结构](#项目结构)
+- [功能介绍](#功能介绍)
+  - [1. MCServer](#1-mcserver)
+    - [实例化过程](#实例化过程)
+    - [启动过程](#启动过程)
+    - [退出过程](#退出过程)
+  - [2. 服务注册及发现](#2-服务注册及发现)
+    - [服务注册](#服务注册)
+    - [brpc\_name\_agent](#brpc_name_agent)
+    - [服务发现](#服务发现)
+  - [3. 自动生成rpc客户端代码](#3-自动生成rpc客户端代码)
+    - [原生brpc客户端调用流程示例：](#原生brpc客户端调用流程示例)
+    - [代码生成插件codexx引入](#代码生成插件codexx引入)
+    - [ChannelManager](#channelmanager)
+    - [同步调用](#同步调用)
+    - [异步调用](#异步调用)
+    - [半同步调用](#半同步调用)
+  - [4. 高性能滚动异步日志](#4-高性能滚动异步日志)
+    - [ASyncLogSink](#asynclogsink)
+    - [FastLogSink](#fastlogsink)
+    - [LogSink性能对比](#logsink性能对比)
+    - [日志滚动压缩归档](#日志滚动压缩归档)
+    - [全链路日志](#全链路日志)
+  - [5. bvar扩展支持多维label及prometheus采集](#5-bvar扩展支持多维label及prometheus采集)
+    - [MetricsService](#metricsservice)
+    - [MetricsCountRecorder](#metricscountrecorder)
+    - [MetricsLatencyRecorder](#metricslatencyrecorder)
+    - [Server侧请求数统计](#server侧请求数统计)
+    - [Client请求数统计](#client请求数统计)
+    - [Server侧响应延迟统计](#server侧响应延迟统计)
+    - [Client请求延迟统计](#client请求延迟统计)
+    - [整体监控示例效果图](#整体监控示例效果图)
+  - [6. DB连接管理](#6-db连接管理)
+    - [DBPool](#dbpool)
+    - [DBManager](#dbmanager)
+  - [7. Redis连接管理](#7-redis连接管理)
+    - [RedisWrapper](#rediswrapper)
+    - [RedisManager](#redismanager)
+  - [8. 更多功能](#8-更多功能)
 
-* **名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息，并为mc-brpc提供服务发现，主要是为了支持在服务跨机房甚至跨大区部署时，brpc请求能支持按指定大区和机房进行路由，此外name_agent还将服务信息dump出来作为promethus监控的targets，以及后续拟支持户端主动容灾功(暂未实现)等
-
-* **高性能异步日志**：brpc提供了日志刷盘抽象工具类LogSink，并提供了一个默认的实现DefaultLogSink，但是DefaultLogSink写日志是同步写，且每写一条日志都会写磁盘，性能较差，在日志量大以及对性能要求较高的场景下很难使用，而百度内部使用的ComlogSink实现似乎未开源(看代码没找到)，因此mc-brpc提供了<font color=#00ffff>AsyncLogSink</font>和<font color=#00ffff>FastLogSink</font>用于好性能写日志；`AsyncLogSink`才有异步批量刷盘的方式，先将日志写到缓冲区，再由后台线程每秒批量刷盘(服务崩溃的情况下可能会丢失最近1s内的日志)；`FastLogSink`则基于mmap文件内存映射将写文件操作转为内存操作，减少系统调用次数以实现高性能写入；经测试验证，二者性能相比`DefaultLogSink`都有10倍以上提升
+# 概述
+ <font size=4>&emsp;&emsp; [**mc-brpc**](https://github.com/MeiCorl/mc-brpc)是基于[**百度brpc框架**](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量以及对原生brpc中一些功能进行优化及拓展。mc-brpc大部分功能都通过在brpc基础上额外增加代码实现，一方面是出于代码隔离考虑，减少对原生brpc代码的入侵，另一方面则是利用原生brpc本身提供的很好的扩展性支持；仅少部分功能(全链路日志、多维bvar拓展、服务端响应QPS及延迟统计、客户端请求QPS及延迟统计、客户端请求结果上报等)涉及对brpc源码修改。目前，mc-brpc在brpc的基础上增强及扩展了以下功能以更好的支持rpc服务开发：</font>
+* **服务注册**：brpc对于rpc服务中一些功能并未提供具体实现，而是需要用户自己去扩展实现。如服务注册，brpc认为不同用户使用的服务注册中心不一样，有Zookeeper、Eureka、Nacos、Consul、Etcd、甚至自研的注册中心等，不同注册中心注册和发现机制可能不一样，不太好统一，因此只好交由用户根据去实现服务注册这部分；mc-brpc则在brpc的基础上增加了服务注册器<font color=#00ffff>ServiceRegister</font>抽象类，并提供了默认的<font color=#00ffff>EtcdServiceRegister</font>实现将服务自动注册到etcd(如果使用其它服务中心，可继承实现<font color=#00ffff>ServiceRegister</font>，并在server启动之前通过`MCServer::SetServiceRegister`方法替换服务注册器即可)
+* **服务发现**: brpc通过<font color=#00ffff>NamingService</font>去做服务发现，默认支持了基于文件、dns、bns、http、consul、nacos等注册中心的服务发现，并支持用户扩展<font color=#00ffff>NamingService</font>实现自定义的服务发现。由于mc-brpc默认使用etcd做注册中心而brpc未提供基于etcd做服务发现的<font color=#00ffff>NamingService</font>实现，因此mc-brpc提供了<font color=#00ffff>NamingService</font>的扩展(<font color=#00ffff>McNamingService</font>)用以支持自定义协议(**mc:\/\/service_name**)的服务发现。目前，<font color=#00ffff>McNamingService</font>和brpc默认提供的<font color=#00ffff>NameService</font>一样都继承于<font color=#00ffff>brpc::PeriodicNamingService</font>，定时(默认每5秒)从服务中心更新服务实例信息，这种更新方式会存在一定的延时，未能很好利用etcd的事件通知功能，后续会考虑对此进行优化，借助etcd事件通知更实时更新服务实例信息
+* **NameAgent名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息(基于etcd事件监听)，并为mc-brpc提供服务发现。这么做的目的主要有以下：1、name_agent将服务注册信息缓存到本机，并通过unix_socket为本机上的mc-brpc服务提供服务发现，效率更高；2、在服务跨机房甚至跨大区部署时服务时，希望能按指定大区策略和机房策略进行rpc请求路由，尽可能避免跨机房甚至跨大区rpc访问；3、mc-brpc支持将rpc调用结果上报至本机NameAgent(上报逻辑已预埋至brpc)，用于生成容灾策略，实现客户端主动容灾(暂未实现)；4、将服务信息dump出来作为promethus监控的targets
+* **RPC调用结果上报**：mc-brpc会将每次rpc调用结果上报给<font color=#00ffff>LbStat</font>, 再通过一个一个独立上上报线程周期性(默认200ms)的将结果通过unix socket发送给本机NameAgent进程进程统计并生成容灾策略
+* **高性能异步日志**：brpc提供了日志刷盘抽象工具类<font color=#00ffff>LogSink</font>，并提供了一个默认的实现DefaultLogSink，但是DefaultLogSink写日志是同步写，且每写一条日志都会写磁盘，性能较差，在日志量大以及对性能要求较高的场景下很难使用，而百度内部使用的ComlogSink实现似乎未开源(看代码没找到)，因此mc-brpc提供了<font color=#00ffff>AsyncLogSink</font>和<font color=#00ffff>FastLogSink</font>用于高性能写日志；`AsyncLogSink`采用异步批量刷盘的方式，先将日志写到缓冲区，再由后台线程每秒批量刷盘(服务崩溃的情况下可能会丢失最近1s内的日志)；`FastLogSink`则基于`mmap`文件内存映射将写文件操作转为内存操作，减少系统调用次数以实现高性能写入；经测试验证，二者性能相比`DefaultLogSink`都有10倍以上提升
 
 * **日志自动滚动归档**：<font color=#00ffff>LogRotateWatcher</font>及<font color=#00ffff>LogArchiveWorker</font>每小时对日志进行滚动压缩归档，方便日志查询，并删除一段时间(默认1个月，可以公共通过log配置的remain_days属性指定)以前的日志，避免磁盘写满
 
-* **自动生成rpc客户端代码**：当通过某个服务通过proto文件定义好接口后，其它服务若想调用该服务的接口，只需要在CMakeLists.txt(参考services/brpc_test/CmakeLists.txt)中调用<font color=#ffff00>auto_gen_client_code</font>即可为指定proto生成对应的同步客户端(<font color=#00ffff>SyncClient</font>)、半同步客户端(<font color=#00ffff>SemiSyncClient</font>)及异步客户端(<font color=#00ffff>ASyncClient</font>)，简化发起brpc调用的流程。其原理是通过一个mc-brpc提供的protobuf插件<font color=#00ff00>codexx</font>(core/plugins/codexx)解析对应proto文件然后生成相应客户端代码
+* **自动生成rpc客户端代码**：当某个服务通过proto文件定义好接口后，其它服务若想调用该服务的接口，只需要在CMakeLists.txt(参考services/brpc_test/CmakeLists.txt)中调用<font color=#ffff00>auto_gen_client_code</font>即可为指定proto生成对应的同步客户端(<font color=#00ffff>SyncClient</font>)、半同步客户端(<font color=#00ffff>SemiSyncClient</font>)及异步客户端(<font color=#00ffff>ASyncClient</font>)，简化发起brpc调用的流程。其原理是通过一个mc-brpc提供的protobuf插件<font color=#00ff00>codexx</font>(core/plugins/codexx)解析对应proto文件然后生成相应客户端代码
 
-* **扩展bvar支持多维度统计，无缝接入prometheus，自动统计作为服务端响应及作为客户端请求的QPS及延迟**：原生brpc的bvar导出时不支持带label信息([here](https://github.com/apache/brpc/issues/765))，虽然提供了[mbvar](https://github.com/apache/brpc/blob/master/docs/cn/mbvar_c%2B%2B.md#bvarmvariables)来支持多维度统计，但其导出格式不支持Prometheus采集；因此mc-brpc实现了<font color=#00ffff>MetricsCountRecorder</font>和<font color=#00ffff>MetricsLatencyRecorder</font>来分别实现多维计数统计及多维延迟统计，支持自定义mtrices label并按Prometheus采集数据格式导出，更便于多维数据监控上报及统计；mc-brpc基于<font color=#00ffff>MetricsCountRecorder</font>和<font color=#00ffff>MetricsLatencyRecorder</font>实现了自动统计当前服务作为服务端响应及作为客户端请求的QPS和延迟。
+* **扩展bvar支持多维度统计，无缝接入prometheus，自动统计作为服务端响应及作为客户端请求的QPS及延迟**：原生brpc的bvar导出时不支持带label信息([here](https://github.com/apache/brpc/issues/765))，虽然提供了[mbvar](https://github.com/apache/brpc/blob/master/docs/cn/mbvar_c%2B%2B.md#bvarmvariables)来支持多维度统计，但其导出格式不支持Prometheus采集；因此mc-brpc实现了<font color=#00ffff>MetricsCountRecorder</font>和<font color=#00ffff>MetricsLatencyRecorder</font>来分别实现多维计数统计及多维延迟统计，支持自定义mtrices label并按Prometheus采集数据格式导出，更便于多维数据监控上报及统计；目前，mc-brpc基于<font color=#00ffff>MetricsCountRecorder</font>和<font color=#00ffff>MetricsLatencyRecorder</font>实现了自动统计当前服务作为服务端响应及作为客户端请求的QPS和延迟。
 
-* **DB连接管理**：core/mysql下基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)封装实现了<font color=#00ffff>MysqlConn</font>并提供了对应连接池实现<font color=#00ffff>DBPool</font>，mc-brpc服务启动时会根据配置为每个DB实例初始化一个连接池对象并注册到一个全局map中，使用时通过<font color=#00ffff>DBManager</font>从对应实例的连接池获取一个连接进行DB操作。DBPool支持设置连接池最小空闲连接数、最大活跃连接数、获取链接超时时间、连接空闲超时时间（长期空闲超时的连接会被自动释放）等
+* **DB连接管理**：core/mysql下基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)封装实现了<font color=#00ffff>MysqlConn</font>并提供了对应连接池实现<font color=#00ffff>DBPool</font>，mc-brpc服务启动时会根据配置按需为每个DB实例初始化一个连接池对象并注册到一个全局map中，无须用户编写任何代码，使用时直接通过<font color=#00ffff>DBManager</font>从对应实例的连接池获取一个连接进行DB操作。DBPool支持设置连接池最小空闲连接数、最大活跃连接数、获取链接超时时间、连接空闲超时时间（长期空闲超时的连接会被自动释放）等
 
 * **Redis连接管理**：core/redis下基于[redis-plus-plus](https://github.com/sewenew/redis-plus-plus)封装实现了客户端代理类<font color=#00ffff>RedisWrapper</font>(主要目的在于对业务代码屏蔽redis++在操作单实例redis、哨兵模式redis以及集群模式redis的差异)。同DB连接管理一样，mc-brpc服务启动时会根据配置为每个Redis(单实例/Sentine/Cluster)初始化一个RedisWrapper对象并注册到一个全局map中，使用时通过<font color=#00ffff>RedisManager</font>从对应redis(集群)获取一个连接进行操作。这里redis连接池的管理就不需要做额外实现了，redis++会为每个redis实例创建一个连接池并管理连接(如果是集群则为每个master节点创建一个连接池)
 
 # 项目结构
-├── brpc   &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; # brpc源码(做了少量忽略不计的修改，功力有限^-^)  
+├── brpc   &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; # brpc源码(做了少量修改)  
 ├── core   &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; # 新增的拓展及其他功能都在这个目录下     
 │   ├── common         &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp; # 一些常用公共代码实现   
 │   ├── config         &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp; # 服务配置类代码    
@@ -106,7 +147,10 @@ MCServer::MCServer(int argc, char* argv[]) {
         fclose(file);
     }
 
-    // 初始化日志（会额外触发server.conf全局配置解析)
+    // 创建brpc server（会额外触发server.conf全局配置解析)
+    _server = new brpc::Server(utils::Singleton<ServerConfig>::get()->GetSelfName());
+
+    // 初始化日志
     LoggingInit(argv);
 
     // 注册名字服务(McNamingService)
@@ -125,10 +169,9 @@ MCServer::MCServer(int argc, char* argv[]) {
     RedisManager::get()->Init();
 #endif
 }
-```
-1. <font color=#00ffff>MCServer</font>包含了brpc::Server，因此MCServer实例化首先也会触发brpc::Server的实例化。  
-2. 判断是否有gflags.conf配置文件(../conf/gflags.conf)，如果有则自动触发gflags解析。可以在这里通过gflags配置控制一些brpc功能的开关(如优雅退出、rpcz等，参考services/brpc_test/conf/gflags.conf)，以及设置自定义gflags参数。
-3. 解析服务配置文件(../conf/server.conf)，里面包含注册中心地址、服务名、所在大区id、机房id、DB配置、Redis配置、日志配置等(参考services/brpc_test/conf/server.conf)。
+```  
+1. 判断是否有gflags.conf配置文件(../conf/gflags.conf)，如果有则自动触发gflags解析。可以在这里通过gflags配置控制一些brpc功能的开关(如优雅退出、rpcz等，参考services/brpc_test/conf/gflags.conf)，以及设置自定义gflags参数。
+2. 解析服务配置文件(../conf/server.conf)，里面包含注册中心地址、服务名、所在大区id、机房id、DB配置、Redis配置、日志配置等(参考services/brpc_test/conf/server.conf)。
 ```c++
 using namespace server::config;
 
@@ -152,10 +195,11 @@ ServerConfig::ServerConfig(/* args */) {
     input = nullptr;
 }
 ```
-4. 根据3中服务日志配置，初始化日志输出文件路径并创建日志文件监听线程和日志归档线程(二者配合实现日志分时归档压缩)，以及判断是否需要使用异步日志AsyncLogSink或者FastLogSink(CMakeLists.txt中add_server_source添加<font color=#ffff00>ASYNCLOG</font>选项或者<font color=#ffff00>FASTLOG</font>, 如`add_server_source(SERVER_SRCS ASYNCLOG)`, 这样会触发<font color=#ffff00>USE_ASYNC_LOGSINK</font>宏定义)。
-5. 初始化服务注册器，默认使用<font color=#00ffff>EtcdServiceRegister</font>将服务信息注册到etcd，如果使用其它类型的注册中心，需要继承<font color=#00ffff>ServiceRegister</font>实现自己的服务注册器，并在MCServer启动前通过`MCServer::SetServiceRegister`替换当前服务注册器。
-6. 根据3中服务配置，初始化DB连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_MYSQL</font>选项，触发定义<font color=#ffff00>USE_MYSQL</font>宏定义以及MySQL相关源文件及依赖库引入)及Redis连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_REDIS</font>选项，触发<font color=#ffff00>USE_REDIS</font>宏定义及相关源文件和依赖库引入)。
-7. 注册自定义的名字服务<font color=#00ffff>McNamingService</font>用以支持**mc:\/\/** 前缀的服务发现
+3. <font color=#00ffff>MCServer</font>包含了brpc::Server的指针，因此需要创建brpc::Server的实例。
+4. 根据2中服务日志配置，初始化日志输出文件路径并创建日志文件监听线程和日志归档线程(二者配合实现日志分时压缩归档)，以及判断是否需要使用异步日志AsyncLogSink或者FastLogSink(CMakeLists.txt中add_server_source添加<font color=#ffff00>ASYNCLOG</font>选项或者<font color=#ffff00>FASTLOG</font>, 如`add_server_source(SERVER_SRCS ASYNCLOG)`, 这样会触发<font color=#ffff00>USE_ASYNC_LOGSINK</font>宏定义)。
+5. 注册自定义的名字服务<font color=#00ffff>McNamingService</font>用以支持**mc:\/\/** 协议的服务发现
+6. 初始化服务注册器，默认使用<font color=#00ffff>EtcdServiceRegister</font>将服务信息注册到etcd，如果使用其它类型的注册中心，需要继承<font color=#00ffff>ServiceRegister</font>实现自己的服务注册器，并在MCServer启动前通过`MCServer::SetServiceRegister`替换当前服务注册器。
+7. 根据2中服务配置，初始化DB连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_MYSQL</font>选项，触发定义<font color=#ffff00>USE_MYSQL</font>宏定义以及MySQL相关源文件及依赖库引入)及Redis连接池(CMakeLists.txt中add_server_source添加<font color=#ffff00>USE_REDIS</font>选项，触发<font color=#ffff00>USE_REDIS</font>宏定义及相关源文件和依赖库引入)。
 
 ### 启动过程
 1. 首先指定服务监听地址。可以通过gflags<*listen_addr*>指定ip:port或者unix_socket地址, 否则使用当前ip地址+随机端口。调brpc::Start启动server
@@ -369,7 +413,7 @@ brpc访问下游是通过channel发起请求，channel可以看做是带有lb策
         SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);`获取某个下游服务的channel并发起访问，其中`using SingletonChannel = server::utils::Singleton<ChannelManager>;`  但更多情况下我们不想使用这种方式，因为这样发起brpc请求的业务代码比较繁琐，首先要获取对应服务的channel，然后要用该channel初始化一个stub对象，同时还行要声明一个<font color=#00ffff>brpc::Controller</font>对象用于存储rpc请求元数据，最后在通过该stub对象发起rpc调用。这个过程对于每个brpc请求都是一样的，我们可以提供一个统一的实现，不用在业务层去写过多代码，也就是我们后续要提到的自动生成客户端代码部分，为需要调用的服务生成一个<font color=#00ffff>Client</font>对象，直接通过<font color=#00ffff>Client</font>对象就可以发起rpc调用。  
 
 ## 3. 自动生成rpc客户端代码
-原生brpc发起客户端调用示例如下：
+### 原生brpc客户端调用流程示例：
 ```c++
     // 1. Initialize the channel
     brpc::Channel channel;
@@ -410,6 +454,7 @@ brpc访问下游是通过channel发起请求，channel可以看做是带有lb策
 3. 创建一个controller对象用户保存rpc过程中的一些控制数据等
 4. 通过stub对象向目标服务发起rpc调用  
 
+### 代码生成插件codexx引入
 通过上述同步调用示例，可以看出发起rpc调用的流程较长，如果需要向多个不同服务的不同接口发起rpc调用需要编写大量重复类似的代码。因此，mc-brpc对此过程进行了简化，我们提供了个插件<font color=#ffff0>codexx</font>（代码实现：core/extensions/codexx.cpp），它通过对目标服务的proto文件进行解析，为每个目标服务生成对应的同步客户端(<font color=#00ffff>SyncClient</font>)、半同步客户端(<font color=#00ffff>SemiSyncClient</font>)及异步客户端(<font color=#00ffff>ASyncClient</font>)，简化发起brpc调用的流程。只需要在CMakeList.txt中对添加下面两行即可：
 ```cmake
 file(GLOB TEST_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/proto/test.proto")
@@ -522,7 +567,8 @@ void SemiSyncClient::Test(const TestReq* req, TestRes* res) {
     stub.Test(&_controller, req, res, brpc::DoNothing());
 }
 ```
-其中`SingletonChannel::get()`用户获取一个全局单例的<font color=#00ffff>ChannelManager</font>对象，再通过它的`ChannelManager::GetChannel`方法按指定的大区机房策略以及负载均衡策略获取目标服务的`brpc::Channel`指针:
+### ChannelManager
+注意到上述生成代码中`SingletonChannel::get()`，它用于获取一个全局单例的<font color=#00ffff>ChannelManager</font>对象，再通过它的`ChannelManager::GetChannel`方法按指定的大区机房策略以及负载均衡策略创建(`Channel::Init`)面向目标服务的`brpc::Channel`指针，并缓存至本地。注意`Channel::Init`不是线程安全的，需要加锁，而之后对Channel的使用是线程安全的，因此可以缓存并共享，避免反复创建；其次，缓存Channel时的key是*service_name + group_strategy + lb*，意味着下次通过相同大区机房策略及lb策略访问相同服务时才能共享使用之前已经创建的Channel
 ```c++
 SharedPtrChannel ChannelManager::GetChannel(const std::string& service_name,
                                             GroupStrategy group_strategy,
@@ -555,7 +601,7 @@ SharedPtrChannel ChannelManager::GetChannel(const std::string& service_name,
 ```
 
 业务代码中引入对应client头文件便可以通过Client对象直接发起rpc调用，如下：  
-**同步调用:**
+### 同步调用
 ```c++
 test::SyncClient client("brpc_test");
 test::TestReq req;
@@ -569,7 +615,7 @@ if (client.Failed()) {
     return;
 }
 ```
-**异步调用:**
+### 异步调用
 ```c++
 test::ASyncClient client("brpc_test");
 test::TestReq req;
@@ -584,7 +630,7 @@ client.Test(&req, [](bool isFailed, TestRes* res) {
 });
 ```
 
-**半同步调用:**
+### 半同步调用
 ```c++
 test::SemiSyncClient client("brpc_test");
 test::TestReq req;
@@ -593,6 +639,7 @@ req.set_msg("hello world");
 client.Test(&req, &res);
 client.Join();
 ```
+
 对比可发现，不同类型rpc调用客户端代码相比原始brpc调用方式要简洁很多。示例里面只给出了最简单的用法，自动生成的Client类可以像brpc::Controller一样设置rpc连接超时时间、rpc超时时间、重试次数、LogId、获取rpc延迟时间等，以及设置rpc请求机房路由策略和负载均衡策略等, 如：
 ```c++
 // 按request_code对同大区brpc_test服务实例hash请求，连接超时时间1s，rpc超时时间3s，最大重试次数3
@@ -1090,7 +1137,7 @@ void ServiceImpl::Test(...) {
 Grafana展示效果如下(PromQL: `avg(request_latency_recorder{service_name="$service_name", quantile="0.99"}) by (method)`)：
 ![image.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/748dad88a8ae4015806a548e814c9240~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1264&h=386&s=54753&e=png&b=181b1f)
 
-### Server侧请求数统计：
+### Server侧请求数统计
 通过在brpc::Server类中添加两个`MetricsCountRecorder<uint64_t>`的实例_server_request_total_counter和_server_request_error_counter，分别用于服务端收到请求总数及响应出错数，两个counter带有标签分别如下:
 ```c++
 // brpc::Server::Server(...)
