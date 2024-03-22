@@ -63,9 +63,17 @@ MCServer::MCServer(int argc, char* argv[]) {
 }
 
 MCServer::~MCServer() {
+    // 取消服务注册
+    if (_service_register != nullptr) {
+        _service_register->UnRegisterService();
+    }
+
+    // 停止lb上报线程
+    brpc::policy::LbStat::GetInstance()->Stop();
+
+    // 停止日志watcher
     _log_watcher.reset();
     _log_archive_worker.reset();
-
 #if defined(USE_ASYNC_LOGSINK)
     logging::LogSink* old_sink = logging::SetLogSink(nullptr);
     if (old_sink) {
@@ -77,11 +85,8 @@ MCServer::~MCServer() {
         delete old_sink;
     }
 #endif
-
-    if (_service_register != nullptr) {
-        _service_register->UnRegisterService();
-    }
-
+    
+    // 销毁brpc::Server
     if (_server) {
         delete _server;
         _server = nullptr;

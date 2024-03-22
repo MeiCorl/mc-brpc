@@ -1,21 +1,12 @@
 #include "lb_stat.h"
 #include "butil/string_printf.h"
 #include "core/common/name_agent_client.h"
-#include <thread>
 
 using namespace brpc::policy;
 using server::common::NameAgentClient;
 
 DEFINE_int32(report_batch_num, 1800, "real report max size");
 DEFINE_int32(report_interval, 200, "lb report interval");
-
-void RealReport() {
-    LOG(INFO) << "Lb report thread start...";
-    while (true) {
-        LbStat::GetInstance()->DoLbReport();
-        usleep(FLAGS_report_interval * 1000);
-    }
-}
 
 struct ServerStats {
     uint32_t succ_cnt;
@@ -108,20 +99,32 @@ LbStat* LbStat::GetInstance() {
     return Singleton<LbStat>::get();
 }
 
-LbStat::LbStat() : _last_report_timems(0), _report_interval(200) {}
-
-LbStat::~LbStat() {}
+LbStat::LbStat() : _last_report_timems(0), _report_interval(200), _is_asked_to_stop(false) {}
 
 void LbStat::Init() {
     // register lb stat
     BaseLbStatExtension()->RegisterOrDie(LB_STAT_CLIENT, this);
 
     // start report thread
-    std::thread(&RealReport).detach();
+    _report_thread = std::thread(&LbStat::RealReport, this);
+}
+
+void LbStat::Stop() {
+    _is_asked_to_stop = true;
+    _report_thread.join();
 }
 
 bool LbStat::IsSvrBlock(const butil::EndPoint& endpoint) {
     return true;
+}
+
+void LbStat::RealReport() {
+    LOG(INFO) << "Lb report thread start...";
+    while (!_is_asked_to_stop) {
+        DoLbReport();
+        usleep(FLAGS_report_interval * 1000);
+    }
+    LOG(INFO) << "Lb report thread finished...";
 }
 
 int LbStat::LbStatReport(
