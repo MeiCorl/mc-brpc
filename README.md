@@ -10,13 +10,14 @@
     - [brpc\_name\_agent](#brpc_name_agent)
     - [服务发现](#服务发现)
   - [3. 自动生成rpc客户端代码](#3-自动生成rpc客户端代码)
-    - [原生brpc客户端调用流程示例：](#原生brpc客户端调用流程示例)
+    - [原生brpc客户端调用流程示例](#原生brpc客户端调用流程示例)
     - [代码生成插件codexx引入](#代码生成插件codexx引入)
     - [ChannelManager](#channelmanager)
     - [同步调用](#同步调用)
     - [异步调用](#异步调用)
     - [半同步调用](#半同步调用)
   - [4. 高性能滚动异步日志](#4-高性能滚动异步日志)
+    - [brpc流式日志写入流程](#brpc流式日志写入流程)
     - [ASyncLogSink](#asynclogsink)
     - [FastLogSink](#fastlogsink)
     - [LogSink性能对比](#logsink性能对比)
@@ -31,20 +32,24 @@
     - [Server侧响应延迟统计](#server侧响应延迟统计)
     - [Client请求延迟统计](#client请求延迟统计)
     - [整体监控示例效果图](#整体监控示例效果图)
-  - [6. DB连接管理](#6-db连接管理)
+  - [6. 客户端主动容灾](#6-客户端主动容灾)
+    - [RPC调用结果上报/收集](#rpc调用结果上报收集)
+    - [容灾策略生成](#容灾策略生成)
+    - [容灾策略应用](#容灾策略应用)
+  - [7. DB连接管理](#7-db连接管理)
     - [DBPool](#dbpool)
     - [DBManager](#dbmanager)
-  - [7. Redis连接管理](#7-redis连接管理)
+  - [8. Redis连接管理](#8-redis连接管理)
     - [RedisWrapper](#rediswrapper)
     - [RedisManager](#redismanager)
-  - [8. 更多功能](#8-更多功能)
+  - [9. 更多功能](#9-更多功能)
 
 # 概述
  <font size=4>&emsp;&emsp; [**mc-brpc**](https://github.com/MeiCorl/mc-brpc)是基于[**百度brpc框架**](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量以及对原生brpc中一些功能进行优化及拓展。mc-brpc大部分功能都通过在brpc基础上额外增加代码实现，一方面是出于代码隔离考虑，减少对原生brpc代码的入侵，另一方面则是利用原生brpc本身提供的很好的扩展性支持；仅少部分功能(全链路日志、多维bvar拓展、服务端响应QPS及延迟统计、客户端请求QPS及延迟统计、客户端请求结果上报等)涉及对brpc源码修改。目前，mc-brpc在brpc的基础上增强及扩展了以下功能以更好的支持rpc服务开发：</font>
 * **服务注册**：brpc对于rpc服务中一些功能并未提供具体实现，而是需要用户自己去扩展实现。如服务注册，brpc认为不同用户使用的服务注册中心不一样，有Zookeeper、Eureka、Nacos、Consul、Etcd、甚至自研的注册中心等，不同注册中心注册和发现机制可能不一样，不太好统一，因此只好交由用户根据去实现服务注册这部分；mc-brpc则在brpc的基础上增加了服务注册器<font color=#00ffff>ServiceRegister</font>抽象类，并提供了默认的<font color=#00ffff>EtcdServiceRegister</font>实现将服务自动注册到etcd(如果使用其它服务中心，可继承实现<font color=#00ffff>ServiceRegister</font>，并在server启动之前通过`MCServer::SetServiceRegister`方法替换服务注册器即可)
 * **服务发现**: brpc通过<font color=#00ffff>NamingService</font>去做服务发现，默认支持了基于文件、dns、bns、http、consul、nacos等注册中心的服务发现，并支持用户扩展<font color=#00ffff>NamingService</font>实现自定义的服务发现。由于mc-brpc默认使用etcd做注册中心而brpc未提供基于etcd做服务发现的<font color=#00ffff>NamingService</font>实现，因此mc-brpc提供了<font color=#00ffff>NamingService</font>的扩展(<font color=#00ffff>McNamingService</font>)用以支持自定义协议(**mc:\/\/service_name**)的服务发现。目前，<font color=#00ffff>McNamingService</font>和brpc默认提供的<font color=#00ffff>NameService</font>一样都继承于<font color=#00ffff>brpc::PeriodicNamingService</font>，定时(默认每5秒)从服务中心更新服务实例信息，这种更新方式会存在一定的延时，未能很好利用etcd的事件通知功能，后续会考虑对此进行优化，借助etcd事件通知更实时更新服务实例信息
 * **NameAgent名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息(基于etcd事件监听)，并为mc-brpc提供服务发现。这么做的目的主要有以下：1、name_agent将服务注册信息缓存到本机，并通过unix_socket为本机上的mc-brpc服务提供服务发现，效率更高；2、在服务跨机房甚至跨大区部署时服务时，希望能按指定大区策略和机房策略进行rpc请求路由，尽可能避免跨机房甚至跨大区rpc访问；3、mc-brpc支持将rpc调用结果上报至本机NameAgent(上报逻辑已预埋至brpc)，用于生成容灾策略，实现客户端主动容灾(暂未实现)；4、将服务信息dump出来作为promethus监控的targets
-* **RPC调用结果上报**：mc-brpc会将每次rpc调用结果上报给<font color=#00ffff>LbStat</font>, 再通过一个一个独立上上报线程周期性(默认200ms)的将结果通过unix socket发送给本机NameAgent进程进程统计并生成容灾策略
+* **客户端主动容灾**：brpc框架默认支持的负载均衡路由算法基本都基于心跳检测，不具备主动容灾能力，具有延迟和误报的可能。mc-brpc会将每次rpc调用结果上报给<font color=#00ffff>LbStat</font>, 再通过一个独立上上报线程周期性(默认200ms)的将结果通过unix socket发送给本机NameAgent进程进程统计并生成容灾策略，为本机的服务进程提供主动容灾能力
 * **高性能异步日志**：brpc提供了日志刷盘抽象工具类<font color=#00ffff>LogSink</font>，并提供了一个默认的实现DefaultLogSink，但是DefaultLogSink写日志是同步写，且每写一条日志都会写磁盘，性能较差，在日志量大以及对性能要求较高的场景下很难使用，而百度内部使用的ComlogSink实现似乎未开源(看代码没找到)，因此mc-brpc提供了<font color=#00ffff>AsyncLogSink</font>和<font color=#00ffff>FastLogSink</font>用于高性能写日志；`AsyncLogSink`采用异步批量刷盘的方式，先将日志写到缓冲区，再由后台线程每秒批量刷盘(服务崩溃的情况下可能会丢失最近1s内的日志)；`FastLogSink`则基于`mmap`文件内存映射将写文件操作转为内存操作，减少系统调用次数以实现高性能写入；经测试验证，二者性能相比`DefaultLogSink`都有10倍以上提升
 
 * **日志自动滚动归档**：<font color=#00ffff>LogRotateWatcher</font>及<font color=#00ffff>LogArchiveWorker</font>每小时对日志进行滚动压缩归档，方便日志查询，并删除一段时间(默认1个月，可以公共通过log配置的remain_days属性指定)以前的日志，避免磁盘写满
@@ -413,7 +418,7 @@ brpc访问下游是通过channel发起请求，channel可以看做是带有lb策
         SingletonChannel::get()->GetChannel(_service_name, _group_strategy, _lb, &_options);`获取某个下游服务的channel并发起访问，其中`using SingletonChannel = server::utils::Singleton<ChannelManager>;`  但更多情况下我们不想使用这种方式，因为这样发起brpc请求的业务代码比较繁琐，首先要获取对应服务的channel，然后要用该channel初始化一个stub对象，同时还行要声明一个<font color=#00ffff>brpc::Controller</font>对象用于存储rpc请求元数据，最后在通过该stub对象发起rpc调用。这个过程对于每个brpc请求都是一样的，我们可以提供一个统一的实现，不用在业务层去写过多代码，也就是我们后续要提到的自动生成客户端代码部分，为需要调用的服务生成一个<font color=#00ffff>Client</font>对象，直接通过<font color=#00ffff>Client</font>对象就可以发起rpc调用。  
 
 ## 3. 自动生成rpc客户端代码
-### 原生brpc客户端调用流程示例：
+### 原生brpc客户端调用流程示例
 ```c++
     // 1. Initialize the channel
     brpc::Channel channel;
@@ -475,7 +480,7 @@ function (auto_gen_client_code out_path proto_path proto_file)
     endforeach()
 endfunction()
 ```
-服务编译后，会在client目录下生成对应的client源文件xxx.client.h和xxx.client.cpp。下面给出部分services/brpc_test/proto/test.proto编译后自动生成的客户端代码:  
+服务编译后，会在client目录下生成对应的client源文件xxx.client.h和xxx.client.cpp。下面给出部分services/brpc_test/proto/test.proto编译后自动生成的客户端代码(*注意：不同类型客户端代码实现会有些差异，具体见源码*):  
 test.client.h
 ```c++
 // 同步客户端
@@ -568,7 +573,7 @@ void SemiSyncClient::Test(const TestReq* req, TestRes* res) {
 }
 ```
 ### ChannelManager
-注意到上述生成代码中`SingletonChannel::get()`，它用于获取一个全局单例的<font color=#00ffff>ChannelManager</font>对象，再通过它的`ChannelManager::GetChannel`方法按指定的大区机房策略以及负载均衡策略创建(`Channel::Init`)面向目标服务的`brpc::Channel`指针，并缓存至本地。注意`Channel::Init`不是线程安全的，需要加锁，而之后对Channel的使用是线程安全的，因此可以缓存并共享，避免反复创建；其次，缓存Channel时的key是*service_name + group_strategy + lb*，意味着下次通过相同大区机房策略及lb策略访问相同服务时才能共享使用之前已经创建的Channel
+注意到上述生成代码中`SingletonChannel::get()`，它用于获取一个全局单例的<font color=#00ffff>ChannelManager</font>对象，再通过它的`ChannelManager::GetChannel`方法按指定的大区机房策略以及负载均衡策略创建(`Channel::Init`)面向目标服务的`brpc::Channel`指针，并缓存至本地。注意：`Channel::Init`不是线程安全的，需要加锁，而之后对Channel的使用是线程安全的，因此可以缓存并共享，避免反复创建；其次，缓存Channel时的key是*service_name + group_strategy + lb*，意味着下次通过相同大区机房策略及lb策略访问相同服务时才能共享使用之前已经创建的Channel
 ```c++
 SharedPtrChannel ChannelManager::GetChannel(const std::string& service_name,
                                             GroupStrategy group_strategy,
@@ -655,6 +660,7 @@ client.Test(&req, &res);
 
 
 ## 4. 高性能滚动异步日志
+### brpc流式日志写入流程
 &emsp;&emsp; brpc写日志是通过<font color=#ffff00>LOG</font>宏进行流式写入的(如：`LOG(INFO) << "abc" << 123;`)，<font color=#ffff00>LOG</font>宏定义涉及到的其它宏定义如下：
 ```c++
 // A few definitions of macros that don't generate much code. These are used
@@ -688,9 +694,9 @@ client.Test(&req, &res);
     BAIDU_LAZY_STREAM(LOG_STREAM(severity), LOG_IS_ON(severity) && (condition))
 ```
 分析源码后可以知道，brpc通过LOG打印日志的过程如下：  
-1. **获取当前线程里的LogStream对象**：通过`LOG(security_level)`宏展开后会生成一个<font color=#00ffff>LogMessage</font>临时对象, 并通过该临时对象的`stream()`方法返回一个<font color=#00ffff>LogStream</font>类型的成员指针指向对象的引用，而成员指针在LogMessage对象构造的时候被初始化为指向一个ThreadLocal的<font color=#00ffff>LogStream</font>对象，因此即相当于获取当了当前线程的<font color=#00ffff>LogStream</font>对象。
+1. **获取当前线程里的LogStream对象**：通过`LOG(security_level)`宏展开后会生成一个<font color=#00ffff>LogMessage</font>临时对象, 并通过该临时对象的`stream()`方法返回一个<font color=#00ffff>LogStream</font>类型的成员指针，该成员指针在LogMessage对象构造的时候被初始化为指向一个ThreadLocal的<font color=#00ffff>LogStream</font>对象，因此即相当于获取当了当前线程的<font color=#00ffff>LogStream</font>对象。
 2. **将日志写入到LogStream对象**：<font color=#00ffff>LogStream</font>继承了std::ostream，因此可以通过c++流插入运算符(`<<`)直接向其中写入日志数据，这里写入的时候会先往<font color=#00ffff>LogStream</font>中写入一些前缀信息，如日志级别、打印时间、文件名及代码行数、函数名(mc-brpc新增了trace_id，便于服务调用全链路追踪)等，之后再是写入用户想要写入的日志内容
-3. **日志持久化到文件**：<font color=#00ffff>LogStream</font>只充当了个缓冲区，还需要将缓冲区的内容写入到文件进行持久化，brpc将这部分功能交由<font color=#00ffff>LogSink</font>来完成(用户可以继承LogSink类并重写OnLogMessage方法来实现定制化的写入)。具体实现为当LOG所在代码行结束时则会触发<font color=#00ffff>LogMessage</font>临时对象的析构，析构函数中则会调用通过其<font color=#00ffff>LogStream</font>成员指针调用`LogStream::Flush()`, 之后则交由服务当前正在使用的<font color=#00ffff>LogSink</font>对象(没有就使用<font color=#00ffff>DefaultLogSink</font>)来完成将<font color=#00ffff>LogStream</font>缓冲区的内容写入到日志文件
+3. **日志持久化到文件**：<font color=#00ffff>LogStream</font>只充当了个缓冲区，还需要将缓冲区的内容写入到文件进行持久化，brpc将这部分功能交由<font color=#00ffff>LogSink</font>来完成(用户可以继承LogSink类并重写`LogSink::OnLogMessage`方法来实现定制化的写入)。具体实现为当LOG所在代码行结束时则会触发<font color=#00ffff>LogMessage</font>临时对象的析构，析构函数中则会调用通过其<font color=#00ffff>LogStream</font>成员指针调用`LogStream::Flush()`, 之后则交由服务当前正在使用的<font color=#00ffff>LogSink</font>对象(没有就使用<font color=#00ffff>DefaultLogSink</font>)来完成将<font color=#00ffff>LogStream</font>缓冲区的内容写入到日志文件
 
 ### ASyncLogSink  
 由于<font color=#00ffff>DefaultLogSink</font>采用同步写日志文件的方式，并且每打印一条日志都会触发日志文件写入，效率较低，在日志量较大的场景下可能对系统性能影响比较大。因此mc-brpc提供了<font color=#00ffff>ASyncLogSink</font>对日志进行异步写入。其核心实现如下(详情请看源码)：
@@ -767,25 +773,25 @@ bool FastLogSink::OnLogMessage(
 }
 
 void FastLogSink::AdjustFileMap() {
-    size_t offset = 0;
     size_t file_size = 0;
     struct stat fileStat;
     fstat(log_fd, &fileStat);
     file_size = fileStat.st_size;
+
     size_t cur_pos = 0;  // 当前写入位置相对于文件头的offset
     if (begin_addr != nullptr && end_addr != nullptr) {
         cur_pos = file_size - (end_addr - cur_addr);
-        munmap(begin_addr, MAP_TRUNK_SIZE);
+        munmap(begin_addr, FLAGS_map_trunk_size);
     } else {
         cur_pos = file_size;
     }
 
-    // 下次映射从当前写入地址(cur_pos)的上一文件页末尾开始(会产生长度为cur_pos-offset的区域被重复映射)
-    offset = RoundDownToPageSize(cur_pos);
-    size_t new_file_size = file_size + (MAP_TRUNK_SIZE - (cur_pos - offset));
+    // 下次映射从当前写入地址(cur_pos)的上一文件页末尾开始(会产生长度为file_size-offset的区域被重复映射)
+    size_t offset = RoundDownToPageSize(cur_pos);
+    size_t new_file_size = file_size + (FLAGS_map_trunk_size - (file_size - offset) + 1);
     ftruncate(log_fd, new_file_size);
 
-    begin_addr = (char*)mmap(NULL, MAP_TRUNK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, log_fd, offset);
+    begin_addr = (char*)mmap(NULL, FLAGS_map_trunk_size, PROT_READ | PROT_WRITE, MAP_SHARED, log_fd, offset);
     if (begin_addr == MAP_FAILED) {
         std::ostringstream os;
         os << "mmap failed, errno:" << errno << ", log_fd:" << log_fd << std::endl;
@@ -793,11 +799,12 @@ void FastLogSink::AdjustFileMap() {
         fwrite(err.c_str(), err.size(), 1, stderr);
         exit(1);
     }
-    cur_addr = begin_addr + (cur_pos - offset);  // 当前写入位置应为起始地址加上重复映射区域长度
-    end_addr = begin_addr + MAP_TRUNK_SIZE;
+    cur_addr =
+        begin_addr + (cur_pos - offset);  // 当前写入位置应为起始地址加上上次映射写入位置相对于当前映射起始地址的偏移量
+    end_addr = begin_addr + FLAGS_map_trunk_size;
 }
 ```
-OnLogMessage写日志时，直接将日志内容拷贝至文件映射的共享内存中，避免io操作；期间如果共享内存剩余空间不足，则需要重新映射文件，增加映射内存区域大小，默认情况每次增加200MB内存，每次调整内存大小后，需要调整当前写入地址的offset以确保从上次写入的位置时候开始写入，避免将旧数据覆盖。同理，想要使用<font color=#00ffff>ASyncLogSink</font>，只需要在CMakeLists.txt的add_server_source中增加<font color=#ffff00>FASTLOG</font>选项即可
+OnLogMessage写日志时，直接将日志内容拷贝至文件映射的共享内存中，避免io操作；期间如果共享内存剩余空间不足，则需要重新映射文件，增加映射内存区域大小，每次你新增映射区域大小有gflags参数map_trunk_size指定(默认4kb)，每次调整内存大小后，需要调整当前写入地址的offset以确保从上次写入的位置之后开始写入，避免将旧数据覆盖。同理，想要使用<font color=#00ffff>FastLogSink</font>，只需要在CMakeLists.txt的add_server_source中增加<font color=#ffff00>FASTLOG</font>选项即可
 
 ### LogSink性能对比
 这里我在我本地机器(4核, Intel(R) Core(TM) i5-9500 CPU @ 3.00GHz  3.00 GHz，普通机械硬盘)Ubuntu docker容器上对<font color=#00ffff>ASyncLogSink</font>、<font color=#00ffff>FastLogLogSink</font>以及默认的<font color=#00ffff>DefaultLogSink</font>做了个简单的性能测试，测试内容为用三种<font color=#00ffff>LogSink</font>插件分别写入1kw条日志(每条日志100B)耗时, 分单线程写入1kw条数据以及10线程并发写入(每个线程写入1百万条)，测试结果(耗时为5次取平均值)如下：<center>
@@ -1244,7 +1251,70 @@ avg(client_request_latency_recorder{server_name="brpc_test", quantile="0.99"} / 
 ### 整体监控示例效果图
 ![image.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/51e2dba6305a45ee885c3a5bd0c96c5b~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2560&h=1288&s=353396&e=png&b=191c20)
 
-## 6. DB连接管理
+## 6. 客户端主动容灾
+brpc框架本身支持负载均衡路由算法容灾以来目标server心跳检测，不具备主动容灾能力，即一个后端连接如果断掉且重连失败，会从名字里摘掉。心跳检测可以解决一部分问题，但是有其局限性。当后端某个ip cpu负载高，网络抖动，丢包率上升等情况下，一般心跳检查是能通过的，但是此时我们判断该ip是处于一种异常状态，需要降低访问权重，来进行调节。这就是我们要做的主动容灾，主要氛围以下三部分：
+
+1. rpc调用结果上报/收集(已实现)
+2. 容灾策略生成(待实现)
+3. 策略应用(待实现)
+
+### RPC调用结果上报/收集
+目前mc-brpc已经在brpc框架内支持将rpc调用结果通过一个独立上报线程上报至NameAgent进程。上报功能由<font color=#00ffff>LbStat</font>(core/extensions/lb_stat.h)完成，MCServer会在启动时完成LbStat的初始化及全局注册：
+```c++
+void MCServer::Start(bool register_service) {
+    // ...
+
+    // init lb stat
+    brpc::policy::LbStat::GetInstance()->Init();
+
+    // ...
+}
+
+void LbStat::Init() {
+    // register lb stat
+    BaseLbStatExtension()->RegisterOrDie(LB_STAT_CLIENT, this);
+
+    // start report thread
+    _report_thread = std::thread(&LbStat::RealReport, this);
+}
+```
+上报逻辑需要在rpc调用结束`brpc::Controller::OnVersionedRPCReturned`处触发：
+```c++
+void Controller::OnVersionedRPCReturned(const CompletionInfo& info,
+                                        bool new_bthread, int saved_error) {
+    // ...
+
+    // lb report 
+    brpc::policy::BaseLbStat *lb_stat = brpc::policy::BaseLbStatExtension()->Find(LB_STAT_CLIENT);
+    if (lb_stat) {
+        lb_stat->LbStatReport(_to_svr_name, _remote_side, _error_code, info.responded, latency / 1000);
+    }
+
+    // ...
+}
+```                                            
+出于代码隔离考虑，brpc源码不直接include基础库(core)代码，mc-brpc在brpc中新增了个<font color=#00ffff>BaseLbStat</font>抽象类，再由<font color=#00ffff>LbStat</font>继承实现<font color=#00ffff>BaseLbStat</font>的方法，重写`BaseLbStat::LbStatReport`进行rpc调用结果上报。
+
+同时，为避免上报过程对rpc本身过程造成性能影响，<font color=#00ffff>LbStat</font>(core/extensions/lb_stat.h)默认情况下会将调用结果先写入本地缓存，再由一个独立的上报线程周期性的将结果汇总上报至NameAgent(具体实现请看源码)，上报至NameAgent的信息包含以下内容:
+```protobuf
+message LbStatInfo {
+	string endpoint   = 1;     // ip:port
+	string service_name = 2;   
+	uint32 succ_cnt      = 3;  // 该周期内目标节点请求成功数
+	uint32 fail_cnt      = 4;  // 该周期内目标节点失败数
+	uint32 fail_net_cnt  = 5;  // 该周期内目标节点网络异常数
+	uint32 fail_logic_cnt= 6;  // 该周期内目标节点逻辑异常数
+	uint32 used_ms       = 7;  // 该周期内对目标节点rpc访问总耗时
+}
+```
+
+### 容灾策略生成
+待实现。。。
+
+### 容灾策略应用
+待实现。。。
+
+## 7. DB连接管理
 ### DBPool
 mc-brpc基于[libmysqlclient](https://dev.mysql.com/downloads/c-api/)提供了面向对象的MySQL的操作类<font color=#00ffff>MysqlConn</font>，并提供了对应的连接池实现<font color=#00ffff>DBPool</font>，通过<font color=#00ffff>DBPool</font>对MySQl连接进行管理(创建连接、释放连接、连接保活等)。
 ```c++
@@ -1429,7 +1499,7 @@ try {
 }
 ```
 
-## 7. Redis连接管理
+## 8. Redis连接管理
 ### RedisWrapper
 mc-brpc基于[redis++](https://github.com/sewenew/redis-plus-plus)提供了Redis的操作类<font color=#00ffff>RedisWrapper</font>，它支持STL风格操作。与MySQL客户端代码不同的是，这里不需要单独实现连接池，因为[redis++](https://github.com/sewenew/redis-plus-plus)已经提供了这个功能，它会自动为配置里指定的redis实例(集群)维护一个连接池，但redis++对集群模式Redis和其它模式redis(单实例Redis、哨兵模式主从Redis)的操作分别是通过`sw::redis::RedisCluster`和`sw::redis::Redis`来完成的，那么如果我们服务里面原来使用的是单实例Redis，代码里是通过`sw::redis::Redis`来进行操作的，后面如果想切换到Redis集群，那就需要修改相关Redis操作代码，因此我们提供<font color=#00ffff>RedisWrapper</font>来屏蔽这些差异，业务层统一使用<font color=#00ffff>RedisWrapper</font>来进行Redis操作就行，<font color=#00ffff>RedisWrapper</font>内自动判断当前是对单实例Redis进行操作还是对集群模式Redis进行操作，简化业务代码开发。实现原理也很简单，通过`std::variant`(需要c++ 17及以上，低版本可以使用union代替)来存放`sw::redis::RedisCluster`和`sw::redis::Redis`, 操作redis时先判断当前`std::variant`中存放的实际类型再调对应类型的API，部分实例如下：
 ```c++
@@ -1574,5 +1644,5 @@ redis->lpush("list_1", ll.begin(), ll.end());
 redis->expire("list_1", std::chrono::seconds(3600));
 ```
 
-## 8. 更多功能
+## 9. 更多功能
 更新中。。。
