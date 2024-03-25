@@ -99,7 +99,7 @@ LbStat* LbStat::GetInstance() {
     return Singleton<LbStat>::get();
 }
 
-LbStat::LbStat() : _last_report_timems(0), _report_interval(200), _is_asked_to_stop(false) {}
+LbStat::LbStat() : _is_asked_to_stop(false), _last_report_timems(0), _report_interval(200) {}
 
 void LbStat::Init() {
     // register lb stat

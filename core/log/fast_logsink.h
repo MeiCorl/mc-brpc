@@ -21,7 +21,7 @@ private:
     static char* cur_addr;
     static char* end_addr;
 
-    bool Init(bool auto_create = false);
+    bool Init();
     void AdjustFileMap();
 public:
     FastLogSink(const logging::LoggingSettings& settings);

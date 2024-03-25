@@ -3,10 +3,14 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <gflags/gflags.h>
 
 using namespace server::logger;
 
-const int MAP_TRUNK_SIZE = 200 * 1024 * 1024;  // 4MB
+DEFINE_uint32(
+    map_trunk_size,
+    4 * 1024,
+    "size of each mmap(default 4kb, set bigger size in production environment to get a better performance)");
 
 volatile int FastLogSink::log_fd = -1;
 char* FastLogSink::begin_addr = nullptr;
@@ -33,7 +37,7 @@ FastLogSink::FastLogSink(const logging::LoggingSettings& settings) :
         logging_dest(settings.logging_dest), log_file(settings.log_file) {
     LoggingLock::Init(settings.lock_log, settings.log_file);
     LoggingLock logging_lock;
-    if (!Init(true)) {
+    if (!Init()) {
         exit(-1);
     }
 }
@@ -60,7 +64,7 @@ bool FastLogSink::OnLogMessage(
     if ((logging_dest & logging::LoggingDestination::LOG_TO_FILE) != 0) {
         LoggingLock logging_lock;
         if (Init()) {
-            while (cur_addr + log_content.length() >= end_addr) {
+            while (cur_addr + log_content.length() > end_addr) {
                 AdjustFileMap();
             }
             memcpy(cur_addr, log_content.data(), log_content.length());
@@ -71,7 +75,7 @@ bool FastLogSink::OnLogMessage(
     return true;
 }
 
-bool FastLogSink::Init(bool auto_create) {
+bool FastLogSink::Init() {
     if (log_fd != -1) {
         return true;
     }
@@ -91,25 +95,25 @@ bool FastLogSink::Init(bool auto_create) {
 }
 
 void FastLogSink::AdjustFileMap() {
-    size_t offset = 0;
     size_t file_size = 0;
     struct stat fileStat;
     fstat(log_fd, &fileStat);
     file_size = fileStat.st_size;
+
     size_t cur_pos = 0;  // 当前写入位置相对于文件头的offset
     if (begin_addr != nullptr && end_addr != nullptr) {
         cur_pos = file_size - (end_addr - cur_addr);
-        munmap(begin_addr, MAP_TRUNK_SIZE);
+        munmap(begin_addr, FLAGS_map_trunk_size);
     } else {
         cur_pos = file_size;
     }
 
-    // 下次映射从当前写入地址(cur_pos)的上一文件页末尾开始(会产生长度为cur_pos-offset的区域被重复映射)
-    offset = RoundDownToPageSize(cur_pos);
-    size_t new_file_size = file_size + (MAP_TRUNK_SIZE - (cur_pos - offset));
+    // 下次映射从当前写入地址(cur_pos)的上一文件页末尾开始(会产生长度为file_size-offset的区域被重复映射)
+    size_t offset = RoundDownToPageSize(cur_pos);
+    size_t new_file_size = file_size + (FLAGS_map_trunk_size - (file_size - offset) + 1);
     ftruncate(log_fd, new_file_size);
 
-    begin_addr = (char*)mmap(NULL, MAP_TRUNK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, log_fd, offset);
+    begin_addr = (char*)mmap(NULL, FLAGS_map_trunk_size, PROT_READ | PROT_WRITE, MAP_SHARED, log_fd, offset);
     if (begin_addr == MAP_FAILED) {
         std::ostringstream os;
         os << "mmap failed, errno:" << errno << ", log_fd:" << log_fd << std::endl;
@@ -117,8 +121,9 @@ void FastLogSink::AdjustFileMap() {
         fwrite(err.c_str(), err.size(), 1, stderr);
         exit(1);
     }
-    cur_addr = begin_addr + (cur_pos - offset);  // 当前写入位置应为起始地址加上重复映射区域长度
-    end_addr = begin_addr + MAP_TRUNK_SIZE;
+    cur_addr =
+        begin_addr + (cur_pos - offset);  // 当前写入位置应为起始地址加上上次映射写入位置相对于当前映射起始地址的偏移量
+    end_addr = begin_addr + FLAGS_map_trunk_size;
 }
 
 void FastLogSink::Close() {
