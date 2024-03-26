@@ -34,7 +34,7 @@ int NameAgentClient::GetServers(const char* service_name, std::vector<brpc::Serv
     req.set_service_name(real_service_name);
     req.set_group_strategy(group_strategy);
     _name_agent_stub->GetServers(&cntl, &req, &res, nullptr);
-    if (!cntl.Failed()) {
+    if (!cntl.Failed() && res.res_code() == name_agent::ResCode::Success) {
         for (const std::string& endpoint : res.endpoints()) {
             butil::EndPoint ep;
             butil::str2endpoint(endpoint.c_str(), &ep);
