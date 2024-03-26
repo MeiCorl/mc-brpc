@@ -49,7 +49,7 @@ void NameServiceProxy::InitializeWatcher(
 }
 
 void NameServiceProxy::InitServers() {
-    etcd::Client etcd(server::utils::Singleton<ServerConfig>::get()->GetNsUrl());
+    etcd::Client etcd(ServerConfig::GetInstance()->GetNsUrl());
     etcd::Response response = etcd.ls("").get();
 
     for (uint32_t i = 0; i < response.keys().size(); i++) {
@@ -202,7 +202,7 @@ void NameServiceProxy::WatcherCallback(etcd::Response response) {
 void NameServiceProxy::DumpServiceInfo() {
     // 选主执行，当有多个brpc_name_agnet实例时，只需要有一个实例执行dump任务就行
     // 支持某个nage_agent进程挂掉后，下次会由另一个name_agent进程执行dump任务
-    ServerConfig* config = server::utils::Singleton<ServerConfig>::get();
+    ServerConfig* config = ServerConfig::GetInstance();
     etcd::Client etcd(config->GetNsUrl());
     etcd::Response resp1 = etcd.leasegrant(FLAGS_prometheus_targets_dump_interval - 1).get();
     if (resp1.error_code() != 0) {
@@ -273,7 +273,7 @@ NameServiceProxy::NameServiceProxy(/* args */) {
 
     std::function<void(etcd::Response)> callback =
         bind(&NameServiceProxy::WatcherCallback, this, std::placeholders::_1);
-    InitializeWatcher(server::utils::Singleton<ServerConfig>::get()->GetNsUrl(), "", callback, m_pEtcdWatcher);
+    InitializeWatcher(ServerConfig::GetInstance()->GetNsUrl(), "", callback, m_pEtcdWatcher);
 
     m_dump_task.Init(this, FLAGS_prometheus_targets_dump_interval);
     m_dump_task.Start();
@@ -284,7 +284,7 @@ ResCode NameServiceProxy::GetServers(
     uint32_t group_strategy,
     uint32_t group_request_code,
     google::protobuf::RepeatedPtrField<string>* endpoints) {
-    server::config::ServerConfig* cfg = server::utils::Singleton<ServerConfig>::get();
+    server::config::ServerConfig* cfg = ServerConfig::GetInstance();
     uint32_t region_id = cfg->GetSelfRegionId();
     uint32_t group_id = cfg->GetSelfGroupId();
 
@@ -374,6 +374,7 @@ ResCode NameServiceProxy::GetServers(
                     endpoints->Add()->assign(endpoint);
                 }
             }
+            return Success;
         } else {
             // todo 是否有指定默认大区
             return NotFound;

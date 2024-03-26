@@ -1,7 +1,7 @@
 #pragma once
 
 #include "server_config.pb.h"
-
+#include "butil/memory/singleton.h"
 namespace server {
 namespace config {
 
@@ -15,6 +15,10 @@ private:
 public:
     ServerConfig(/* args */);
     ~ServerConfig();
+
+    static ServerConfig* GetInstance() {
+        return Singleton<ServerConfig>::get();
+    }
 
     const google::protobuf::Map<std::string, server::config::DbConfig>& GetDbConfig();
     const google::protobuf::Map<std::string, server::config::RedisConfig>& GetRedisConfig();

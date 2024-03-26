@@ -5,9 +5,8 @@
 using namespace server::redis;
 using namespace server::config;
 
-void redisManager::Init() {
-    const google::protobuf::Map<std::string, RedisConfig>& redis_confs =
-        server::utils::Singleton<ServerConfig>::get()->GetRedisConfig();
+void RedisManager::Init() {
+    const google::protobuf::Map<std::string, RedisConfig>& redis_confs = ServerConfig::GetInstance()->GetRedisConfig();
     for (auto it = redis_confs.begin(); it != redis_confs.end(); ++it) {
         if (it->second.has_redis_info()) {
             ConnectionOptions conn_options;
@@ -59,7 +58,7 @@ void redisManager::Init() {
     }
 }
 
-RedisWrapper* redisManager::GetRedisConnection(std::string_view cluster_name) {
+RedisWrapper* RedisManager::GetRedisConnection(std::string_view cluster_name) {
     RedisWrapper* cluster = brpc::Extension<RedisWrapper>::instance()->Find(cluster_name.data());
     if (cluster == nullptr) {
         LOG(ERROR) << "[!] db not found: " << cluster_name;
@@ -68,6 +67,6 @@ RedisWrapper* redisManager::GetRedisConnection(std::string_view cluster_name) {
     return cluster;
 }
 
-// RedisCluster* redisManager::GetRedisConnection(const std::string& cluster_name) {
+// RedisCluster* RedisManager::GetRedisConnection(const std::string& cluster_name) {
 //     return GetRedisConnection(cluster_name.c_str());
 // }

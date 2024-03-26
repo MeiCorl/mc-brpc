@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <brpc/channel.h>
 #include <bthread/mutex.h>
-#include "core/utils/singleton.h"
+#include "butil/memory/singleton.h"
 #include "core/config/server_config.h"
 
 namespace server {
@@ -23,14 +23,15 @@ private:
     ServerChannels _server_channels;
 
 public:
-    ChannelManager();
+    static ChannelManager* GetInstance() {
+        return Singleton<ChannelManager>::get();
+    }
+
     SharedPtrChannel GetChannel(const std::string& service_name,
                                 GroupStrategy group_strategy  = GroupStrategy::STRATEGY_NORMAL,
                                 const std::string& lb         = "rr",
                                 brpc::ChannelOptions* options = nullptr);
 };
-
-using SingletonChannel = server::utils::Singleton<ChannelManager>;
 
 } // namespace common
 } // namespace server

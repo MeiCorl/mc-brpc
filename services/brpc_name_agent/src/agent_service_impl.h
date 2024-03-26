@@ -9,7 +9,7 @@ private:
 
 public:
     AgentServiceImpl();
-    
+
     virtual void GetServers(
         google::protobuf::RpcController* controller,
         const name_agent::GetServersReq* request,

@@ -40,7 +40,7 @@ MCServer::MCServer(int argc, char* argv[]) {
     }
 
     // 创建brpc server
-    _server = new brpc::Server(utils::Singleton<ServerConfig>::get()->GetSelfName());
+    _server = new brpc::Server(ServerConfig::GetInstance()->GetSelfName());
 
     // 初始化日志（会额外触发server.conf全局配置解析)
     LoggingInit(argv);
@@ -53,12 +53,12 @@ MCServer::MCServer(int argc, char* argv[]) {
 
 #ifdef USE_MYSQL
     // init db if necessary
-    DBManager::get()->Init();
+    server::db::DBManager::GetInstance()->Init();
 #endif
 
 #ifdef USE_REDIS
     // init redis cluster if necessary
-    RedisManager::get()->Init();
+    server::redis::RedisManager::GetInstance()->Init();
 #endif
 }
 
@@ -85,7 +85,7 @@ MCServer::~MCServer() {
         delete old_sink;
     }
 #endif
-    
+
     // 销毁brpc::Server
     if (_server) {
         delete _server;
@@ -99,7 +99,7 @@ MCServer::~MCServer() {
  * @author: meicorl
  */
 void MCServer::LoggingInit(char* argv[]) {
-    ServerConfig* svr_config = utils::Singleton<ServerConfig>::get();
+    ServerConfig* svr_config = ServerConfig::GetInstance();
 
     logging::LoggingSettings log_settings;
     log_settings.logging_dest = logging::LOG_TO_FILE;
@@ -171,7 +171,7 @@ void MCServer::Start(bool register_service) {
 #endif
     }
     brpc::ServerOptions options;
-    options.server_info_name = utils::Singleton<ServerConfig>::get()->GetSelfName();
+    options.server_info_name = ServerConfig::GetInstance()->GetSelfName();
     if (_server->Start(point, &options) != 0) {
         LOG(ERROR) << "[!] Fail to start Server";
         exit(1);

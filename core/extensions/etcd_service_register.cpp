@@ -14,7 +14,7 @@ std::string EtcdServiceRegister::BuildServiceName(
 }
 
 bool EtcdServiceRegister::RegisterService() {
-    ServerConfig* config = server::utils::Singleton<ServerConfig>::get();
+    ServerConfig* config = ServerConfig::GetInstance();
     etcd::Client etcd(config->GetNsUrl());
     server::config::InstanceInfo instance;
     instance.set_region_id(config->GetSelfRegionId());
@@ -79,7 +79,7 @@ void EtcdServiceRegister::UnRegisterService() {
         _keep_live_ptr->Cancel();
     }
 
-    ServerConfig* config = server::utils::Singleton<ServerConfig>::get();
+    ServerConfig* config = ServerConfig::GetInstance();
     etcd::Client etcd(config->GetNsUrl());
     etcd.rm(_register_key);
 }

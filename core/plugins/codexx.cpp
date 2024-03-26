@@ -173,7 +173,7 @@ private:
         }
         printer.PrintRaw("\n\n");
         printer.PrintRaw("using server::common::SharedPtrChannel;\n");
-        printer.PrintRaw("using server::common::SingletonChannel;\n");
+        printer.PrintRaw("using server::common::ChannelManager;\n");
         printer.PrintRaw("using server::common::OnRPCDone;\n\n");
 
         std::vector<std::string> client_types = {"SyncClient", "ASyncClient", "SemiSyncClient"};
@@ -271,7 +271,7 @@ private:
                             "* req, " + method->output_type()->name() + "* res) { \n");
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
-                            "        SingletonChannel::get()->GetChannel(_service_name, "
+                            "        ChannelManager::GetInstance()->GetChannel(_service_name, "
                             "_group_strategy, _lb, &_options);\n");
                         printer.PrintRaw("    brpc::Channel* channel = channel_ptr.get();\n");
                         printer.PrintRaw("    if (!channel)  {\n");
@@ -296,7 +296,7 @@ private:
                             "* req, " + method->output_type()->name() + "* res) { \n");
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
-                            "        SingletonChannel::get()->GetChannel(_service_name, "
+                            "        ChannelManager::GetInstance()->GetChannel(_service_name, "
                             "_group_strategy, _lb, &_options);\n");
                         printer.PrintRaw("    brpc::Channel* channel = channel_ptr.get();\n");
                         printer.PrintRaw("    if (!channel)  {\n");
@@ -325,7 +325,7 @@ private:
                             "    auto done = new OnRPCDone<" + method->output_type()->name() + ">(callback);\n");
                         printer.PrintRaw(
                             "    SharedPtrChannel channel_ptr = \n"
-                            "        SingletonChannel::get()->GetChannel(_service_name, "
+                            "        ChannelManager::GetInstance()->GetChannel(_service_name, "
                             "_group_strategy, _lb, &_options);\n");
                         printer.PrintRaw("    brpc::Channel* channel = channel_ptr.get();\n");
                         printer.PrintRaw("    if (!channel)  {\n");

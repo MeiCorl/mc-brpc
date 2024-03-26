@@ -2,8 +2,6 @@
 
 using namespace server::common;
 
-ChannelManager::ChannelManager() { }
-
 SharedPtrChannel ChannelManager::GetChannel(const std::string& service_name,
                                             GroupStrategy group_strategy,
                                             const std::string& lb,

@@ -7,6 +7,9 @@
 #include "core/common/metrcis_helper.h"
 
 using namespace server::utils;
+using server::db::DBManager;
+using server::redis::RedisManager;
+
 namespace test {
 ServiceImpl::ServiceImpl(/* args */) {}
 
@@ -45,7 +48,6 @@ void ServiceImpl::UpdateUserInfo(
         response->set_res_code(ServerError);
         return;
     }
-
 }
 
 void ServiceImpl::Test(
@@ -55,7 +57,7 @@ void ServiceImpl::Test(
     google::protobuf::Closure* done) {
     brpc::ClosureGuard done_guard(done);
 
-    auto conn = DBManager::get()->GetDBConnection("db_master");
+    auto conn = DBManager::GetInstance()->GetDBConnection("db_master");
     if (conn == nullptr) {
         response->set_seq_id(request->seq_id());
         response->set_res_code(ServerError);
@@ -74,7 +76,7 @@ void ServiceImpl::Test(
                 }
 
                 // TEST redis cluster
-                auto cluster = RedisManager::get()->GetRedisConnection("redis_cluster");
+                auto cluster = RedisManager::GetInstance()->GetRedisConnection("redis_cluster");
                 if (!cluster) {
                     return;
                 }
@@ -87,7 +89,7 @@ void ServiceImpl::Test(
 
         // TEST single redis
         std::vector<std::string> ll = {"123", "abc", "PHQ"};
-        auto redis = RedisManager::get()->GetRedisConnection("redis_single");
+        auto redis = RedisManager::GetInstance()->GetRedisConnection("redis_single");
         if (!redis) {
             return;
         }

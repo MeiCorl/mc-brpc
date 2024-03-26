@@ -1,31 +1,28 @@
 #pragma once
 #include <pthread.h>
 
-namespace server {
-namespace utils {
-
+// 取消使用，请使用butil/memory/singleton.h
+namespace {
 template <typename T>
-class Singleton {
+class UnUseSingleton {
 private:
     static pthread_once_t _pOnce;
     static T* pInstance;
 
-    Singleton();
-    ~Singleton();
-    static void _new() { pInstance = new T(); }
+    static void _new() {
+        pInstance = new T();
+    }
 
 public:
     static T* get() {
-        pthread_once(&_pOnce, &Singleton::_new);
+        pthread_once(&_pOnce, &UnUseSingleton::_new);
         return pInstance;
     }
 };
 
 template <typename T>
-pthread_once_t Singleton<T>::_pOnce = PTHREAD_ONCE_INIT;
+pthread_once_t UnUseSingleton<T>::_pOnce = PTHREAD_ONCE_INIT;
 
 template <typename T>
-T* Singleton<T>::pInstance = nullptr;
-
-} // namespace utils
-} // namespace server
+T* UnUseSingleton<T>::pInstance = nullptr;
+}  // namespace
