@@ -2,7 +2,7 @@
 
 #include "brpc/channel.h"
 #include "butil/memory/singleton.h"
-#include "core/extensions/name_agent.pb.h"
+#include "core/lb_stat/name_agent.pb.h"
 
 namespace server {
 namespace common {

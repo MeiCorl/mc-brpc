@@ -5,7 +5,7 @@
 #include "butil/file_util.h"
 #include "bthread/unstable.h"
 #include "core/extensions/mc_naming_service.h"
-#include "core/extensions/lb_stat.h"
+#include "core/lb_stat/lb_stat_client.h"
 
 #if defined(USE_ASYNC_LOGSINK)
 #include "core/log/async_logsink.h"
@@ -69,7 +69,7 @@ MCServer::~MCServer() {
     }
 
     // 停止lb上报线程
-    brpc::policy::LbStat::GetInstance()->Stop();
+    server::lb_stat::LbStatClient::GetInstance()->Stop();
 
     // 停止日志watcher
     _log_watcher.reset();
@@ -190,7 +190,7 @@ void MCServer::Start(bool register_service) {
     }
 
     // init lb stat
-    brpc::policy::LbStat::GetInstance()->Init();
+    server::lb_stat::LbStatClient::GetInstance()->Init();
 
     // loop
     _server->RunUntilAskedToQuit();

@@ -1,10 +1,16 @@
 #include "agent_service_impl.h"
 #include "brpc/controller.h"
+#include "naming_service_proxy.h"
+#include "lb_stat_server.h"
+
+#include "core/lb_stat/strategy_shm.h"
 
 using namespace name_agent;
 
 AgentServiceImpl::AgentServiceImpl() {
-    m_pNamingServiceProxy = std::make_shared<NameServiceProxy>();
+    // init NameServiceProxy and LbStatSvr instances
+    NameServiceProxy::GetInstance();
+    LbStatSvr::GetInstance();
 }
 
 void AgentServiceImpl::GetServers(
@@ -15,7 +21,8 @@ void AgentServiceImpl::GetServers(
     brpc::ClosureGuard done_guard(done);
     response->set_seq_id(request->seq_id());
     response->set_res_code(Success);
-    ResCode res_code = m_pNamingServiceProxy->GetServers(
+
+    ResCode res_code = NameServiceProxy::GetInstance()->GetServers(
         request->service_name(),
         request->group_strategy(),
         request->group_request_code(),
@@ -31,7 +38,8 @@ void AgentServiceImpl::LbStatReport(
     brpc::ClosureGuard done_guard(done);
     response->set_res_code(Success);
 
-    brpc::Controller* cntl = static_cast<brpc::Controller*>(controller);
-    LOG(INFO) << "from_svr:" << cntl->from_svr_name() << " Req:" << request->ShortDebugString();
-    // todo: fix me
+    LOG_EVERY_N(INFO, 10) << request->ShortDebugString();
+    for (int i = 0; i < request->infos_size(); ++i) {
+        LbStatSvr::GetInstance()->LbAddStat(request->infos(i));
+    }
 }

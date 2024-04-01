@@ -3,14 +3,14 @@
 #include "brpc/policy/base_lb_stat.h"
 #include <thread>
 
-namespace brpc {
-namespace policy {
+namespace server {
+namespace lb_stat {
 
-class LbStat : public BaseLbStat {
+class LbStatClient : public brpc::policy::BaseLbStat {
 public:
-    static LbStat* GetInstance();
+    static LbStatClient* GetInstance();
 
-    LbStat();
+    LbStatClient();
 
     void Init();
     void Stop();
@@ -33,5 +33,5 @@ private:
     unsigned long _report_interval;                    // interval time by ms,default 200ms
 };
 
-}  // namespace policy
-}  // namespace brpc
+}  // namespace server
+}  // namespace lb_stat

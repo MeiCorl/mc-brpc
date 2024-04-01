@@ -231,8 +231,8 @@ void NameServiceProxy::DumpServiceInfo() {
         for (auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++) {
             uint32_t region_id = it2->first;
 
-            writer.StartObject();
             for (auto it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
+                writer.StartObject();
                 uint32_t group_id = it3->first;
                 writer.Key("targets");
                 writer.StartArray();
@@ -250,8 +250,9 @@ void NameServiceProxy::DumpServiceInfo() {
                 writer.Key("group_id");
                 writer.String(std::to_string(group_id).c_str());
                 writer.EndObject();
+
+                writer.EndObject();
             }
-            writer.EndObject();
         }
     }
     writer.EndArray();

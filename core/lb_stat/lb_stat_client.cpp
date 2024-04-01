@@ -1,25 +1,13 @@
-#include "lb_stat.h"
+#include "lb_stat_client.h"
+#include "strategy_shm.h"
 #include "butil/string_printf.h"
 #include "core/common/name_agent_client.h"
 
-using namespace brpc::policy;
+using namespace server::lb_stat;
 using server::common::NameAgentClient;
 
 DEFINE_int32(report_batch_num, 1800, "real report max size");
 DEFINE_int32(report_interval, 200, "lb report interval");
-
-struct ServerStats {
-    uint32_t succ_cnt;
-    uint32_t fail_cnt;
-    uint32_t fail_net_cnt;
-    uint32_t fail_logic_cnt;
-    uint32_t used_ms;
-
-    std::string service_name;
-    std::string endpoint;
-
-    ServerStats() : succ_cnt(0), fail_cnt(0), fail_net_cnt(0), fail_logic_cnt(0), used_ms(0) {}
-};
 
 struct GlobalStats {
     std::mutex mutex;
@@ -50,8 +38,8 @@ static LocalStats* GetLocalStats() {
     return p;
 }
 
-static ServerStats* GetStatsByAddr(const std::string& service_name, const std::string& endpoint) {
-    std::string key = butil::string_printf("%s_%s", service_name.c_str(), endpoint.c_str());
+static ServerStats* GetStatsByAddr(const std::string& service_name, const std::string& ip, int port) {
+    std::string key = butil::string_printf("%s__%s:%d", service_name.c_str(), ip.c_str(), port);
     LocalStats* lstats = GetLocalStats();
     LocalStats::LocalMap::const_iterator it = lstats->key2stats.find(key);
     if (it != lstats->key2stats.end()) {
@@ -63,7 +51,8 @@ static ServerStats* GetStatsByAddr(const std::string& service_name, const std::s
         GlobalStats* g_stats = GlobalStats::GetInstance();
         std::lock_guard<std::mutex> lk(g_stats->mutex);
         stats = &g_stats->key2stats[key];
-        stats->endpoint = endpoint;
+        stats->ip = ip;
+        stats->port = port;
         stats->service_name = service_name;
     }
     lstats->key2stats[key] = stats;
@@ -86,7 +75,8 @@ static void CollectStats(std::vector<ServerStats>& stats) {
         ServerStats& copy = stats.back();
 
         copy.service_name = stats_item->service_name;
-        copy.endpoint = stats_item->endpoint;
+        copy.ip = stats_item->ip;
+        copy.port = stats_item->port;
         copy.succ_cnt = __sync_fetch_and_and(&stats_item->succ_cnt, 0);
         copy.fail_cnt = __sync_fetch_and_and(&stats_item->fail_cnt, 0);
         copy.fail_net_cnt = __sync_fetch_and_and(&stats_item->fail_net_cnt, 0);
@@ -95,30 +85,30 @@ static void CollectStats(std::vector<ServerStats>& stats) {
     }
 }
 
-LbStat* LbStat::GetInstance() {
-    return Singleton<LbStat>::get();
+LbStatClient* LbStatClient::GetInstance() {
+    return Singleton<LbStatClient>::get();
 }
 
-LbStat::LbStat() : _is_asked_to_stop(false), _last_report_timems(0), _report_interval(200) {}
+LbStatClient::LbStatClient() : _is_asked_to_stop(false), _last_report_timems(0), _report_interval(200) {}
 
-void LbStat::Init() {
+void LbStatClient::Init() {
     // register lb stat
-    BaseLbStatExtension()->RegisterOrDie(LB_STAT_CLIENT, this);
+    brpc::policy::BaseLbStatExtension()->RegisterOrDie(LB_STAT_CLIENT, this);
 
     // start report thread
-    _report_thread = std::thread(&LbStat::RealReport, this);
+    _report_thread = std::thread(&LbStatClient::RealReport, this);
 }
 
-void LbStat::Stop() {
+void LbStatClient::Stop() {
     _is_asked_to_stop = true;
     _report_thread.join();
 }
 
-bool LbStat::IsSvrBlock(const butil::EndPoint& endpoint) {
+bool LbStatClient::IsSvrBlock(const butil::EndPoint& endpoint) {
     return true;
 }
 
-void LbStat::RealReport() {
+void LbStatClient::RealReport() {
     LOG(INFO) << "Lb report thread start...";
     while (!_is_asked_to_stop) {
         DoLbReport();
@@ -127,32 +117,36 @@ void LbStat::RealReport() {
     LOG(INFO) << "Lb report thread finished...";
 }
 
-int LbStat::LbStatReport(
+int LbStatClient::LbStatReport(
     const std::string& service_name,
     const butil::EndPoint& endpoint,
     int ret,
     bool responsed,
     int cost_time) {
+    if (endpoint.port <= 0 || endpoint.port > 65535 || !memcmp(butil::ip2str(endpoint.ip).c_str(), "0.0.0.0", 7)) {
+        return 0;
+    }
     name_agent::LbStatInfo info;
-    info.set_endpoint(butil::endpoint2str(endpoint).c_str());
+    info.mutable_endpoint()->set_ip(butil::ip2str(endpoint.ip).c_str());
+    info.mutable_endpoint()->set_port(endpoint.port);
     info.set_service_name(service_name);
     if ((!responsed && ret)) {
         // no response and ret!=0, take as net err or EREJECT/ELIMIT/ELOGOFF take as sys err
         info.set_fail_cnt(1);
         info.set_fail_net_cnt(1);
-        LOG(INFO) << "report net err, service_name:" << service_name << ", " << info.endpoint() << ", ret:" << ret
-                  << ", responsed:" << responsed << ", cost_time:" << cost_time << " ms";
+        LOG(INFO) << "report net err, service_name:" << service_name << ", " << butil::endpoint2str(endpoint).c_str()
+                  << ", ret:" << ret << ", responsed:" << responsed << ", cost_time:" << cost_time << " ms";
     } else if (responsed && ret) {
         info.set_fail_cnt(1);
         info.set_fail_logic_cnt(1);
-        LOG(INFO) << "report logic error, service_name:" << service_name << ", " << info.endpoint() << ", ret:" << ret
-                  << ", cost_time:" << cost_time << " ms";
+        LOG(INFO) << "report logic error, service_name:" << service_name << ", "
+                  << butil::endpoint2str(endpoint).c_str() << ", ret:" << ret << ", cost_time:" << cost_time << " ms";
     } else {  // not report logic err yet
         info.set_succ_cnt(1);
     }
     info.set_used_ms(cost_time);
 
-    ServerStats* stats = GetStatsByAddr(service_name, info.endpoint());
+    ServerStats* stats = GetStatsByAddr(service_name, info.endpoint().ip(), info.endpoint().port());
 
 #define _ADD_COUNTER(field) __sync_fetch_and_add(&stats->field, info.field())
     _ADD_COUNTER(succ_cnt);
@@ -164,7 +158,7 @@ int LbStat::LbStatReport(
     return 0;
 }
 
-int LbStat::DoLbReport() {
+int LbStatClient::DoLbReport() {
     unsigned long now = butil::gettimeofday_ms();
     unsigned long tmp_last_report_timems = _last_report_timems.load(butil::memory_order_consume);
     if (now < tmp_last_report_timems + _report_interval) {
@@ -197,7 +191,8 @@ int LbStat::DoLbReport() {
 
             name_agent::LbStatInfo* info = req.add_infos();
             info->set_service_name(s.service_name);
-            info->set_endpoint(s.endpoint);
+            info->mutable_endpoint()->set_ip(s.ip);
+            info->mutable_endpoint()->set_port(s.port);
 #define _COPY_FIELD(field) info->set_##field(s.field)
             _COPY_FIELD(succ_cnt);
             _COPY_FIELD(fail_cnt);
@@ -206,9 +201,9 @@ int LbStat::DoLbReport() {
             _COPY_FIELD(used_ms);
 #undef _COPY_FIELD
 
-            LOG(DEBUG) << "real lb_report, info, service_name:" << info->service_name() << ", " << info->endpoint()
-                      << ", succ_cnt:" << info->succ_cnt() << " , fail_cnt:" << info->fail_cnt()
-                      << ", used_ms:" << info->used_ms();
+            LOG(DEBUG) << "real lb_report, info, service_name:" << info->service_name() << ", ip:" << s.ip
+                       << ", port:" << s.port << ", succ_cnt:" << info->succ_cnt() << " , fail_cnt:" << info->fail_cnt()
+                       << ", used_ms:" << info->used_ms();
         }
 
         if (req.infos_size() > 0) {

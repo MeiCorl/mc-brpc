@@ -5,8 +5,9 @@
 #include <unordered_map>
 #include <etcd/Watcher.hpp>
 #include <butil/containers/doubly_buffered_data.h>
+#include <butil/memory/singleton.h>
 #include <bthread/mutex.h>
-#include "core/extensions/name_agent.pb.h"
+#include "core/lb_stat/name_agent.pb.h"
 #include "core/config/server_config.h"
 #include "core/utils/simple_timer_task.h"
 
@@ -29,6 +30,10 @@ using ServiceRegionAndGroupMap =
 class NameServiceProxy {
 public:
     NameServiceProxy();
+
+    static NameServiceProxy* GetInstance() {
+        return Singleton<NameServiceProxy>::get();
+    }
 
     ResCode GetServers(
         const string& service_name,

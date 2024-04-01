@@ -11,6 +11,8 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+add_definitions(-DLOCAL_TEST)
+
 # file(GLOB PROTOS
 #     "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto"
 # )
@@ -19,7 +21,7 @@ include_directories(
 # 自定义name_agent.proto代码生成路径到core/extensions供其他服务使用
 set(PROTO_FILE ${CMAKE_CURRENT_SOURCE_DIR}/proto/name_agent.proto)
 set(PROTO_PATH ${CMAKE_CURRENT_SOURCE_DIR}/proto)
-set(OUT_PATH ${ROOT_PATH}/core/extensions)
+set(OUT_PATH ${ROOT_PATH}/core/lb_stat)
 execute_process(
     COMMAND /usr/bin/protoc --proto_path=${PROTO_PATH} --cpp_out=${OUT_PATH} ${PROTO_FILE}
 )
