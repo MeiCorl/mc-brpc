@@ -81,7 +81,7 @@ int StrategyShm::TryAttatchShm() {
         return -2;
     }
 
-    // check data head,if not match,attach fail
+    // check data head, if not match, attach fail
     int magic = *(int*)_shm_head;
     if (magic != LB_STRATEGY_SHM_MAGIC) {
         LOG(ERROR) << "check magic err, " << magic << ":" << LB_STRATEGY_SHM_MAGIC;

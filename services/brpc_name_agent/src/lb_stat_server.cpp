@@ -8,7 +8,7 @@
 using namespace name_agent;
 
 #define ADD_FILEDS(stat, field) __sync_fetch_and_add(&(stat->field), info.field())
-DEFINE_uint32(strategy_generate_interval_ms, 200, "strategy generate interval");
+DEFINE_uint32(strategy_generate_interval_ms, 1000, "strategy generate interval");
 
 void LbStrategyThread() {
     // init strategy shm as svr
@@ -18,8 +18,14 @@ void LbStrategyThread() {
         exit(-1);
     }
 
-    // register lb strategy
-    LbStrategy::RegisterStrategy(new DefaultLbStrategy());
+// register lb strategy
+#ifdef USE_MC_STRATEGY_GENERATOR
+    StrategyGenerator::RegisterStrategy(new McStrategyGenerator());
+    LOG(INFO) << "using McStrategyGenerator...";
+#else
+    StrategyGenerator::RegisterStrategy(new DefaultStrategyGenerator());
+    LOG(INFO) << "using DefaultStrategyGenerator...";
+#endif
 
     // loop, generate lb startegy periodically
     LOG(INFO) << "lb strategy thread start...";
@@ -89,17 +95,17 @@ void LbStatSvr::GenerateStrategy() {
     LbStatInfoMap* cur_stat = _cur_svr_stat;
     uint32_t size = cur_stat->size();
     SwapSvrStat();
-    usleep(20 * 1000);  // wait a moment, so that all clients have switch to new LbStatInfoMap
+    usleep(100 * 1000);  // wait a moment, so that all clients have switch to new LbStatInfoMap
 
     butil::Timer timer(butil::Timer::STARTED);
 
-    const LbStrategy* p_strategy = LbStrategy::GetRegisteredStrategy();
+    const StrategyGenerator* p_strategy = StrategyGenerator::GetRegisteredStrategy();
     p_strategy->UpdateStrategy(*cur_stat);
 
     timer.stop();
     uint32_t cost_ms = timer.m_elapsed();
     LOG(INFO) << "lb strategy updated, cost_ms:" << cost_ms << ", size:" << size;
-    if (cost_ms > FLAGS_strategy_generate_interval_ms) {
-        // TODO: alarm
+    if (cost_ms > FLAGS_strategy_generate_interval_ms - 200) {
+        // TODO: alarm，cost too much time, optimization needed.
     }
 }

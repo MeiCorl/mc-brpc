@@ -38,7 +38,7 @@ void AgentServiceImpl::LbStatReport(
     brpc::ClosureGuard done_guard(done);
     response->set_res_code(Success);
 
-    LOG_EVERY_N(INFO, 10) << request->ShortDebugString();
+    // LOG(INFO) << request->ShortDebugString();
     for (int i = 0; i < request->infos_size(); ++i) {
         LbStatSvr::GetInstance()->LbAddStat(request->infos(i));
     }

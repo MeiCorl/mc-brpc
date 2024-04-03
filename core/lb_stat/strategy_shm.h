@@ -34,8 +34,8 @@ struct StrategyShmInfo {
     short pass_rate;
     short period;
     unsigned int cur_req_cnt;
-    unsigned int strategy_time; // generate time(ms)
-    char reserve[28];  // reserve, only this field can be modify
+    unsigned int strategy_time;  // generate time
+    char reserve[28];            // reserve, only this field can be modify
     void MakeKey(const char* ip_str, short port) {
         butil::ip_t* b_ip = (butil::ip_t*)key;
         butil::str2ip(ip_str, b_ip);
@@ -56,11 +56,11 @@ struct StrategyShmInfo {
     }
 };
 
-class DefaultLbStrategy;
-class McLbStrategy;
+class DefaultStrategyGenerator;
+class McStrategyGenerator;
 class StrategyShm {
-    friend DefaultLbStrategy;
-    friend McLbStrategy;
+    friend DefaultStrategyGenerator;
+    friend McStrategyGenerator;
 
 public:
     StrategyShm();

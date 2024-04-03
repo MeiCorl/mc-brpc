@@ -7,7 +7,7 @@ using namespace server::lb_stat;
 using server::common::NameAgentClient;
 
 DEFINE_int32(report_batch_num, 1800, "real report max size");
-DEFINE_int32(report_interval, 200, "lb report interval");
+DEFINE_int32(report_interval_ms, 200, "lb report interval");
 
 struct GlobalStats {
     std::mutex mutex;
@@ -89,7 +89,7 @@ LbStatClient* LbStatClient::GetInstance() {
     return Singleton<LbStatClient>::get();
 }
 
-LbStatClient::LbStatClient() : _is_asked_to_stop(false), _last_report_timems(0), _report_interval(200) {}
+LbStatClient::LbStatClient() : _is_asked_to_stop(false) {}
 
 void LbStatClient::Init() {
     // register lb stat
@@ -112,7 +112,7 @@ void LbStatClient::RealReport() {
     LOG(INFO) << "Lb report thread start...";
     while (!_is_asked_to_stop) {
         DoLbReport();
-        usleep(FLAGS_report_interval * 1000);
+        usleep(FLAGS_report_interval_ms * 1000);
     }
     LOG(INFO) << "Lb report thread finished...";
 }
@@ -159,21 +159,6 @@ int LbStatClient::LbStatReport(
 }
 
 int LbStatClient::DoLbReport() {
-    unsigned long now = butil::gettimeofday_ms();
-    unsigned long tmp_last_report_timems = _last_report_timems.load(butil::memory_order_consume);
-    if (now < tmp_last_report_timems + _report_interval) {
-        // avoid report too frequent
-        return 0;
-    }
-
-    // lock free cas for report control, only one thread do report
-    // as confilct happens with small probability, here we can use cpu full barrel
-    bool self_report = _last_report_timems.compare_exchange_strong(
-        tmp_last_report_timems, now, butil::memory_order_acq_rel, butil::memory_order_acq_rel);
-    if (!self_report) {
-        return 0;
-    }
-
     std::vector<ServerStats> stats;
     CollectStats(stats);
 

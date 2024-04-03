@@ -12,6 +12,7 @@ include_directories(
 )
 
 add_definitions(-DLOCAL_TEST)
+add_definitions(-DUSE_MC_STRATEGY_GENERATOR)
 
 # file(GLOB PROTOS
 #     "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto"
