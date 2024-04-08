@@ -7,7 +7,7 @@
     - [退出过程](#退出过程)
   - [2. 服务注册及发现](#2-服务注册及发现)
     - [服务注册](#服务注册)
-    - [brpc\_name\_agent](#brpc_name_agent)
+    - [NameAgent名字服务代理](#nameagent名字服务代理)
     - [服务发现](#服务发现)
   - [3. 自动生成rpc客户端代码](#3-自动生成rpc客户端代码)
     - [原生brpc客户端调用流程示例](#原生brpc客户端调用流程示例)
@@ -24,18 +24,21 @@
     - [日志滚动压缩归档](#日志滚动压缩归档)
     - [全链路日志](#全链路日志)
   - [5. bvar扩展支持多维label及prometheus采集](#5-bvar扩展支持多维label及prometheus采集)
-    - [MetricsService](#metricsservice)
-    - [MetricsCountRecorder](#metricscountrecorder)
-    - [MetricsLatencyRecorder](#metricslatencyrecorder)
+    - [自定义bvar导出服务——MetricsService](#自定义bvar导出服务metricsservice)
+    - [多维计数统计类——MetricsCountRecorder](#多维计数统计类metricscountrecorder)
+    - [多维延迟统计类——MetricsLatencyRecorder](#多维延迟统计类metricslatencyrecorder)
     - [Server侧请求数统计](#server侧请求数统计)
     - [Client请求数统计](#client请求数统计)
     - [Server侧响应延迟统计](#server侧响应延迟统计)
     - [Client请求延迟统计](#client请求延迟统计)
     - [整体监控示例效果图](#整体监控示例效果图)
   - [6. 客户端主动容灾](#6-客户端主动容灾)
-    - [RPC调用结果上报/收集](#rpc调用结果上报收集)
-    - [容灾策略生成](#容灾策略生成)
-    - [容灾策略应用](#容灾策略应用)
+    - [RPC调用结果上报——LbStatClient](#rpc调用结果上报lbstatclient)
+    - [RPC调用结果收集——LbStatSvr](#rpc调用结果收集lbstatsvr)
+    - [熔断降级策略生成](#熔断降级策略生成)
+      - [策略共享内存管理——StrategyShm](#策略共享内存管理strategyshm)
+      - [策略生成类——StrategyGenerator](#策略生成类strategygenerator)
+    - [策略应用](#策略应用)
   - [7. DB连接管理](#7-db连接管理)
     - [DBPool](#dbpool)
     - [DBManager](#dbmanager)
@@ -45,11 +48,11 @@
   - [9. 更多功能](#9-更多功能)
 
 # 概述
- <font size=4>&emsp;&emsp; [**mc-brpc**](https://github.com/MeiCorl/mc-brpc)是基于[**百度brpc框架**](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量以及对原生brpc中一些功能进行优化及拓展。mc-brpc大部分功能都通过在brpc基础上额外增加代码实现，一方面是出于代码隔离考虑，减少对原生brpc代码的入侵，另一方面则是利用原生brpc本身提供的很好的扩展性支持；仅少部分功能(全链路日志、多维bvar拓展、服务端响应QPS及延迟统计、客户端请求QPS及延迟统计、客户端请求结果上报等)涉及对brpc源码修改。目前，mc-brpc在brpc的基础上增强及扩展了以下功能以更好的支持rpc服务开发：</font>
+ <font size=4>&emsp;&emsp; [**mc-brpc**](https://github.com/MeiCorl/mc-brpc)是基于[**百度brpc框架**](https://brpc.apache.org/)快速开发brpc服务的脚手架框架，目的是简化构建brpc服务的构建流程以及发起brpc请求的流程，减少业务代码开发量以及对原生brpc中一些功能进行优化及拓展。brpc是一个高性能、可扩展的RPC框架，广泛应用于许多大型互联网公司，mc-brpc大部分功能都通过在brpc基础上额外增加代码实现，一方面是出于代码隔离考虑，减少对原生brpc代码的入侵，另一方面则是利用原生brpc本身提供的很好的扩展性支持；仅少部分功能(全链路日志、多维bvar拓展、服务端响应QPS及延迟统计、客户端rpc请求QPS及延迟统计、客户端请求结果上报等)涉及对brpc源码修改。因此，mc-brpc在继承了brpc高性能、易扩展等优点的基础上增强及扩展了以下功能以更好的支持rpc服务开发：</font>
 * **服务注册**：brpc对于rpc服务中一些功能并未提供具体实现，而是需要用户自己去扩展实现。如服务注册，brpc认为不同用户使用的服务注册中心不一样，有Zookeeper、Eureka、Nacos、Consul、Etcd、甚至自研的注册中心等，不同注册中心注册和发现机制可能不一样，不太好统一，因此只好交由用户根据去实现服务注册这部分；mc-brpc则在brpc的基础上增加了服务注册器<font color=#00ffff>ServiceRegister</font>抽象类，并提供了默认的<font color=#00ffff>EtcdServiceRegister</font>实现将服务自动注册到etcd(如果使用其它服务中心，可继承实现<font color=#00ffff>ServiceRegister</font>，并在server启动之前通过`MCServer::SetServiceRegister`方法替换服务注册器即可)
 * **服务发现**: brpc通过<font color=#00ffff>NamingService</font>去做服务发现，默认支持了基于文件、dns、bns、http、consul、nacos等注册中心的服务发现，并支持用户扩展<font color=#00ffff>NamingService</font>实现自定义的服务发现。由于mc-brpc默认使用etcd做注册中心而brpc未提供基于etcd做服务发现的<font color=#00ffff>NamingService</font>实现，因此mc-brpc提供了<font color=#00ffff>NamingService</font>的扩展(<font color=#00ffff>McNamingService</font>)用以支持自定义协议(**mc:\/\/service_name**)的服务发现。目前，<font color=#00ffff>McNamingService</font>和brpc默认提供的<font color=#00ffff>NameService</font>一样都继承于<font color=#00ffff>brpc::PeriodicNamingService</font>，定时(默认每5秒)从服务中心更新服务实例信息，这种更新方式会存在一定的延时，未能很好利用etcd的事件通知功能，后续会考虑对此进行优化，借助etcd事件通知更实时更新服务实例信息
-* **NameAgent名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息(基于etcd事件监听)，并为mc-brpc提供服务发现。这么做的目的主要有以下：1、name_agent将服务注册信息缓存到本机，并通过unix_socket为本机上的mc-brpc服务提供服务发现，效率更高；2、在服务跨机房甚至跨大区部署时服务时，希望能按指定大区策略和机房策略进行rpc请求路由，尽可能避免跨机房甚至跨大区rpc访问；3、mc-brpc支持将rpc调用结果上报至本机NameAgent(上报逻辑已预埋至brpc)，用于生成容灾策略，实现客户端主动容灾(暂未实现)；4、将服务信息dump出来作为promethus监控的targets
-* **客户端主动容灾**：brpc框架默认支持的负载均衡路由算法基本都基于心跳检测，不具备主动容灾能力，具有延迟和误报的可能。mc-brpc会将每次rpc调用结果上报给<font color=#00ffff>LbStat</font>, 再通过一个独立上上报线程周期性(默认200ms)的将结果通过unix socket发送给本机NameAgent进程进程统计并生成容灾策略，为本机的服务进程提供主动容灾能力
+* **NameAgent名字服务代理**：mc-brpc服务启动会自动注册到etcd，但却不直接从etcd直接做服务发现，而是提供了一个<font color=#00ffff>brpc_name_agent</font>基础服务作为名字服务代理，它负责从etcd实时更新服务信息(基于etcd事件监听)，并为mc-brpc提供服务发现。这么做的目的主要有以下：1、name_agent将服务注册信息缓存到本机，并通过unix_socket为本机上的mc-brpc服务提供服务发现，效率更高；2、在服务跨机房甚至跨大区部署时服务时，希望能按指定大区策略和机房策略进行rpc请求路由，尽可能避免跨机房甚至跨大区rpc访问；3、mc-brpc支持将rpc调用结果上报至本机NameAgent(上报逻辑已预埋至brpc)，用于生成熔断降级策略，实现客户端主动容灾(暂未实现)；4、将服务信息dump出来作为promethus监控的targets
+* **客户端主动容灾**：brpc框架默认支持的负载均衡路由算法基本都基于心跳检测，不具备主动容灾能力，具有延迟和误报的可能。mc-brpc会将每次rpc调用结果上报给<font color=#00ffff>LbStatClient</font>, 再通过一个独立上报线程周期性(默认200ms)的将结果通过unix socket发送给本机NameAgent进程进行统计并生成熔断降级策略后写入共享内存，为本机的其它业务进程提供主动容灾、熔断降级等能力
 * **高性能异步日志**：brpc提供了日志刷盘抽象工具类<font color=#00ffff>LogSink</font>，并提供了一个默认的实现DefaultLogSink，但是DefaultLogSink写日志是同步写，且每写一条日志都会写磁盘，性能较差，在日志量大以及对性能要求较高的场景下很难使用，而百度内部使用的ComlogSink实现似乎未开源(看代码没找到)，因此mc-brpc提供了<font color=#00ffff>AsyncLogSink</font>和<font color=#00ffff>FastLogSink</font>用于高性能写日志；`AsyncLogSink`采用异步批量刷盘的方式，先将日志写到缓冲区，再由后台线程每秒批量刷盘(服务崩溃的情况下可能会丢失最近1s内的日志)；`FastLogSink`则基于`mmap`文件内存映射将写文件操作转为内存操作，减少系统调用次数以实现高性能写入；经测试验证，二者性能相比`DefaultLogSink`都有10倍以上提升
 
 * **日志自动滚动归档**：<font color=#00ffff>LogRotateWatcher</font>及<font color=#00ffff>LogArchiveWorker</font>每小时对日志进行滚动压缩归档，方便日志查询，并删除一段时间(默认1个月，可以公共通过log配置的remain_days属性指定)以前的日志，避免磁盘写满
@@ -68,6 +71,7 @@
 │   ├── common         &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp; # 一些常用公共代码实现   
 │   ├── config         &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp; # 服务配置类代码    
 │   ├── extensions     &emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp; # 对brpc中一些功能的扩展  
+│   ├── lb_stat        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp; # rpc调用结果上报、熔断降级策略相关代码   
 │   ├── log            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp;&nbsp; # 日志组件扩展  
 │   ├── mysql          &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp; # MySQL连接池及工具类实现  
 │   ├── plugins        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; # 插件工具，目前仅包含codexx的实现，用户根据proto文件自动生成客户端代码  
@@ -75,7 +79,7 @@
 │   ├── server         &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp; # 对brpc server的一些封装   
 │   └── utils          &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp; # 一些工具类实现(感觉可以放到common目录)   
 └── services           &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp; # 基于mc-brpc开发的brpc服务示例  
-│       ├── brpc_name_agent    &emsp;&emsp;&nbsp; # 名字服务代理(作为一个基础服务，需要打包部署到每个容器镜像中，为该容器内的其它服务提供服务发现)  
+│       ├── brpc_name_agent    &emsp;&emsp;&nbsp; # 名字服务代理、rpc调用结果收集、客户端熔断降级策略生成(作为一个基础服务，需要打包部署到每个容器镜像中，为该容器内的其它服务提供服务发现)  
 │       ├── brpc_test  &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; # 示例服务  
 
 # 功能介绍
@@ -209,10 +213,52 @@ ServerConfig::ServerConfig(/* args */) {
 ### 启动过程
 1. 首先指定服务监听地址。可以通过gflags<*listen_addr*>指定ip:port或者unix_socket地址, 否则使用当前ip地址+随机端口。调brpc::Start启动server
 2. 将服务信息(ip:port、服务名、大区id、机房id)注册到服务中心。这里使用etcd作为服务中心，并通过etcd的租约续期功能为注册信息续期。
-3. 调brpc::RunUntilAskedToQuit死循环直到进程被要求退出。
+3. 初始化rpc调用结果上报客户端类实例
+4. 调brpc::RunUntilAskedToQuit死循环直到进程被要求退出。  
+```c++
+void MCServer::Start(bool register_service) {
+    // start brpc server
+    butil::EndPoint point;
+    if (!FLAGS_listen_addr.empty()) {
+        butil::str2endpoint(FLAGS_listen_addr.c_str(), &point);
+    } else {
+#ifdef LOCAL_TEST
+        butil::str2endpoint("", 0, &point);
+#else
+        char ip[32] = {0};
+        NetUtil::getLocalIP(ip);
+        butil::str2endpoint(ip, 0, &point);
+#endif
+    }
+    brpc::ServerOptions options;
+    options.server_info_name = ServerConfig::GetInstance()->GetSelfName();
+    if (_server->Start(point, &options) != 0) {
+        LOG(ERROR) << "[!] Fail to start Server";
+        exit(1);
+    }
+
+    // register service if necessary
+    if (register_service) {
+        if (!_service_register) {
+            LOG(ERROR) << "[!] service register not found!";
+            exit(1);
+        }
+
+        if (!_service_register->RegisterService()) {
+            exit(1);
+        }
+    }
+
+    // init lb stat
+    server::lb_stat::LbStatClient::GetInstance()->Init();
+
+    // loop
+    _server->RunUntilAskedToQuit();
+}
+```
 
 ### 退出过程
-退出过程相对简单。销毁日志监听线程、日志归档线程，从服务中心取消注册并停止etcd租约续期等。
+退出过程相对简单。销毁日志监听线程、日志归档线程、rpc上报线程等，从服务中心取消注册并停止etcd租约续期等。
 
 ## 2. 服务注册及发现
 ### 服务注册
@@ -290,10 +336,10 @@ void EtcdServiceRegister::UnRegisterService() {
 }
 ```
 
-### brpc_name_agent
-mc-brpc服务并不直接从服务中心做服务发现，而是引入了一个基础服务brpc_name_agent作为名字服务代理。brpc_name_agent本身也是基于mc-brpc创建，它从etcd订阅了key事件通知，当有新的服务实例注册或者取消注册时，brpc_name_agent将对应服务实例信息添加至本地内存或者从本地内存移除(典型读多写少场景，使用<font color=#00ffff>DoublyBufferedData</font>存储数据)。因此，每个name_agent实例都包含全部注册到etcd的服务实例信息。默认情况下，brpc_name_agent使用unix域套接字进行通信(unix:/var/brpc_name_agent.sock)，因此它不需要注册到etcd中，name_agent进程需要部署到每个服务器上供该服务器上的其他mc-brpc服务进程做服务发现。
+### NameAgent名字服务代理
+mc-brpc服务并不直接从服务中心做服务发现，而是引入了一个基础服务brpc_name_agent作为名字服务代理。brpc_name_agent本身也是基于mc-brpc创建，它包含两个功能模块<font color=#00ffff>NameServiceProxy</font>和<font color=#00ffff>LbStatSvr</font>(LbStatSvr此处不做过多介绍，后续客户端主动容灾章节详细介绍)。其中<font color=#00ffff>NameServiceProxy</font>作用主要是最为名字服务的代理，它从etcd订阅了key事件通知，当有新的服务实例注册或者取消注册时，<font color=#00ffff>NameServiceProxy</font>将对应服务实例信息添加至本地内存或者从本地内存移除(典型读多写少场景，使用<font color=#00ffff>DoublyBufferedData</font>存储数据)。因此，每个name_agent实例都包含全部注册到etcd的服务实例信息。默认情况下，brpc_name_agent使用unix域套接字进行通信(unix:/var/brpc_name_agent.sock)，因此它不需要注册到etcd中，name_agent进程需要部署到每个服务器上供该服务器上的其他mc-brpc服务进程做服务发现。
 ```c++
-void AgentServiceImpl::WatcherCallback(etcd::Response response) {
+void NameServiceProxy::WatcherCallback(etcd::Response response) {
     for (const etcd::Event& ev : response.events()) {
         string key          = ev.kv().key();
         string service_name = key.substr(0, key.find(":"));
@@ -325,7 +371,7 @@ void AgentServiceImpl::WatcherCallback(etcd::Response response) {
 
 引入brpc_name_agent的好处是:
 1. 服务跨机房甚至跨区部署时，提供更丰富的请求路由策略。在name_agent内部分区域和机房存储服务实例信息，便于支持上游服务发现时按指定大区和机房做请求路由(参考AgentServiceImpl::GetServers)。目前支持<font color=#00ff00>STRATEGY_NORMAL</font>(先本机房IP列表路由，本机房无实例再本大区路由，无实例则路由失败)，<font color=#00ff00>STRATEGY_GROUPS_ONE_REGION</font>(直接本大区IP列表路由，无实例则路由失败)、<font color=#00ff00>STRATEGY_SELF_GROUP</font>(只在本机房路由，无实例则路由失败)、<font color=#00ff00>STRATEGY_CHASH_GROUPS</font>(先对本大区的所有机房做一致性HASH决定所返回的IP列表的机房, 再返回机房的实例IP列表路由)
-2. 客户端主动容灾(暂未实现)。brpc的主要client容灾手段为心跳检查，即一个后端连接如果断掉且重连失败，会从名字里摘掉。心跳检查可以解决一部分问题，但是有其局限性。当后端某个ip cpu负载高，网络抖动，丢包率上升等情况下，一般心跳检查是能通过的，但是此时我们判断该ip是处于一种异常状态，需要降低访问权重，来进行调节。为此，需要收集并统计rpc调用，生成容灾策略。
+2. 客户端主动容灾(暂未实现)。brpc的主要client容灾手段为心跳检查，即一个后端连接如果断掉且重连失败，会从名字里摘掉。心跳检查可以解决一部分问题，但是有其局限性。当后端某个ip cpu负载高，网络抖动，丢包率上升等情况下，一般心跳检查是能通过的，但是此时我们判断该ip是处于一种异常状态，需要降低访问权重，来进行调节。为此，需要收集并统计rpc调用，生成熔断降级策略，name_agent进程的<font color=#00ffff>LbStatSvr</font>模块负责完成这部分工作。
 3. 将服务实例信息dump到统一文件，供promethus做监控目标并从对应目标拉去metrics信息，如当前有1个brpc_test服务实例，2个brpc_test1实例，3个brpc_test2实例，name_agent进程将生成如下监控目标文件供prometheus监控。
 ```json
 [
@@ -358,8 +404,8 @@ void AgentServiceImpl::WatcherCallback(etcd::Response response) {
         ],
         "labels":{
             "service_name":"brpc_test",
-            "region_id":"1",
-            "group_id":"1001"
+            "region_id":"2",
+            "group_id":"2001"
         }
     }
 ]
@@ -971,7 +1017,7 @@ if(!cntl->from_svr_name().empty()) {
 cntl->set_from_svr_name(request_meta.from_svr_name())
 ```
 ## 5. bvar扩展支持多维label及prometheus采集
-### MetricsService
+### 自定义bvar导出服务——MetricsService
 原生brpc的bvar导出时不支持带label信息([here](https://github.com/apache/brpc/issues/765))，虽然提供了[mbvar](https://github.com/apache/brpc/blob/master/docs/cn/mbvar_c%2B%2B.md#bvarmvariables)来支持多维度统计，但其导出格式不支持Prometheus采集；如当通过mbvar统计brpc_test服务每个接口(总共两个接口UpdateUserInfo、Test)请求次数时，原生brpc统计结果导出后如下：
 ```yaml
 # HELP service_request_counter{method="Test"}
@@ -1013,7 +1059,7 @@ int Server::AddBuiltinServices() {
 2. DisplayFilter原本只有3个选项将bvar分为plain txt类型，html类型与all类型（既是plain txt，也是html类型），在此基础上新增metrics类型选项DISPLAY_METRICS_DATA，这个过滤器的作用十分大，因为`bvar::MetricsCountRecorder`与`bvar::MetricsLatencyRecorder`类里面包含很多已经被expose的bvar了，不做处理的话这些bvar会被输出到/vars页面或者是/brpc_metrics或者被dump出到文件的，为了防止这些bvar被输出，需要设置一个新的DisplayFilter选项，并且只有/metrics能导出这些类型的bvar。
 3. 导出到`MetricsService`的带Prometheus metrics信息的bvar会依照metrics name聚合，相同metrics name的bvar数据会按照Prometheus metrics的数据格式输出。
 
-### MetricsCountRecorder
+### 多维计数统计类——MetricsCountRecorder
 `MetricsCountRecorder`用于多维计数统计(可用于统计QPS等数据), 支持添加固定label和自定义label。使用方法如下：
 ```c++
 bvar::MetricsCountRecorder<uint64_t> counter("request_counter", "request for each method"); // 定义一个统计接口请求次数的计数器
@@ -1106,7 +1152,7 @@ scrape_configs:
 配合Grafana可以更方便的看到整个服务下每个接口的qps(PromQL: `sum(rate(service_request_counter{service_name="$service_name"}[1m])) by (method)`)：
 ![image.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4d1cb0659c234bcc9778a6ab1ece5f92~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1287&h=447&s=53760&e=png&b=171a1e)
 
-### MetricsLatencyRecorder
+### 多维延迟统计类——MetricsLatencyRecorder
 `MetricsLatencyRecorder`是多维延迟统计类，可以统计不同分位值的延迟数据，实现方式和使用方式和`MetricsCountRecorder`类似。同样以统计brpc_test服务每个接口延迟为例:
 ```c++
 // 定义metrics(request_latency_recorder)
@@ -1252,33 +1298,37 @@ avg(client_request_latency_recorder{server_name="brpc_test", quantile="0.99"} / 
 ![image.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/51e2dba6305a45ee885c3a5bd0c96c5b~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2560&h=1288&s=353396&e=png&b=191c20)
 
 ## 6. 客户端主动容灾
-brpc框架本身支持负载均衡路由算法容灾以来目标server心跳检测，不具备主动容灾能力，即一个后端连接如果断掉且重连失败，会从名字里摘掉。心跳检测可以解决一部分问题，但是有其局限性。当后端某个ip cpu负载高，网络抖动，丢包率上升等情况下，一般心跳检查是能通过的，但是此时我们判断该ip是处于一种异常状态，需要降低访问权重，来进行调节。这就是我们要做的主动容灾，主要氛围以下三部分：
+brpc框架本身支持负载均衡路由算法容灾依赖目标server心跳检测，不具备主动容灾能力，即一个后端连接如果断掉且重连失败，会从名字里摘掉。心跳检测可以解决一部分问题，但是有其局限性。首先，心跳一般都是每个一段时间(比如每隔几秒)检测一次，因此当某个目标ip异常时，通过心跳剔除目标会有一定延迟，期间可能仍然会有大量rpc访问失败；其次，当后端某个ip cpu负载高，网络抖动，丢包率上升等情况下，一般心跳检查是能通过的，但是此时我们判断该ip是处于一种异常状态，需要降低访问权重来进行调节；再则，目标ip一切正常，只是其中某个端口的服务异常，这种情况下我们只需要对特定ip:port的下游进行降级或熔断，而不需要屏蔽整个ip。这就是我们要做的主动容灾，主要分为以下三部分：
 
-1. rpc调用结果上报/收集(已实现)
-2. 容灾策略生成(待实现)
-3. 策略应用(待实现)
+1. rpc调用结果上报(已实现)
+2. rpc调用结果收集(已实现)
+3. 熔断降级策略生成(已实现)
+4. 策略应用(待实现)
 
-### RPC调用结果上报/收集
-目前mc-brpc已经在brpc框架内支持将rpc调用结果通过一个独立上报线程上报至NameAgent进程。上报功能由<font color=#00ffff>LbStat</font>(core/extensions/lb_stat.h)完成，MCServer会在启动时完成LbStat的初始化及全局注册：
+### RPC调用结果上报——LbStatClient
+目前mc-brpc已经在brpc框架内支持将rpc调用上报至本机的NameAgent进程。上报功能由<font color=#00ffff>LbStatClient</font>(core/lb_stat/lb_stat_client.h)完成，出于代码隔离考虑，brpc源码不直接include基础库(core)代码，mc-brpc在brpc中新增了个<font color=#00ffff>BaseLbStat</font>抽象类(brpc/policy/base_lb_stat.h)，再由<font color=#00ffff>LbStatClient</font>继承<font color=#00ffff>BaseLbStat</font>，重写`BaseLbStat::LbStatReport`进行rpc调用结果上报。 
+ 
+MCServer会在启动时完成LbStatClient的初始化及全局注册：
 ```c++
 void MCServer::Start(bool register_service) {
     // ...
 
     // init lb stat
-    brpc::policy::LbStat::GetInstance()->Init();
+    server::lb_stat::LbStatClient::GetInstance()->Init();
 
     // ...
 }
 
-void LbStat::Init() {
+void LbStatClient::Init() {
     // register lb stat
     BaseLbStatExtension()->RegisterOrDie(LB_STAT_CLIENT, this);
 
     // start report thread
-    _report_thread = std::thread(&LbStat::RealReport, this);
+    _report_thread = std::thread(&LbStatClient::RealReport, this);
 }
+
 ```
-上报逻辑需要在rpc调用结束`brpc::Controller::OnVersionedRPCReturned`处触发：
+上报逻辑预埋在rpc调用结束`brpc::Controller::OnVersionedRPCReturned`处：
 ```c++
 void Controller::OnVersionedRPCReturned(const CompletionInfo& info,
                                         bool new_bthread, int saved_error) {
@@ -1292,13 +1342,107 @@ void Controller::OnVersionedRPCReturned(const CompletionInfo& info,
 
     // ...
 }
-```                                            
-出于代码隔离考虑，brpc源码不直接include基础库(core)代码，mc-brpc在brpc中新增了个<font color=#00ffff>BaseLbStat</font>抽象类，再由<font color=#00ffff>LbStat</font>继承实现<font color=#00ffff>BaseLbStat</font>的方法，重写`BaseLbStat::LbStatReport`进行rpc调用结果上报。
 
-同时，为避免上报过程对rpc本身过程造成性能影响，<font color=#00ffff>LbStat</font>(core/extensions/lb_stat.h)默认情况下会将调用结果先写入本地缓存，再由一个独立的上报线程周期性的将结果汇总上报至NameAgent(具体实现请看源码)，上报至NameAgent的信息包含以下内容:
+int LbStatClient::LbStatReport(
+    const std::string& service_name,
+    const butil::EndPoint& endpoint,
+    int ret,
+    bool responsed,
+    int cost_time) {
+    if (endpoint.port <= 0 || endpoint.port > 65535 || !memcmp(butil::ip2str(endpoint.ip).c_str(), "0.0.0.0", 7)) {
+        return 0;
+    }
+    name_agent::LbStatInfo info;
+    info.mutable_endpoint()->set_ip(butil::ip2str(endpoint.ip).c_str());
+    info.mutable_endpoint()->set_port(endpoint.port);
+    info.set_service_name(service_name);
+    if ((!responsed && ret)) {
+        // no response and ret!=0, take as net err or EREJECT/ELIMIT/ELOGOFF take as sys err
+        info.set_fail_cnt(1);
+        info.set_fail_net_cnt(1);
+        LOG(INFO) << "report net err, service_name:" << service_name << ", " << butil::endpoint2str(endpoint).c_str()
+                  << ", ret:" << ret << ", responsed:" << responsed << ", cost_time:" << cost_time << " ms";
+    } else if (responsed && ret) {
+        info.set_fail_cnt(1);
+        info.set_fail_logic_cnt(1);
+        LOG(INFO) << "report logic error, service_name:" << service_name << ", "
+                  << butil::endpoint2str(endpoint).c_str() << ", ret:" << ret << ", cost_time:" << cost_time << " ms";
+    } else {  // not report logic err yet
+        info.set_succ_cnt(1);
+    }
+    info.set_used_ms(cost_time);
+
+    ServerStats* stats = GetStatsByAddr(service_name, info.endpoint().ip(), info.endpoint().port());
+
+#define _ADD_COUNTER(field) __sync_fetch_and_add(&stats->field, info.field())
+    _ADD_COUNTER(succ_cnt);
+    _ADD_COUNTER(fail_cnt);
+    _ADD_COUNTER(fail_net_cnt);
+    _ADD_COUNTER(fail_logic_cnt);
+    _ADD_COUNTER(used_ms);
+#undef _ADD_COUNTER
+    return 0;
+}
+```                                            
+为避免上报过程对rpc本身过程造成性能影响，<font color=#00ffff>LbStatClient</font>(core/lb_stat/lb_stat_client.h)默认情况下会将调用结果先原子的写入本地缓存进行聚合，再由一个独立的上报线程周期性(默认200ms，执行逻辑为`LbStatClient::RealReport`)的将聚合结果通过unix_socket上报至本机brpc_name_agent进程(由NameAgent进程的LbStatSvr模块进程处理, 具体实现请看源码):
+```c++
+void LbStatClient::RealReport() {
+    LOG(INFO) << "Lb report thread start...";
+    while (!_is_asked_to_stop) {
+        DoLbReport();
+        usleep(FLAGS_report_interval_ms * 1000);
+    }
+    LOG(INFO) << "Lb report thread finished...";
+}
+
+int LbStatClient::DoLbReport() {
+    std::vector<ServerStats> stats;
+    CollectStats(stats);
+
+    size_t idx(0), pos(0), round(10);
+    do {
+        if (round == 0) {
+            LOG(WARNING) << "[*] reach the limit.";
+            break;
+        }
+        --round;
+
+        name_agent::LbStatReportReq req;
+        for (; idx < stats.size() && idx < pos + FLAGS_report_batch_num; ++idx) {
+            const ServerStats& s = stats[idx];
+
+            name_agent::LbStatInfo* info = req.add_infos();
+            info->set_service_name(s.service_name);
+            info->mutable_endpoint()->set_ip(s.ip);
+            info->mutable_endpoint()->set_port(s.port);
+#define _COPY_FIELD(field) info->set_##field(s.field)
+            _COPY_FIELD(succ_cnt);
+            _COPY_FIELD(fail_cnt);
+            _COPY_FIELD(fail_net_cnt);
+            _COPY_FIELD(fail_logic_cnt);
+            _COPY_FIELD(used_ms);
+#undef _COPY_FIELD
+
+            LOG(DEBUG) << "real lb_report, info, service_name:" << info->service_name() << ", ip:" << s.ip
+                       << ", port:" << s.port << ", succ_cnt:" << info->succ_cnt() << " , fail_cnt:" << info->fail_cnt()
+                       << ", used_ms:" << info->used_ms();
+        }
+
+        if (req.infos_size() > 0) {
+            NameAgentClient::GetInstance()->LbStatReport(req);
+        }
+
+        pos = idx;
+    } while (idx < stats.size());
+
+    return 0;
+}
+```
+
+上报至NameAgent的信息包含以下内容(目前只用到了前四个字段):
 ```protobuf
 message LbStatInfo {
-	string endpoint   = 1;     // ip:port
+	string endpoint   = 1;     // rpc下游实例ip:port
 	string service_name = 2;   
 	uint32 succ_cnt      = 3;  // 该周期内目标节点请求成功数
 	uint32 fail_cnt      = 4;  // 该周期内目标节点失败数
@@ -1307,11 +1451,412 @@ message LbStatInfo {
 	uint32 used_ms       = 7;  // 该周期内对目标节点rpc访问总耗时
 }
 ```
+### RPC调用结果收集——LbStatSvr
+NameAgent的LbStatSvr模块负责收集RPC调用结果，它使用了两个map做双buf设计，收到客户端上报来的rpc调用结果后，会将信息原子的写入到当前统计周期的map：
+```c++
+#define ADD_FILEDS(stat, field) __sync_fetch_and_add(&(stat->field), info.field())
 
-### 容灾策略生成
-待实现。。。
+int LbStatSvr::LbAddStat(const name_agent::LbStatInfo& info) {
+    std::string key = butil::string_printf("%s:%d", info.endpoint().ip().c_str(), info.endpoint().port());
 
-### 容灾策略应用
+    ServerStats* p_stat = nullptr;
+    {
+        BAIDU_SCOPED_LOCK(_mutex);
+        auto it = _cur_svr_stat->find(key);
+        if (it == _cur_svr_stat->end()) {
+            p_stat = new ServerStats;
+            p_stat->ip = info.endpoint().ip();
+            p_stat->port = info.endpoint().port();
+            p_stat->service_name.assign(info.service_name());
+            (*_cur_svr_stat)[key] = p_stat;
+        } else {
+            p_stat = it->second;
+        }
+    }
+
+    ADD_FILEDS(p_stat, succ_cnt);
+    ADD_FILEDS(p_stat, fail_cnt);
+    ADD_FILEDS(p_stat, fail_net_cnt);
+    ADD_FILEDS(p_stat, fail_logic_cnt);
+    ADD_FILEDS(p_stat, used_ms);
+
+    return 0;
+}
+```
+另外LbStatSvr还额外启动一个线程(StrategyThread)周期性的调用`LbStatSvr::GenerateStrategy()`根据上周期的上报数据生成熔断降级策略，每次生成策略的时候需要将当前写数据的map置换出来，置换的时候，直接更新当前正在使用的map的指针，所以无需加锁。 置换出本周期map后，基于里面的rpc上报结果产生对应的熔断降级策略（如通过率多少），相应的策略会以ip:port为key写入本机的共享内存里，供其他业务在做路由算法的时候使用(具体策略生成实现见下一小节):
+```c++
+void LbStatSvr::SwapSvrStat() {
+    BAIDU_SCOPED_LOCK(_mutex);
+    ++_inuse_idx;
+    _inuse_idx = _inuse_idx % 2;
+    _cur_svr_stat = &_svr_stat_list[_inuse_idx];
+}
+
+void LbStatSvr::GenerateStrategy() {
+    LbStatInfoMap* cur_stat = _cur_svr_stat;
+    uint32_t size = cur_stat->size();
+    SwapSvrStat();
+    usleep(20 * 1000);  // wait a moment, so that all clients have switch to new LbStatInfoMap
+
+    butil::Timer timer(butil::Timer::STARTED);
+
+    const StrategyGenerator* p_strategy = StrategyGenerator::GetRegisteredStrategy();
+    p_strategy->UpdateStrategy(*cur_stat);
+
+    timer.stop();
+    uint32_t cost_ms = timer.m_elapsed();
+    LOG_EVERY_N(INFO, 10) << "lb strategy updated, cost_ms:" << cost_ms << ", size:" << size;
+    if (cost_ms > FLAGS_strategy_generate_interval_ms - 100) {
+        // TODO: alarm，cost too much time, optimization needed.
+    }
+}
+```
+### 熔断降级策略生成
+上节提到NameAgent的LbStatSvr会额外启动一个<font color=#00ffff>StrategyThread</font>专门用于生成熔断降级策略，<font color=#00ffff>StrategyThread</font>执行内容如下:
+```c++
+void LbStrategyThread() {
+    // init strategy shm as svr
+    int ret = StrategyShm::GetInstance()->Init(0);
+    if (ret) {
+        LOG(ERROR) << "StrategyShm::GetInstance()->Init as svr fail, ret:" << ret;
+        exit(-1);
+    }
+
+// register lb strategy
+#ifdef USE_MC_STRATEGY_GENERATOR
+    StrategyGenerator::RegisterStrategy(new McStrategyGenerator());
+    LOG(INFO) << "using McStrategyGenerator...";
+#else
+    StrategyGenerator::RegisterStrategy(new DefaultStrategyGenerator());
+    LOG(INFO) << "using DefaultStrategyGenerator...";
+#endif
+
+    // loop, generate lb startegy periodically
+    LOG(INFO) << "lb strategy thread start...";
+    while (1) {
+        LbStatSvr::GetInstance()->GenerateStrategy();
+        usleep(FLAGS_strategy_generate_interval_ms * 1000);
+    }
+}
+```
+* 首先<font color=#00ffff>StrategyThread</font>会申请一块本机的共享内存，用于存放生成的策略内容，并提供给其它进程做rpc路由算法时使用。之所以采用共享内存的方式通信是因为这样效率最高，我们希望客户端在使用熔断降级策略的时候不会对其rpc本身的性能造成太大影响，因此读取熔断降级策略的耗时至少要比rpc本身的耗时低一个数量级
+* 注册策略生成器<font color=#00ffff>StrategyGenerator</font>，它用于根据当前周期内rpc上报结果生成或调整熔断降级策略，并写入共享内存；目前mc-brpc提供了两种熔断降级策略生成器算法：<font color=#00ffff>DefaultStrategyGenerator</font>(默认使用)和<font color=#00ffff>McStrategyGenerator</font>，用户也可以继承StrategyGenerator并重写`StrategyGenerator::UpdateStrategy`方法实现自定义的生成算法。
+* 周期性(默认1s)调用`LbStatSvr::GenerateStrategy()`处理上报结果并生成策略(生成策略则是通过上一步中注册的StrategyGenerator完成)。
+
+#### 策略共享内存管理——StrategyShm
+```c++
+class StrategyShm {
+    friend DefaultStrategyGenerator;
+    friend McStrategyGenerator;
+
+public:
+    StrategyShm();
+    ~StrategyShm();
+    static StrategyShm* GetInstance();
+
+    /**
+     * cli and nameagent all need do init with on thread, cli can do this in stat cli init
+     * role: 0(name_agent)  1(cli)
+     */
+    int Init(int role);
+
+    int TryAttatchShm();       // attach not create
+    int AttachAndCreateShm();  // attach, if no do create
+    int GetStrategy(const char* ip_str, short port, StrategyShmInfo*& info);
+#ifdef LOCAL_TEST
+    void PrintStrategy();
+#endif
+private:
+    char* _shm_head;
+    char* _shm_body0;
+    char* _shm_body1;
+    int _body_len;
+    butil::atomic<bool> _init_done;
+
+    MultiLevelHash<std::string, StrategyShmInfo>* shm_hash0;
+    MultiLevelHash<std::string, StrategyShmInfo>* shm_hash1;
+};
+```
+
+<font color=#00ffff>StrategyShm</font>负责管理存放策略结果的共享内存，不管是NameAgent进程还是其他业务进程，启动时都会通过`StrategyShm::Init()`初始化一块共享内存，区别在于NamaAgent进程是创建一块内存，而业务进程是attach到NameAgent创建的共享内存块上；创建完共享内存后，需要对内存块做些初始化工作，这里<font color=#00ffff>StrategyShm</font>采用了多阶hash结构<font color=#00ffff>MultiLevelHash</font>管理共享内存块，使用多阶hash有以下好处：
+1. 查找性能非常高，O(1)，由于冲突后的阶数相对固定，可以认为冲突时的性能也是O(1)
+2. 解决冲突的方法是跳下一阶，无需动态开内存，可以完美契合共享内存
+<center>
+    
+![multi_hash.png](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2d2f717720ad44f68d6f8379c2148148~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=634&h=378&s=18548&e=png&b=fefefe)
+</center>
+
+上图即为多阶hash的结构。为了尽量保证查找性能，我们控制Level只有4层。第一层元素个数为N1(25万)，N1:N2:N3:N4=8:4:2:1, 单个策略元素由`StrategyShmInfo`表示，大小约为50 Bytes(只用了22 Bytes, 其他28 Bytes作为保留字段)，所以整块多阶hash的内存为50*(250000+125000+62500+31250)约为24MB。目标是该多阶hash可以存储25万级的key，如果写入的时候，4阶都用满了，此时策略写入失败，只能告警出来，理论上只要总key量在25 万以内，一般不会出现。   
+
+这里策略使用的共享内存是典型的"一写多读"场景，写是超低频的，由StrategyThread周期性进行更新写入；读是高频的，由其他业务进程发起rpc做路由算法时访问。简单来做，加锁可以解决。但是由于写的时候涉及大量item的更新，一把大锁会导致此时全部读请求都阻塞一段较长时间，如果每个item都用一把锁，则又过于浪费。所以这里多阶hash和共享内存结合的时候，也使用了双buf的设计，总共申请约50M的内存，并在此内存块上初始化两条<font color=#00ffff>MultiLevelHash</font>:
+<center>
+    
+![image2018-8-29_10-17-49.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c5ce3218864c4d4182a825462b5a5fef~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=527&h=50&s=2236&e=png&b=fdfdfd)
+</center>
+
+整块共享内存分为3块：Head、M_hash0、M_hash1；其中M_hash0和M_hash1都是前面提到的多阶hash结构，而head大约20字节，里面主要有cur_hashtable_idx，只能是0或者1，分别表示使用当前使用M_hash0或者M_hash1，全部的hash查找都是基于cur_hashtable_idx找到对应的多阶hash表。
+
+从而在有新的一批策略需要写入的时，只需要先把`(cur_hashtable_id + 1) % 2`对应的多阶hash表先更新，然后再修改cur_hashtable_id的值，就完成了双表切换。全程避免了用锁。双表切换完之后，写线程等待一个足够长的时间，比如100ms, 再把老的cur_hashtable_id对应的那张表内容重置以便下次写入。
+
+#### 策略生成类——StrategyGenerator
+```c++
+class StrategyGenerator {
+public:
+    static void RegisterStrategy(const StrategyGenerator* p_strategy) {
+        brpc::Extension<const StrategyGenerator>::instance()->RegisterOrDie(STATEGY_NAME, p_strategy);
+    }
+
+    static const StrategyGenerator* GetRegisteredStrategy() {
+        return brpc::Extension<const StrategyGenerator>::instance()->Find(STATEGY_NAME);
+    }
+
+    /**
+     * UpdateStrategy is in charge of doing following works:
+     * 1. scan and read from cur_hash, merge changes and rewrite into backup_hashtable
+     * 2. then, switch to use backup_hashtable
+     * 3. reset origin cur_hashtable and clear stat_map(do not forget)
+     */
+    virtual int UpdateStrategy(std::unordered_map<std::string, ServerStats*>& stat_map) const = 0;
+};
+```
+<font color=#00ffff>StrategyGenerator</font>是一个抽象类，提供了注册和获取当前使用的StrategyGenerator实现的方法，用户需要继承StrategyGenerator并重写其`UpdateStrategy`方法以实现自己的熔断降级策略更新、生成算法。目前mc-brpc提供了两种StrategyGenerator的实现：<font color=#00ffff>DefaultStrategyGenerator</font>和<font color=#00ffff>McStrategyGenerator</font>。  
+
+<font color=#00ffff>DefaultStrategyGenerator</font>更新下游权重的思路比较简单，它直接根据上个统计周期内各个目标server(ip:port)的成功率来调整其访问占比权重，即某个server上周期内访问成功率为100，则设置其当前周期内访问权重为100；若上周期内成功率为80%，则设置当前周期内访问权重为80，算法实现为：
+1. 首先找到当前客户端读取的多阶hash策略表(cur_hash)，以及本次更新应写入的多阶hash(backup_hash)
+2. 扫描cur_hash，对于其中每个有效的策略item(`key_len != 0`)，如果在当前统计周期统计数据stat_map找到其key，则对该item做更新后插入到backup_hash；反之，如果在stat_map中未找到其key，可看该策略生成时间是否超过了策略最大生存时间(通过gflags参数max_lb_strategy_live_time_s可指定， 默认30s)，否则原样插入backup_hash，是则丢弃
+3. 针对在stat_map中出现却不在cur_hash中的ip:port(即首次出现的)，为其生成对应策略item并插入backup_hash
+4. 切换cur_hash和backup_hash前后台关系，即更新head中cur_shmboard_idx(`head->cur_shmboard_idx = (head->cur_shmboard_idx + 1) % 2`), 之后客户端读取策略信息即从backup_hash读取
+5. sleep一小会确保旧的hash（即上面的cur_hash）没再被使用，并重置其数据
+```c++
+int DefaultStrategyGenerator::UpdateStrategy(std::unordered_map<std::string, ServerStats*>& stat_map) const {
+    StrategyShm* shm = StrategyShm::GetInstance();
+    if (!shm || !shm->_shm_head) {
+        LOG(ERROR) << "fatal error: _shm_head is nullptr";
+        return -1;
+    }
+    StrategyShmHead* head = (StrategyShmHead*)shm->_shm_head;
+
+    MultiLevelHash<std::string, StrategyShmInfo>* volatile cur_hash =
+        (head->cur_shmboard_idx ? shm->shm_hash1 : shm->shm_hash0);
+    MultiLevelHash<std::string, StrategyShmInfo>* volatile backup_hash =
+        (head->cur_shmboard_idx ? shm->shm_hash0 : shm->shm_hash1);
+
+    uint32_t now = butil::gettimeofday_s();
+    for (uint32_t level = 0; level < cur_hash->GetMaxLevelNum(); ++level) {
+        unsigned int item_num = 0;
+        StrategyShmInfo* raw_hash_table = nullptr;
+        int ret = cur_hash->GetRawHashTable(level, raw_hash_table, item_num);
+        if (ret || !raw_hash_table) {
+            LOG(ERROR) << "failed to get raw hash table!";
+            return -2;
+        }
+
+        for (uint32_t k = 0; k < item_num; ++k) {
+            StrategyShmInfo* shm_info = raw_hash_table + k;
+            if (shm_info->key_len == 0) {
+                continue;
+            }
+
+            butil::EndPoint ep;
+            if (shm_info->Key2EndPoint(&ep) != 0) {
+                continue;
+            }
+            std::string key(butil::endpoint2str(ep).c_str());
+
+            auto it = stat_map.find(key);
+            if (it != stat_map.end()) {
+                // update pass_rate by stat
+                uint32_t succ_cnt = it->second->succ_cnt;
+                uint32_t total_req_cnt = it->second->succ_cnt + it->second->fail_cnt;
+                stat_map.erase(it);
+                if (total_req_cnt != 0) {
+                    double cur_pass_rate = 100 * (double)succ_cnt / total_req_cnt;
+                    StrategyShmInfo* backup_shm_info = backup_hash->Insert(*shm_info);
+                    if (backup_shm_info) {
+                        backup_shm_info->cur_req_cnt = total_req_cnt;
+                        backup_shm_info->pass_rate = (short)cur_pass_rate;
+                        backup_shm_info->strategy_time = now;
+                        continue;
+                    }
+                }
+            }
+
+            // when it == stat_map.end()
+            if (shm_info->strategy_time + FLAGS_max_lb_strategy_live_time_s > now) {
+                backup_hash->Insert(*shm_info);
+            }
+        }
+    }
+
+    // handle those not found in cur_hashtable
+    for (auto it = stat_map.begin(); it != stat_map.end();) {
+        uint32_t total_req_cnt = it->second->succ_cnt + it->second->fail_cnt;
+        if (total_req_cnt != 0) {
+            double cur_pass_rate = 100 * (double)it->second->succ_cnt / total_req_cnt;
+            StrategyShmInfo shm_info;
+            shm_info.MakeKey(it->second->ip.c_str(), it->second->port);
+            shm_info.pass_rate = (short)cur_pass_rate;
+            shm_info.cur_req_cnt = total_req_cnt;
+            shm_info.strategy_time = now;
+            backup_hash->Insert(shm_info);
+        }
+        stat_map.erase(it++);
+    }
+
+    // swicth to use new hashtable, wait 100ms then reset original cur_hashtable
+    head->cur_shmboard_idx = (head->cur_shmboard_idx + 1) % 2;
+    usleep(100 * 1000);
+    cur_hash->Reset();
+
+    return 0;
+}
+```
+
+由于对多阶hash的更新是在独立线程(StrategyThread)内完成，不存在并发多点写入情况，且使用了双buf设计，上述整个更新过程都是lock free的。
+
+<font color=#00ffff>McStrategyGenerator</font>更新下游访问权重的流程和步骤和<font color=#00ffff>DefaultStrategyGenerator</font>完全一致，只是计算通过率的方式不一样。McStrategyGenerator根据上个统计周期通过率、当前上报成功率即当前访问QPS来计算当前通过率，具体的策略算法如下：
+* 上个统计周期通过率为0，如果当前成功率大于80%，则将当前通过率设置为15%(可配置)
+* 上个统计周期通过率不为0，则根据../conf/lb_strategy_conf.json中的规则来更新当前通过率，lb_strategy_conf.json配置样例如下：
+```json
+{
+    "200": {
+        "30": -80,
+        "80": -30,
+        "99": -5,
+        "100": 80 
+    },
+    "500": {
+        "50": -80,
+        "80": -50,
+        "99": -10,
+        "100": 70
+    },
+    "1000": {
+        "70": -80,
+        "99": -20,
+        "100": 50
+    },
+    ...
+}
+```
+配置中第一层key为当前上报数(QPS), 第二层key为当前上报数据中成功率，value为当前通过率应该在上一统计周期通过率基础上增加或者减少(负数表示减少)的百分比。以配置的第一项为例稍加说明: 
+* 即在当前上报数(QPS)小于等于200的时候：
+* * 如果当前上保数据中成功率小于等于30%，则当前通过率在上个统计周期通过率基础上减少80%（调整后最低0）
+* * 如果当前上保数据中成功率大于30%但小于等于80%，则当前通过率在上个统计周期通过率基础上减少30%（调整后最低0）
+* * 如果当前上保数据中成功率大于80%但小于等于99%，则当前通过率在上个统计周期通过率基础上减少5%（调整后最低0）
+* * 如果当前上保数据中成功率为100%，则当前通过率在上个统计周期通过率基础上增加80%（调整后最大为100%）
+  
+从配置可以看出，再上报QPS相同的情况下，成功率越低，通过率下降越快；在成功率相同情况下，上报QPS越高，通过率下降越快，恢复越慢。这里配置的阈值都是固定写死在配置文件的，我们也可以通过一下AIOPS的手段动态调整各项阈值以获取更好的效果。
+```c++
+int McStrategyGenerator::UpdateStrategy(std::unordered_map<std::string, ServerStats*>& stat_map) const {
+    StrategyShm* shm = StrategyShm::GetInstance();
+    if (!shm || !shm->_shm_head) {
+        LOG(ERROR) << "fatal error: _shm_head is nullptr";
+        return -1;
+    }
+    StrategyShmHead* head = (StrategyShmHead*)shm->_shm_head;
+
+    MultiLevelHash<std::string, StrategyShmInfo>* volatile cur_hash =
+        (head->cur_shmboard_idx ? shm->shm_hash1 : shm->shm_hash0);
+    MultiLevelHash<std::string, StrategyShmInfo>* volatile backup_hash =
+        (head->cur_shmboard_idx ? shm->shm_hash0 : shm->shm_hash1);
+
+    uint32_t now = butil::gettimeofday_s();
+    for (uint32_t level = 0; level < cur_hash->GetMaxLevelNum(); ++level) {
+        unsigned int item_num = 0;
+        StrategyShmInfo* raw_hash_table = nullptr;
+        int ret = cur_hash->GetRawHashTable(level, raw_hash_table, item_num);
+        if (ret || !raw_hash_table) {
+            LOG(ERROR) << "failed to get raw hash table!";
+            return -2;
+        }
+
+        for (uint32_t k = 0; k < item_num; ++k) {
+            StrategyShmInfo* shm_info = raw_hash_table + k;
+            if (shm_info->key_len == 0) {
+                continue;
+            }
+
+            butil::EndPoint ep;
+            if (shm_info->Key2EndPoint(&ep) != 0) {
+                continue;
+            }
+            std::string key(butil::endpoint2str(ep).c_str());
+
+            auto it = stat_map.find(key);
+            if (it != stat_map.end()) {
+                uint32_t succ_cnt = it->second->succ_cnt;
+                uint32_t total_req_cnt = it->second->succ_cnt + it->second->fail_cnt;
+                stat_map.erase(it);
+                if (total_req_cnt == 0) {
+                    if (shm_info->strategy_time + FLAGS_max_lb_strategy_live_time_s > now) {
+                        backup_hash->Insert(*shm_info);
+                    }
+                } else {
+                    StrategyShmInfo* backup_shm_info = backup_hash->Insert(*shm_info);
+                    if (!backup_shm_info) {
+                        continue;
+                    }
+                    backup_shm_info->cur_req_cnt = total_req_cnt;
+                    backup_shm_info->strategy_time = now;
+
+                    double cur_pass_rate = 100 * (double)succ_cnt / total_req_cnt;
+                    if (shm_info->pass_rate == 0) {
+                        if (cur_pass_rate > 80) {
+                            backup_shm_info->pass_rate += 15;
+                        }
+                    } else {
+                        auto it1 = _strategy_config.lower_bound(total_req_cnt);
+                        if (it1 == _strategy_config.end()) {
+                            LOG(WARNING) << "startegy config not found, req_cnt:" << total_req_cnt;
+                            continue;
+                        }
+
+                        auto it2 = it1->second.lower_bound((uint32_t)cur_pass_rate);
+                        if (it2 == it1->second.end()) {
+                            LOG(WARNING) << "startegy config not found, req_cnt:" << total_req_cnt
+                                         << ", pass_rate:" << cur_pass_rate;
+                            continue;
+                        }
+                        backup_shm_info->pass_rate *= ((100 + it2->second) / 100.0);
+                        backup_shm_info->pass_rate = std::min(backup_shm_info->pass_rate, (short)100);
+                        backup_shm_info->pass_rate = std::max(backup_shm_info->pass_rate, (short)0);
+                    }
+                }
+            } else {
+                if (shm_info->strategy_time + FLAGS_max_lb_strategy_live_time_s > now) {
+                    backup_hash->Insert(*shm_info);
+                }
+            }
+        }
+    }
+
+    // handle those not found in cur_hashtable
+    for (auto it = stat_map.begin(); it != stat_map.end();) {
+        uint32_t total_req_cnt = it->second->succ_cnt + it->second->fail_cnt;
+        if (total_req_cnt != 0) {
+            double cur_pass_rate = 100 * (double)it->second->succ_cnt / total_req_cnt;
+            StrategyShmInfo shm_info;
+            shm_info.MakeKey(it->second->ip.c_str(), it->second->port);
+            shm_info.pass_rate = (short)cur_pass_rate;
+            shm_info.cur_req_cnt = total_req_cnt;
+            shm_info.strategy_time = now;
+            backup_hash->Insert(shm_info);
+        }
+        stat_map.erase(it++);
+    }
+
+    // swicth to use new hashtable, wait 20ms then reset original cur_hashtable
+    head->cur_shmboard_idx = (head->cur_shmboard_idx + 1) % 2;
+    usleep(100 * 1000);
+    cur_hash->Reset();
+
+    return 0;
+}
+```
+
+### 策略应用
+
 待实现。。。
 
 ## 7. DB连接管理
