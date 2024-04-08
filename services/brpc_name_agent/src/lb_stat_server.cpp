@@ -1,5 +1,5 @@
 #include "lb_stat_server.h"
-#include "core/lb_stat/lb_strategy.h"
+#include "core/lb_stat/strategy_generator.h"
 #include "butil/string_printf.h"
 #include "butil/time.h"
 #include <thread>

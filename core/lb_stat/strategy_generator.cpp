@@ -1,4 +1,4 @@
-#include "lb_strategy.h"
+#include "strategy_generator.h"
 #include "json2pb/rapidjson.h"
 #include <gflags/gflags.h>
 
