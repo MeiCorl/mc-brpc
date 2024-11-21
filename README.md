@@ -372,7 +372,7 @@ void EtcdServiceRegister::UnRegisterService() {
 ```
 
 ### NameAgent名字服务代理
-mc-brpc服务并不直接从服务中心做服务发现，而是引入了一个基础服务brpc_name_agent作为名字服务代理。brpc_name_agent本身也是基于mc-brpc创建，它包含两个功能模块<font color=#00ffff>NameServiceProxy</font>和<font color=#00ffff>LbStatSvr</font>(LbStatSvr此处不做过多介绍，后续客户端主动容灾章节详细介绍)。其中<font color=#00ffff>NameServiceProxy</font>作用主要是最为名字服务的代理，它从etcd订阅了key事件通知，当有新的服务实例注册或者取消注册时，<font color=#00ffff>NameServiceProxy</font>将对应服务实例信息添加至本地内存或者从本地内存移除(典型读多写少场景，使用<font color=#00ffff>DoublyBufferedData</font>存储数据)。因此，每个name_agent实例都包含全部注册到etcd的服务实例信息。默认情况下，brpc_name_agent使用unix域套接字进行通信(unix:/var/brpc_name_agent.sock)，因此它不需要注册到etcd中，name_agent进程需要部署到每个服务器上供该服务器上的其他mc-brpc服务进程做服务发现。
+mc-brpc服务并不直接从服务中心做服务发现，而是引入了一个基础服务brpc_name_agent作为名字服务代理。brpc_name_agent本身也是基于mc-brpc创建，它包含两个功能模块<font color=#00ffff>NameServiceProxy</font>和<font color=#00ffff>LbStatSvr</font>(LbStatSvr此处不做过多介绍，后续客户端主动容灾章节详细介绍)。其中<font color=#00ffff>NameServiceProxy</font>作用主要是作为名字服务的代理，它从etcd订阅了key事件通知，当有新的服务实例注册或者取消注册时，<font color=#00ffff>NameServiceProxy</font>将对应服务实例信息添加至本地内存或者从本地内存移除(典型读多写少场景，使用<font color=#00ffff>DoublyBufferedData</font>存储数据)。因此，每个name_agent实例都包含全部注册到etcd的服务实例信息。默认情况下，brpc_name_agent使用unix域套接字进行通信(unix:/var/brpc_name_agent.sock)，因此它不需要注册到etcd中，name_agent进程需要部署到每个服务器上供该服务器上的其他mc-brpc服务进程做服务发现。
 ```c++
 void NameServiceProxy::WatcherCallback(etcd::Response response) {
     for (const etcd::Event& ev : response.events()) {
