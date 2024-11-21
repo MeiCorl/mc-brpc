@@ -458,11 +458,11 @@ scrape_configs:
       files:
         - /etc/prometheus/instance.json
 ```
-这里我们配置了一个Prometheus指标抓取任务default_metrics，监控目标从/etc/prometheus/instance.json去发现，*注意: metrics_path需要指定为brpc_metrics, brpc服务默认metrics到处路径为/brpc_metrics(后面我们还会新增一个mc_server_metrics的任务，用于从/metrics抓取我们自定义的多维指标)*, 以下是通过[grafana](https://grafana.com/)对prometheus采集的服务指标进行可视化的示例：
+这里我们配置了一个Prometheus指标抓取任务default_metrics，监控目标从/etc/prometheus/instance.json去发现，*注意: metrics_path需要指定为brpc_metrics, brpc服务默认metrics导出路径为/brpc_metrics(后面我们还会新增一个mc_server_metrics的任务，用于从/metrics抓取我们自定义的多维指标)*, 以下是通过[grafana](https://grafana.com/)对prometheus采集的服务指标进行可视化的示例：
 ![image.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d818623c7d1840c383e10949518920aa~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2560&h=1239&s=261197&e=png&b=181b1f)
 
 ### 服务发现
-brpc支持用户扩展NamingService实现自定义的服务发现，mc-brpc在此基础上扩展实现了<font color=#00ffff>McNamingService</font>, 它继承实现了<font color=#00ffff>brpc::PeriodicNamingService</font>，周期性的(默认每个5秒)从<font color=#00ffff>brpc_name_agent</font>按**指定大区机房策略**更新服务实例节点信息。
+brpc支持用户扩展NamingService实现自定义的服务发现，mc-brpc在此基础上扩展实现了<font color=#00ffff>McNamingService</font>, 它继承实现了<font color=#00ffff>brpc::PeriodicNamingService</font>，周期性的(默认每个5秒)从<font color=#00ffff>brpc_name_agent</font>按**指定路由策略**更新服务实例节点信息。
 ```c++
 int McNamingService::GetServers(const char* service_name, std::vector<ServerNode>* servers) {
     if (!_name_agent_inited) {
