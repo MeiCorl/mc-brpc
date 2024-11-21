@@ -156,8 +156,11 @@ MCServer::MCServer(int argc, char* argv[]) {
         fclose(file);
     }
 
-    // 创建brpc server（会额外触发server.conf全局配置解析)
-    _server = new brpc::Server(utils::Singleton<ServerConfig>::get()->GetSelfName());
+    // 解析server.conf
+    ServerConfig* svr_config = ServerConfig::GetInstance();
+
+    // 创建brpc server
+    _server = new brpc::Server(svr_config->GetSelfName());
 
     // 初始化日志
     LoggingInit(argv);
