@@ -262,6 +262,38 @@ void MCServer::Start(bool register_service) {
 
 ### 退出过程
 退出过程相对简单。销毁日志监听线程、日志归档线程、rpc上报线程等，从服务中心取消注册并停止etcd租约续期等。
+```c++
+MCServer::~MCServer() {
+    // 取消服务注册
+    if (_service_register != nullptr) {
+        _service_register->UnRegisterService();
+    }
+
+    // 停止lb上报线程
+    server::lb_stat::LbStatClient::GetInstance()->Stop();
+
+    // 停止日志watcher
+    _log_watcher.reset();
+    _log_archive_worker.reset();
+#if defined(USE_ASYNC_LOGSINK)
+    logging::LogSink* old_sink = logging::SetLogSink(nullptr);
+    if (old_sink) {
+        delete old_sink;
+    }
+#elif defined(USE_FAST_LOGSINK)
+    logging::LogSink* old_sink = logging::SetLogSink(nullptr);
+    if (old_sink) {
+        delete old_sink;
+    }
+#endif
+
+    // 销毁brpc::Server
+    if (_server) {
+        delete _server;
+        _server = nullptr;
+    }
+}
+```
 
 ## 2. 服务注册及发现
 ### 服务注册
